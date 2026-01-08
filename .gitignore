@@ -1,0 +1,84 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments (keep only ONE env active; ignore all common names)
+venv/
+env/
+ENV/
+.venv/
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+.cursorrules
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Databases / Local state
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+checkpoints.db
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+.coverage.*
+.pyre/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Build / Packaging
+# =========================
+dist/
+build/
+*.egg-info/
+*.whl
+
+# =========================
+# Temporary
+# =========================
+tmp/
+temp/
+
+# =========================
+# Project-specific outputs
+# =========================
+research_results/
+research_report_*.html
+
+
