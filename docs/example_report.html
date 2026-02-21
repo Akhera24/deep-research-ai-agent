@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Due Diligence Report: Jensen Huang</title>
+    <style>
+        /* ── Reset & Base ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f1f5f9; 
+            padding: 20px; 
+            line-height: 1.6; 
+            color: #1e293b;
+        }
+        
+        /* ── Container ── */
+        .container { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08); 
+            overflow: hidden; 
+        }
+        
+        /* ── Header ── */
+        .header { 
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 50%, #3b82f6 100%); 
+            color: white; 
+            padding: 48px 40px 36px; 
+        }
+        .header h1 { font-size: 1.1em; font-weight: 400; opacity: 0.9; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+        .header h2 { font-size: 2.4em; font-weight: 700; margin-bottom: 16px; }
+        .header-meta { display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.95em; opacity: 0.85; }
+        .score-hero { 
+            display: flex; align-items: center; gap: 16px; 
+            margin-top: 24px; padding: 16px 24px; 
+            background: rgba(255,255,255,0.12); border-radius: 12px; 
+            backdrop-filter: blur(10px);
+        }
+        .score-number { font-size: 3em; font-weight: 800; line-height: 1; }
+        .score-details { font-size: 1.1em; }
+        .score-grade { font-size: 1.4em; font-weight: 700; }
+        
+        /* ── Executive Summary ── */
+        .exec-summary { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 24px; 
+            padding: 32px 40px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; 
+        }
+        .summary-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .summary-card h3 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+        
+        /* ── Score Breakdown ── */
+        .score-component { margin-bottom: 12px; }
+        .score-comp-header { display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 4px; }
+        .score-comp-bar-bg { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .score-comp-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        
+        /* ── Coverage Bars ── */
+        .coverage-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .coverage-label { width: 100px; font-size: 0.85em; color: #475569; }
+        .coverage-bar-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .coverage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .coverage-pct { width: 50px; font-size: 0.85em; color: #475569; text-align: right; }
+        
+        /* ── Strengths/Recommendations ── */
+        .sr-list { list-style: none; padding: 0; }
+        .sr-list li { padding: 6px 0; font-size: 0.9em; border-bottom: 1px solid #f1f5f9; }
+        .sr-list li:last-child { border: none; }
+        .summary-card-wide { grid-column: 1 / -1; }
+        .strength-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .strength-card {
+            display: flex; gap: 12px; padding: 14px 16px;
+            background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+            transition: box-shadow 0.2s;
+        }
+        .strength-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .strength-icon { font-size: 1.6em; flex-shrink: 0; }
+        .strength-body { flex: 1; min-width: 0; }
+        .strength-title { font-weight: 700; font-size: 0.85em; color: #334155; }
+        .strength-metric { font-size: 1.4em; font-weight: 800; line-height: 1.2; }
+        .strength-unit { font-size: 0.45em; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .strength-detail { font-size: 0.78em; color: #64748b; margin-top: 2px; line-height: 1.4; }
+        
+        /* ── Search Box ── */
+        .search-container { padding: 16px 40px; border-bottom: 1px solid #e2e8f0; }
+        .search-box { 
+            width: 100%; padding: 12px 20px; border: 2px solid #e2e8f0; border-radius: 10px; 
+            font-size: 15px; outline: none; transition: border 0.2s;
+        }
+        .search-box:focus { border-color: #3b82f6; }
+        
+        /* ── Sections ── */
+        .section { border-bottom: 1px solid #e2e8f0; }
+        .section-header { 
+            padding: 20px 40px; background: #f8fafc; cursor: pointer; 
+            font-size: 1.1em; font-weight: 600; color: #1e293b; 
+            display: flex; justify-content: space-between; align-items: center;
+            user-select: none; transition: background 0.2s;
+        }
+        .section-header:hover { background: #f1f5f9; }
+        .section-header .arrow { transition: transform 0.3s; font-size: 0.8em; }
+        .section-header.open .arrow { transform: rotate(180deg); }
+        .section-content { 
+            padding: 0 40px; 
+            max-height: 0; overflow: hidden; 
+            transition: max-height 0.4s ease, padding 0.3s ease; 
+        }
+        .section-content.open { 
+            max-height: none;  /* NO HEIGHT LIMIT — was 5000px, caused truncation */
+            padding: 24px 40px; 
+            overflow: visible;
+        }
+        
+        /* ── Category Tabs ── */
+        .category-tabs { 
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; 
+            padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; 
+        }
+        .cat-tab { 
+            padding: 6px 14px; border: 1px solid #e2e8f0; border-radius: 20px; 
+            background: white; font-size: 0.85em; cursor: pointer; transition: all 0.2s;
+        }
+        .cat-tab:hover { border-color: #3b82f6; color: #3b82f6; }
+        .cat-tab.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        
+        /* ── Facts ── */
+        .fact { 
+            background: white; padding: 16px 20px; margin: 8px 0; 
+            border: 1px solid #e2e8f0; border-radius: 10px; 
+            border-left: 4px solid #3b82f6; transition: box-shadow 0.2s;
+        }
+        .fact:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; }
+        .fact-high { border-left-color: #10b981; }
+        .fact-med { border-left-color: #f59e0b; }
+        .fact-low { border-left-color: #ef4444; }
+        .fact-header { 
+            display: flex; align-items: center; gap: 10px; 
+            margin-bottom: 8px; flex-wrap: wrap;
+        }
+        .fact-number { font-weight: 700; color: #94a3b8; font-size: 0.85em; }
+        .fact-category { 
+            padding: 2px 10px; border-radius: 12px; 
+            font-size: 0.75em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .confidence { font-size: 0.8em; color: #64748b; margin-left: auto; }
+        .verified-badge { color: #10b981; font-weight: 600; }
+        .fact-content { font-size: 0.95em; line-height: 1.7; }
+        
+        /* ── Merged Fact Badge ── */
+        .merged-badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+            background: #dbeafe; color: #1d4ed8; white-space: nowrap;
+        }
+        
+        /* ── Trend Badge on Facts ── */
+        .trend-badge-fact {
+            padding: 1px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        /* ── Consolidation Banner ── */
+        .consolidation-banner {
+            padding: 10px 16px; margin-bottom: 16px; border-radius: 8px;
+            background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+            font-size: 0.85em; font-weight: 500;
+        }
+        
+        /* ── Risk Category Label (styled pill) ── */
+        .risk-category-label {
+            padding: 3px 12px; border-radius: 12px; font-size: 0.78em;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        /* ── Multi-select Category Tabs ── */
+        .cat-tab.selected { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+        
+        /* ── Detail rows for merged/trend info ── */
+        .detail-merged { font-size: 0.85em; color: #1d4ed8; padding: 4px 0; }
+        .detail-trend { font-size: 0.85em; color: #7c3aed; padding: 4px 0; }
+        
+        /* ── Expandable Fact Details ── */
+        .fact-details { 
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+            padding: 0; margin-top: 0; border-top: none;
+        }
+        .fact.expanded .fact-details {
+            max-height: 500px; padding: 12px 0; margin-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .expand-icon { 
+            font-size: 0.8em; color: #94a3b8; transition: transform 0.3s;
+            margin-left: 8px;
+        }
+        .fact.expanded .expand-icon { transform: rotate(90deg); }
+        .detail-evidence { 
+            font-size: 0.85em; color: #475569; font-style: italic; 
+            padding: 6px 12px; margin: 4px 0; background: #f8fafc; 
+            border-left: 3px solid #cbd5e1; border-radius: 0 6px 6px 0;
+        }
+        .detail-verified { font-size: 0.85em; color: #059669; padding: 4px 0; }
+        .detail-unverified { font-size: 0.85em; color: #94a3b8; padding: 4px 0; }
+        .detail-entities { font-size: 0.85em; color: #6366f1; padding: 4px 0; }
+        .detail-risk { 
+            font-size: 0.85em; color: #ea580c; padding: 6px 10px; 
+            margin: 4px 0; background: #fff7ed; border-radius: 6px;
+        }
+        
+        /* ── Risk Badges on Facts ── */
+        .risk-badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 0.7em;
+            font-weight: 700; color: white; text-transform: uppercase;
+            letter-spacing: 0.3px; vertical-align: middle;
+        }
+        
+        /* ── Sort Controls ── */
+        .sort-controls {
+            display: flex; align-items: center; gap: 8px; 
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .sort-label { font-size: 0.85em; color: #64748b; font-weight: 600; }
+        .sort-btn {
+            padding: 4px 12px; border: 1px solid #e2e8f0; border-radius: 16px;
+            background: white; font-size: 0.8em; cursor: pointer; transition: all 0.2s;
+        }
+        .sort-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+        .sort-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
+        
+        /* ── Trend Analysis ── */
+        .trend-group {
+            margin-bottom: 20px; padding: 16px 20px;
+            background: #f8fafc; border-radius: 10px;
+            border-left: 4px solid #e2e8f0;
+        }
+        .trend-header {
+            font-size: 1.05em; font-weight: 700; margin-bottom: 10px;
+        }
+        .trend-item {
+            font-size: 0.9em; color: #334155; padding: 4px 0;
+            line-height: 1.6;
+        }
+        .trend-recent {
+            display: inline-block; padding: 1px 8px; border-radius: 10px;
+            font-size: 0.7em; font-weight: 700; background: #dbeafe;
+            color: #1d4ed8; vertical-align: middle; margin-left: 6px;
+        }
+        .no-data { color: #94a3b8; font-style: italic; }
+        
+        /* ── Connection Type Colors (expanded palette) ── */
+        .conn-type { 
+            padding: 3px 10px; border-radius: 12px; font-size: 0.75em; 
+            font-weight: 600; text-transform: lowercase; 
+        }
+        .conn-type-leadership { background: #dbeafe; color: #1e40af; }
+        .conn-type-family { background: #fce7f3; color: #be185d; }
+        .conn-type-colleague { background: #e0e7ff; color: #4338ca; }
+        .conn-type-employer { background: #d1fae5; color: #065f46; }
+        .conn-type-education { background: #fef3c7; color: #92400e; }
+        .conn-type-board_member { background: #e0e7ff; color: #3730a3; }
+        .conn-type-investor_partner { background: #dcfce7; color: #166534; }
+        .conn-type-predecessor_successor { background: #f1f5f9; color: #475569; }
+        .conn-type-recognition { background: #fef9c3; color: #a16207; }
+        .conn-type-political { background: #fee2e2; color: #991b1b; }
+        .conn-type-philanthropy { background: #f3e8ff; color: #7e22ce; }
+        .conn-type-co-founder { background: #cffafe; color: #0e7490; }
+        .conn-type-friend { background: #fce7f3; color: #9d174d; }
+        .conn-type-mentor { background: #e0f2fe; color: #0369a1; }
+        .conn-type-regulatory { background: #fef2f2; color: #b91c1c; }
+        
+        /* ── Trend Analysis ── */
+        .trend-group { margin-bottom: 16px; }
+        .trend-header { font-weight: 700; font-size: 1em; margin-bottom: 6px; }
+        .trend-item { font-size: 0.9em; color: #334155; padding: 4px 0 4px 8px; line-height: 1.5; }
+        .trend-recent { 
+            display: inline-block; padding: 1px 6px; border-radius: 8px;
+            background: #dbeafe; color: #1e40af; font-size: 0.75em; font-weight: 700;
+            vertical-align: middle; margin-left: 6px;
+        }
+        .no-data { color: #94a3b8; font-style: italic; }
+        
+        /* ── Pagination ── */
+        .pagination { 
+            display: flex; justify-content: center; align-items: center; gap: 16px; 
+            padding: 20px 0; margin-top: 16px; border-top: 1px solid #e2e8f0; 
+        }
+        .page-btn { 
+            padding: 8px 20px; border: 1px solid #3b82f6; border-radius: 8px; 
+            background: white; color: #3b82f6; font-weight: 600; cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) { background: #3b82f6; color: white; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-info { font-size: 0.9em; color: #64748b; }
+        
+        /* ── Connections ── */
+        .connection { 
+            background: white; padding: 16px 20px; margin: 8px 0; 
+            border: 1px solid #e2e8f0; border-radius: 10px; border-left: 4px solid #8b5cf6;
+        }
+        .conn-entities { font-weight: 700; font-size: 1.05em; margin-bottom: 6px; color: #1e293b; }
+        .conn-meta { display: flex; gap: 12px; margin-bottom: 8px; }
+        .conn-type { 
+            padding: 2px 10px; border-radius: 12px; 
+            font-size: 0.8em; font-weight: 600; 
+        }
+        .conn-period { font-size: 0.85em; color: #64748b; }
+        .strength-bar-container { 
+            display: flex; align-items: center; gap: 8px; margin-top: 4px; 
+        }
+        .strength-bar-container > div:first-child { 
+            flex: 1; height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; position: relative; 
+        }
+        .strength-bar { height: 100%; border-radius: 3px; }
+        .strength-label { font-size: 0.8em; color: #64748b; min-width: 36px; }
+        .conn-evidence { font-size: 0.8em; color: #94a3b8; margin-top: 6px; font-style: italic; }
+        
+        /* ── Risks ── */
+        .risk { 
+            padding: 18px 22px; margin: 10px 0; border-radius: 10px; 
+        }
+        .risk-header { 
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; 
+        }
+        .risk-header strong { font-size: 0.9em; }
+        .severity { 
+            padding: 3px 12px; border-radius: 12px; font-size: 0.75em; 
+            font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .risk-desc { font-size: 0.95em; line-height: 1.7; margin-bottom: 10px; }
+        .risk-meta { 
+            display: flex; flex-wrap: wrap; gap: 16px; 
+            font-size: 0.8em; color: #64748b; 
+        }
+        .no-data { text-align: center; padding: 40px; color: #94a3b8; font-size: 1.1em; }
+        
+        /* ── Footer ── */
+        .footer { 
+            padding: 24px 40px; background: #f8fafc; 
+            font-size: 0.8em; color: #94a3b8; text-align: center; 
+        }
+        
+        /* ── Print ── */
+        @media print {
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; }
+            .search-container, .pagination, .cat-tab { display: none !important; }
+            .section-content { max-height: none !important; padding: 20px 40px !important; overflow: visible !important; }
+            .fact { break-inside: avoid; }
+        }
+        
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            .exec-summary { grid-template-columns: 1fr; }
+            .header { padding: 28px 20px; }
+            .section-header, .section-content, .section-content.open { padding-left: 20px; padding-right: 20px; }
+            .search-container { padding: 12px 20px; }
+            .header h2 { font-size: 1.8em; }
+            .score-number { font-size: 2.2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ═══ HEADER ═══ -->
+        <div class="header">
+            <h1>🔍 Deep Research — Due Diligence Report</h1>
+            <h2>Jensen Huang</h2>
+            <div class="header-meta">
+                <span>📅 February 20, 2026 at 08:48 PM</span>
+                <span>⏱️ 327s (5.4 min)</span>
+                <span>🔄 4 iterations</span>
+                <span>🔎 20 searches</span>
+            </div>
+            <div class="score-hero">
+                <div class="score-number">96.9</div>
+                <div class="score-details">
+                    <div class="score-grade">Grade A — Excellent</div>
+                    <div>out of 100 points</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ═══ EXECUTIVE SUMMARY ═══ -->
+        <div class="exec-summary">
+            <div class="summary-card">
+                <h3>📊 Score Breakdown</h3>
+                
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Fact Quality</span>
+                <span>33.0/35</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:94%;background:#3b82f6"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Coverage</span>
+                <span>23.9/25</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:96%;background:#10b981"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Risk Assessment</span>
+                <span>20.0/20</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:100%;background:#ef4444"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Connections</span>
+                <span>20.0/20</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:100%;background:#8b5cf6"></div>
+            </div>
+        </div>
+        
+            </div>
+            <div class="summary-card">
+                <h3>📈 Research Coverage</h3>
+                
+        <div class="coverage-row">
+            <span class="coverage-label">Biographical</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:100%;background:#3b82f6"></div>
+            </div>
+            <span class="coverage-pct">99.7%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Professional</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:100%;background:#8b5cf6"></div>
+            </div>
+            <span class="coverage-pct">100.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Financial</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:100%;background:#10b981"></div>
+            </div>
+            <span class="coverage-pct">100.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Legal</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:82%;background:#ef4444"></div>
+            </div>
+            <span class="coverage-pct">82.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Behavioral</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:98%;background:#f59e0b"></div>
+            </div>
+            <span class="coverage-pct">97.8%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Connections</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:82%;background:#06b6d4"></div>
+            </div>
+            <span class="coverage-pct">82.0%</span>
+        </div>
+        
+            </div>
+            <div class="summary-card summary-card-wide">
+                <h3>💪 Research Intelligence</h3>
+                <div class="strength-grid">
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#10b981">🔬</div>
+            <div class="strength-body">
+                <div class="strength-title">Deep Fact Discovery</div>
+                <div class="strength-metric" style="color:#10b981">110 <span class="strength-unit">facts</span></div>
+                <div class="strength-detail">110 unique facts extracted across 6 research categories</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#10b981">✅</div>
+            <div class="strength-body">
+                <div class="strength-title">Cross-Verified Intelligence</div>
+                <div class="strength-metric" style="color:#10b981">57% <span class="strength-unit">verified</span></div>
+                <div class="strength-detail">63 of 110 facts independently confirmed across multiple sources</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#3b82f6">🎯</div>
+            <div class="strength-body">
+                <div class="strength-title">High-Quality Sources</div>
+                <div class="strength-metric" style="color:#3b82f6">82% <span class="strength-unit">avg confidence</span></div>
+                <div class="strength-detail">93 of 110 facts exceed 70% confidence threshold</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#ef4444">🛡️</div>
+            <div class="strength-body">
+                <div class="strength-title">Comprehensive Risk Scan</div>
+                <div class="strength-metric" style="color:#ef4444">5 <span class="strength-unit">risks identified</span></div>
+                <div class="strength-detail">Multi-category assessment: 1 HIGH, 2 LOW, 2 MEDIUM</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#8b5cf6">📊</div>
+            <div class="strength-body">
+                <div class="strength-title">Full Research Coverage</div>
+                <div class="strength-metric" style="color:#8b5cf6">6/6 <span class="strength-unit">categories</span></div>
+                <div class="strength-detail">93.6% average coverage across all research dimensions</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#06b6d4">🕸️</div>
+            <div class="strength-body">
+                <div class="strength-title">Rich Network Mapping</div>
+                <div class="strength-metric" style="color:#06b6d4">17 <span class="strength-unit">connections</span></div>
+                <div class="strength-detail">17 relationships mapped across 9 relationship types</div>
+            </div>
+        </div></div>
+            </div>
+            <div class="summary-card">
+                <h3>📋 Recommendations</h3>
+                <ul class="sr-list"><li>No improvements needed</li></ul>
+            </div>
+        </div>
+        
+        <!-- ═══ SEARCH ═══ -->
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchInput" 
+                   placeholder="🔍 Search across all facts, connections, and risks..." 
+                   onkeyup="searchContent()">
+        </div>
+        
+        <!-- ═══ RISK FLAGS ═══ -->
+        <div class="section">
+            <div class="section-header open" onclick="toggleSection(this)">
+                ⚠️ Risk Flags (5)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+            <div class="risk" style="background:#fff7ed;border-left:4px solid #ea580c">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#ef444418;color:#ef4444;border:1px solid #ef444440">LEGAL</span>
+                    <span class="severity" style="background:#ea580c">HIGH</span>
+                </div>
+                <div class="risk-desc">Active securities fraud class action with Ninth Circuit involvement. The court revived Section 10(b) and Rule 10b-5 claims, finding plaintiffs adequately alleged Huang made false or misleading statements knowingly or recklessly regarding Nvidia's crypto-related revenue in 2017-2018.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 85%</span>
+                    <span>Impact: 8/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: 36, 91, 92, 93</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#f9731618;color:#f97316;border:1px solid #f9731640">COMPLIANCE</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. While conducted through 10b5-1 plans, the unidirectional selling pattern totaling hundreds of millions raises questions about insider confidence and timing.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 84%</span>
+                    <span>Impact: 6/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: 44, 45, 46, 47, 49, 50, 51, 77, 78, 79, 82</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">TAX</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Large foundation established with $300 million initial donation of Nvidia stock. While charitable giving is positive, such structures can provide significant tax benefits and warrant scrutiny for potential tax avoidance strategies.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 75%</span>
+                    <span>Impact: 5/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: 30, 31</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#10b98118;color:#10b981;border:1px solid #10b98140">FINANCIAL</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia worth $158-170 billion). While not improper, creates extreme exposure to single company risk and potential conflicts in corporate decision-making.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 80%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: 69, 70, 71, 73, 90</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#8b5cf618;color:#8b5cf6;border:1px solid #8b5cf640">REPUTATIONAL</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Public statements about U.S. losing AI edge to China and need for infrastructure reform could be perceived as politically sensitive. May attract regulatory or political scrutiny given Nvidia's strategic importance.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 70%</span>
+                    <span>Impact: 3/10</span>
+                    <span>Trend: Emerging</span>
+                    <span>Evidence: 41, 42</span>
+                </div>
+            </div>
+            
+            </div>
+        </div>
+        
+        <!-- ═══ ALL FACTS ═══ -->
+        <div class="section">
+            <div class="section-header open" onclick="toggleSection(this)">
+                📋 Research Facts (95 unique findings from 110 raw)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+    <div class="sort-controls">
+        <span class="sort-label">Sort by:</span>
+        <button class="sort-btn active" onclick="sortFacts('default')">Default</button>
+        <button class="sort-btn" onclick="sortFacts('confidence-desc')">Highest Confidence</button>
+        <button class="sort-btn" onclick="sortFacts('confidence-asc')">Lowest Confidence</button>
+        <button class="sort-btn" onclick="sortFacts('risk')">⚠️ Risk-Linked</button>
+        <button class="sort-btn" onclick="sortFacts('trend')">📊 Trend-Linked</button>
+    </div>
+    <div class="category-tabs" id="categoryTabs"><button class="cat-tab active" data-cat="all" onclick="toggleCategory(this, 'all')">All (95)</button><button class="cat-tab" data-cat="biographical" onclick="toggleCategory(this, 'biographical')">👤 Biographical (16)</button><button class="cat-tab" data-cat="professional" onclick="toggleCategory(this, 'professional')">💼 Professional (22)</button><button class="cat-tab" data-cat="financial" onclick="toggleCategory(this, 'financial')">💰 Financial (34)</button><button class="cat-tab" data-cat="legal" onclick="toggleCategory(this, 'legal')">⚖️ Legal (6)</button><button class="cat-tab" data-cat="behavioral" onclick="toggleCategory(this, 'behavioral')">🗣️ Behavioral (12)</button><button class="cat-tab" data-cat="connections" onclick="toggleCategory(this, 'connections')">🔗 Connections (5)</button></div><div class="consolidation-banner">🧠 110 raw facts intelligently consolidated into 95 unique findings — duplicates merged, detail preserved</div><div id="factsContainer">
+        <div class="fact fact-high" data-category="professional" data-index="1" data-confidence="93.06" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#1</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="4 similar facts consolidated">🔗 4 merged</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Chris Malachowsky and Curtis Priem selected Jensen Huang to serve as CEO of NVIDIA.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "NVIDIA President &amp; CEO Jen-Hsun (Jensen) Huang"</div>
+<div class="detail-evidence">📝 "Jensen Huang, the co-founder and CEO of Nvidia, purchased a mansion in San Francisco, California for $38 million in 2017."</div>
+<div class="detail-evidence">📝 "...and chief executive officer (CEO) of Nvidia..."</div>
+<div class="detail-verified">✅ Cross-verified across 4 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Chris Malachowsky, Nvidia, Curtis Priem</div>
+<div class="detail-merged">🔗 Consolidated from 4 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="2" data-confidence="93.06" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#2</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has served as president of NVIDIA since its inception in 1993.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "NVIDIA President &amp; CEO Jen-Hsun (Jensen) Huang"</div>
+<div class="detail-evidence">📝 "Jensen Huang founded NVIDIA in 1993 and has served since its inception as president"</div>
+<div class="detail-verified">✅ Cross-verified across 4 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, President</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="3" data-confidence="93.06" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#3</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="3 similar facts consolidated">🔗 3 merged</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang founded NVIDIA in April 1993 with Chris Malachowsky and Curtis Priem.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang founded NVIDIA in 1993"</div>
+<div class="detail-evidence">📝 "In April 1993 Huang founded NVIDIA with fellow microchip designers Chris Malachowsky and Curtis Priem"</div>
+<div class="detail-evidence">📝 "founded it along with Chris Malachowsky and Curtis Priem in 1993."</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: April, Jensen Huang, Chris Malachowsky, Curtis Priem</div>
+<div class="detail-merged">🔗 Consolidated from 3 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="4" data-confidence="93.06" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#4</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Prior to founding NVIDIA, Jensen Huang held positions at Advanced Micro Devices, Inc. from 1984 to 1985.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "and from 1984 to 1985 at Advanced Micro Devices, Inc."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Inc, Jensen Huang, Advanced Micro Devices, Prior</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="5" data-confidence="89.52000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#5</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 90% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's wife is Lori Huang.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang and his wife, Lori Huang"</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Lori Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="6" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#6</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is the founder of Nvidia.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "...who is the founder...of Nvidia..."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="7" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#7</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has served as a member of the board of directors of NVIDIA since its inception.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "and a member of the board of directors."</div>
+<div class="detail-evidence">📝 "Jensen Huang founded NVIDIA in 1993 and has served since its inception as ... a member of the board of directors."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="8" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#8</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Prior to founding NVIDIA, Jensen Huang held various positions at LSI Logic Corp. from 1985 to 1993.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang held a variety of positions from 1985 to 1993 at LSI Logic Corp."</div>
+<div class="detail-evidence">📝 "Prior to founding NVIDIA, Mr. Huang held a variety of positions from 1985 to 1993 at LSI Logic Corp."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Logic Corp, Prior</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="9" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#9</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang earned a master's degree in electrical engineering from Stanford University in 1992.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "he earned a master's degree in electrical engineering in 1992."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Stanford University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="10" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#10</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang studied at Oregon State University.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang studied at Oregon State University"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Oregon State University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="11" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#11</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang holds a BSEE degree from Oregon State University.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "He holds a BSEE degree from Oregon State University"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Oregon State University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="12" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#12</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang holds an MSEE degree from Stanford University.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "and an MSEE degree from Stanford University."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Stanford University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="13" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#13</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang received his undergraduate degree in electrical engineering from Oregon State University in 1984.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen received his undergraduate degree in electrical engineering from Oregon State University in 1984"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Oregon State University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="connections" data-index="14" data-confidence="88.26" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#14</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">As a freshman at Oregon State University, Jensen Huang's lab partner in electrical engineering fundamentals was Lori Mills.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "As a freshman at Oregon State University, his lab partner in electrical engineering fundamentals was Lori Mills"</div>
+<div class="detail-evidence">📝 "During his time at Oregon State, he met Lori Mills, who happened to be his lab partner in an engineering course."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: As, Oregon State University, Jensen Huang, Lori Mills</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="15" data-confidence="88.06" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#15</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 88% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has served as chief executive officer of NVIDIA since its inception in 1993.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang founded NVIDIA in 1993 and has served since its inception as ... chief executive officer"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="16" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#16</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang and Lori moved to San Jose after he graduated from Oregon State.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "After graduating from Oregon State, Jensen and Lori moved to San Jose"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Oregon State, Jensen Huang, San Jose, Lori</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="17" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#17</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang worked at LSI Logic.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "when I was at LSI Logic"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Logic</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="18" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#18</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang purchased a mansion in San Francisco, California for $38 million in 2017.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang, the co-founder and CEO of Nvidia, purchased a mansion in San Francisco, California for $38 million in 2017."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, San Francisco, California</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="19" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#19</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold a home in Los Altos, California for $9.9 million in 2022.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang sold a third home in Los Altos, California (pictured) for $9.9 million in 2022"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Los Altos, California</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="connections" data-index="20" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#20</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang secured funding for Nvidia from LSI's CEO, Wilfred Corrigan.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang remained in good standing with the company and was able to secure funding for Nvidia from LSI's CEO, Wilfred Corrigan"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia, Wilfred Corrigan</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="connections" data-index="21" data-confidence="86.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#21</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                
+                <span class="confidence">Confidence: 87% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Wilfred Corrigan introduced Jensen Huang to venture capitalist Don Valentine.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "who introduced Huang to venture capitalist Don Valentine."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Wilfred Corrigan, Jensen Huang, Don Valentine</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="22" data-confidence="84.52000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#22</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang owns Nvidia shares in his own name and in family trusts.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang owns about 3.3% of the company, in his own name and in family trusts, according to an December 2025 filing."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="connections" data-index="23" data-confidence="84.52000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#23</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                <span class="risk-badge" style="background:#d97706" title="Large foundation established with $300 million initial donation of Nvidia stock.">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang and his wife, Lori Huang, established the Jen-Hsun & Lori Huang Foundation in 2007.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang and his wife, Lori Huang, established the Jen-Hsun & Lori Huang Foundation in 2007"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Lori Huang, Jen, Hsun, Lori Huang Foundation</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Large foundation established with $300 million initial donation of Nvidia stock.</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="24" data-confidence="84.52000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#24</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Large foundation established with $300 million initial donation of Nvidia stock.">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang made an initial donation of Nvidia stock valued at $300 million to the Jen-Hsun & Lori Huang Foundation.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "with an initial donation of Nvidia stock valued at $300 million."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia, Jen, Hsun, Lori Huang Foundation</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Large foundation established with $300 million initial donation of Nvidia stock.</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="25" data-confidence="84.52000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#25</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang holds most of his Nvidia stock through family trusts and long-term stock holdings.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "He holds most of the Nvidia stock through family trusts and long-term stock holdings."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="26" data-confidence="84.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#26</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang owns real estate in Los Altos, California.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "he also owns real estate in Los Altos, California"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Los Altos, California</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="27" data-confidence="84.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#27</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has owned property in California.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "he has owned property in California"</div>
+<div class="detail-evidence">📝 "as well as in Hawaii."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Hawaii, Jensen Huang, California</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="28" data-confidence="84.52000000000001" data-risk="1" data-trend="risk_escalation" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#28</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Active securities fraud class action with Ninth Circuit involvement. The court r">⚠ HIGH</span> <span class="trend-badge-fact" style="background:#ef444415;color:#ef4444;border:1px solid #ef444433">⚠️ Risk</span> 
+                <span class="confidence">Confidence: 85% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The United States Court of Appeals for the Ninth Circuit revived securities fraud claims against Jensen Huang under Section 10(b) and Rule 10b-5.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "the United States Court of Appeals for the Ninth Circuit revived securities fraud claims under Section 10(b) and Rule 10b-5 against chip maker NVIDIA and its CEO, Jensen Huang"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: The United States Court, Appeals, Ninth Circuit, Jensen Huang, Section, Rule</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Active securities fraud class action with Ninth Circuit involvement. The court r</div>
+<div class="detail-trend">📊 Trend signals: Risk</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="29" data-confidence="84.26000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#29</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang, Chris Malachowsky, and Curtis Priem aimed to create GPUs for the video game industry.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The trio aimed to create GPUs for the video game industry."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Chris Malachowsky, Curtis Priem</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="30" data-confidence="84.26000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#30</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang and Lori Mills were married five years after meeting at Oregon State University.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "they were married five years later."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Lori Mills, Oregon State University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="31" data-confidence="84.26000000000002" data-risk="1" data-trend="leadership" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#31</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="risk-badge" style="background:#059669" title="Public statements about U.S. losing AI edge to China and need for infrastructure">⚠ LOW</span> <span class="trend-badge-fact" style="background:#3b82f615;color:#3b82f6;border:1px solid #3b82f633">🎯 Strategy</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang calls for addressing the urgent need for more skilled labor in the U.S.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "NVIDIA Founder and CEO Jensen Huang adds to the drumbeat of calls to address the urgent need for more skilled labor in the U.S."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Public statements about U.S. losing AI edge to China and need for infrastructure</div>
+<div class="detail-trend">📊 Trend signals: Strategy</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="32" data-confidence="84.26000000000002" data-risk="1" data-trend="leadership,geopolitical" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#32</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="risk-badge" style="background:#059669" title="Public statements about U.S. losing AI edge to China and need for infrastructure">⚠ LOW</span> <span class="trend-badge-fact" style="background:#3b82f615;color:#3b82f6;border:1px solid #3b82f633">🎯 Strategy</span> <span class="trend-badge-fact" style="background:#8b5cf615;color:#8b5cf6;border:1px solid #8b5cf633">🌐 Geopolitical</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang warns that the U.S. risks losing its AI edge to China without energy and infrastructure reform.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Nvidia’s Jensen Huang warns that without energy and infrastructure reform, the U.S. risks losing its AI edge to China."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, China</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Public statements about U.S. losing AI edge to China and need for infrastructure</div>
+<div class="detail-trend">📊 Trend signals: Strategy, Geopolitical</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="33" data-confidence="84.26000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#33</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang pursued graduate night classes at Stanford University.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "he concurrently pursued graduate night classes at Stanford University"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Stanford University</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="34" data-confidence="84.06000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#34</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">All 65 transactions made by Jensen Huang in NVIDIA Corp over the past 5 years were sells (0 buys).</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jen Hsun Huang has made a total of 65 transactions in NVIDIA Corp (NVDA) over the past 5 years"</div>
+<div class="detail-evidence">📝 "including 0 buys and 65 sells"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Corp, All</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="35" data-confidence="84.06000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#35</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold over 100,000 NVIDIA shares at a $142-146 range under a pre-planned trading program.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "CEO Jensen Huang sold 100K+ NVIDIA shares at $142-146 range under pre-planned trading program."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="36" data-confidence="84.06000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#36</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold $14.5 million in shares.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang Sells $14.5M in Shares"</div>
+<div class="detail-evidence">📝 "CEO Huang Just Sold $50M in Stock"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="37" data-confidence="84.06000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#37</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">After a sale of over 100,000 shares, Jensen Huang still holds over 75 million shares directly.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Still holds over 75M shares directly."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: After, Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="38" data-confidence="84.06000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#38</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold 75,000 NVDA shares in multiple tranches at weighted average prices ranging between $169.7 and $173.6 per share.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang sold 75,000 NVDA shares in multiple tranches at weighted average prices ranging between $169.7 and $173.6 per share."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="39" data-confidence="84.06000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#39</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold $36.4 million in NVDA stock.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang Jen Hsun sells $36.4 million in NVDA stock"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="40" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#40</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's Chinese name is 黃仁勳.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jen-Hsun Huang (Chinese: 黃仁勳;"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Chinese</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="41" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#41</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is an American business executive.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "...and American business executive..."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, American</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="42" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#42</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is an electrical engineer.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "...electrical engineer..."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="43" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#43</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is a philanthropist.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "...and philanthropist..."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="44" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#44</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was named Fortune’s Businessperson of the Year in 2017.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2017, he was named Fortune’s Businessperson of the Year."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Fortune, Businessperson, Year</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="45" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#45</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was ranked No. 1 on Harvard Business Review's list of the world’s 100 best-performing CEOs in 2019.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2019, Harvard Business Review ranked him No. 1 on its list of the world’s 100 best-performing CEOs"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, No, Harvard Business Review</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="46" data-confidence="83.26" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#46</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 83%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was born in Taiwan.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Born in Taiwan"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Taiwan</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="47" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#47</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is 61 years old.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The 61-year-old is married and has two adult children."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="biographical" data-index="48" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#48</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has two adult children.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The 61-year-old is married and has two adult children."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="49" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#49</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang left LSI.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Although he left LSI, Huang remained in good standing with the company"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="50" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#50</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang stated in a speech at Davos that 2025 will be the biggest year for global venture capital.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Nvidia CEO Jensen Huang stated in a speech at Davos that 2025 will be the biggest year for global venture capital"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Davos</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="51" data-confidence="81.96000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#51</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang stated that over $100 billion will be invested worldwide in 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "with over $100 billions invested worldwide"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="52" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#52</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang stated that Nvidia will be participating in OpenAI’s latest funding round.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Nvidia Corp. Chief Executive Officer Jensen Huang said the company will be participating in OpenAI’s latest funding round"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="53" data-confidence="81.96000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#53</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang described Nvidia's investment in OpenAI as potentially “the largest investment we’ve ever made.”</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "describing it as potentially “the largest investment we’ve ever made.”"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="54" data-confidence="81.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#54</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 82%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang stated that one might have to reinvent oneself over time and that great people are important for reinvention.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "“You might have to reinvent yourself over time, and if you want to reinvent yourself, you need to have great people. That’s why great people are so important.”"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="55" data-confidence="80.06" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#55</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 80% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">After selling 225,000 shares, Jensen Huang retained an 858 million stake.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Retains 858M Stake"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: After, Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="56" data-confidence="79.52000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#56</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia">⚠ LOW</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang owns about 3.3% of Nvidia.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang owns about 3.3% of the company, in his own name and in family trusts, according to an December 2025 filing."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="57" data-confidence="79.52000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#57</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia">⚠ LOW</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is ranked #8 on Forbes' 2025 Forbes 400 list.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang is #8 on Forbes' 2025 Forbes 400 list."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Forbes, Forbes</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="58" data-confidence="79.52000000000001" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#58</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#059669" title="Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia">⚠ LOW</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's net worth was $158.1 billion in 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang Net Worth Hits $158.1B in 2025"</div>
+<div class="detail-evidence">📝 "Jensen Huang's net worth is $158 billion."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="59" data-confidence="79.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#59</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has made several philanthropic gifts to top universities.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "has made several philanthropic gifts to top universities."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="60" data-confidence="79.26" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#60</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang runs Nvidia, which is described as the world's largest company by market capitalization.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "NVIDIA, the world's largest company by market capitalization."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="connections" data-index="61" data-confidence="79.26" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#61</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang and Dassault Systèmes CEO Pascal Daloz announced a partnership to build a shared industrial AI architecture.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "NVIDIA founder and CEO Jensen Huang and Dassault Systèmes CEO Pascal Daloz announced a partnership to build a shared industrial AI architecture"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Dassault, Pascal Daloz</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="biographical" data-index="62" data-confidence="79.06" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#62</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is also known as Jen Hsun Huang.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jen-Hsun (Jensen) Huang"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Jen Hsun Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="63" data-confidence="79.06" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#63</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold 225,000 common shares of NVIDIA.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "reporting the sale of 225,000 common shares"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="64" data-confidence="79.06" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#64</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's sale of 225,000 shares occurred over three trading sessions from July 8-10, 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "over three trading sessions (8-10 July 2025)"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, July</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="65" data-confidence="79.06" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#65</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The sale of 225,000 shares by Jensen Huang was conducted under a Rule 10b5-1 plan adopted on March 20, 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "under a Rule 10b5-1 plan adopted on 20 March 2025."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Rule, March</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="66" data-confidence="79.06" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#66</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold shares on October 16, 17, and 20 (year not specified).</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang sold shares on 10/16, 10/17, and 10/20"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, October</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="67" data-confidence="79.06" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#67</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">After sales on October 16, 17, and 20, Jensen Huang's direct holdings were 70,108,203 shares.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Direct holdings now 70,108,203."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: After, October, Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="68" data-confidence="79.06" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#68</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang sold 205,618 shares of common stock between July 8 and July 10 under a pre-arranged 10b5-1 trading plan.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang Jen Hsun sold 205,618 shares of common stock between July 8 and July 10, according to a recent Form 4 filing. The sales, executed under a pre-arranged 10b5-1 trading plan"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, July, July</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Pattern of 65 consecutive insider stock sales with zero purchases over 5 years. </div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="69" data-confidence="79.06" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#69</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang is NVIDIA’s largest individual shareholder.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang is NVIDIA’s largest individual shareholder"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="70" data-confidence="78.96000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#70</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 79% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang uses his investment philosophy to build an unshakable foundation for NVIDIA in the AI era.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang is using his unique investment philosophy to build an unshakable foundation for NVIDIA in the AI era"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="71" data-confidence="78.96000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#71</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 79% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang personally approves every investment made by Nvidia.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "CEO Jensen Huang personally approves every investment, according to multiple founders who have been backed by Nvidia as well as people familiar with the matter."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="72" data-confidence="78.96000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#72</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 79% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Nvidia pays for Jensen Huang's personal security.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Nvidia pays for Jensen’s personal security"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Nvidia, Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="73" data-confidence="78.96000000000002" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#73</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 79% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang owns a home on billionaire's row in San Francisco valued at $44 million.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Nvidia CEO Jensen Huang owns this spectacular home on billionaire's row in San Francisco."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, San Francisco</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="74" data-confidence="76.52000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#74</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 77% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang invested some of his success with Nvidia in properties for him and his family over the years.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "invested some of it in properties for him and his family over the years."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="75" data-confidence="76.52000000000002" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#75</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia">⚠ LOW</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 77% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's 3.5% ownership in Nvidia was valued at more than $170 billion.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "his 3.5% ownership in Nvidia, valued at more than $170 billion."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Significant concentration of wealth in single stock position (3.3-3.5% of Nvidia</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="legal" data-index="76" data-confidence="76.52000000000002" data-risk="1" data-trend="risk_escalation" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#76</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Active securities fraud class action with Ninth Circuit involvement. The court r">⚠ HIGH</span> <span class="trend-badge-fact" style="background:#ef444415;color:#ef4444;border:1px solid #ef444433">⚠️ Risk</span> 
+                <span class="confidence">Confidence: 77% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was alleged in an investor lawsuit to have made false statements concealing Nvidia's reliance on the volatile market through sales to crypto miners.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The investor lawsuit alleged Nvidia chief executive Jensen Huang made false statements concealing the company’s reliance on the volatile market through sales to crypto miners."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Active securities fraud class action with Ninth Circuit involvement. The court r</div>
+<div class="detail-trend">📊 Trend signals: Risk</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="legal" data-index="77" data-confidence="76.52000000000002" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#77</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Active securities fraud class action with Ninth Circuit involvement. The court r">⚠ HIGH</span> 
+                <span class="confidence">Confidence: 77% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The Ninth Circuit found that plaintiffs accused Jensen Huang of making "false or misleading statements, made knowingly or recklessly."</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The Ninth Circuit found that the plaintiffs adequately accused NVIDIA CEO Jensen Huang and the entire NVIDIA management team of making 'false or misleading statements, made knowingly or recklessly,' allowing their case to proceed."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: The Ninth Circuit, Jensen Huang</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Active securities fraud class action with Ninth Circuit involvement. The court r</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="legal" data-index="78" data-confidence="76.52000000000002" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#78</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Active securities fraud class action with Ninth Circuit involvement. The court r">⚠ HIGH</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 77% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was accused by plaintiffs of making statements in 2017 and 2018 that falsely downplayed Nvidia's crypto-related revenue growth.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "by making statements in 2017 and 2018 that falsely downplayed how much of Nvidia's revenue growth came from crypto-related ..."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Active securities fraud class action with Ninth Circuit involvement. The court r</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="biographical" data-index="79" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#79</span>
+                <span class="fact-category" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">BIOGRAPHICAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang once earned $2.65 an hour at Denny's.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "(after once earning $2.65 an hour at Denny's)"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Denny</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="80" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#80</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's real estate portfolio includes an oceanfront home in Hawaii.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "His real estate portfolio also includes an oceanfront home in Hawaii"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Hawaii</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="81" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#81</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's real estate portfolio includes a luxury estate in Los Altos Hills.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "and a luxury estate in Los Altos Hills."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Los Altos Hills</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="82" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#82</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang has spent around $55 million on real estate since the late 1980s.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "He’s spent around $55 million on real estate since the late 1980s."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="83" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#83</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang invests in robotics startups in Silicon Valley.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "From robotics startups in Silicon Valley"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Silicon Valley</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="84" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#84</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's investment logic is a strategic layout centered on the technological ecosystem.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Jensen Huang's investment logic is essentially a strategic layout centered on the technological ecosystem, spanning the digital and physical worlds."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="85" data-confidence="73.96000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#85</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 74%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang does not simply chase financial returns with his investments.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "He doesn't simply chase financial returns"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="86" data-confidence="71.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#86</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 72%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang's philanthropy is criticized due to his reliance on Donor-Advised Funds (DAFs).</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The main cause of Huang’s charitable criticism is his reliance on DAFs."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Donor, Advised Funds</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="87" data-confidence="71.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#87</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 72%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Almost all of Jensen Huang’s wealth comes from his 3.5% ownership in Nvidia.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Almost all of Huang’s wealth comes from his 3.5% ownership in Nvidia"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Almost, Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="legal" data-index="88" data-confidence="71.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#88</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                
+                <span class="confidence">Confidence: 72%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was accused by plaintiffs of violating the 1934 federal Securities Exchange Act.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The plaintiffs accused Nvidia and its CEO Jensen Huang of violating a 1934 federal law called the Securities Exchange Act"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Securities Exchange Act</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="legal" data-index="89" data-confidence="71.52000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#89</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                
+                <span class="confidence">Confidence: 72%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The DOJ and SEC argued that Jensen Huang knowingly misled investors about Nvidia’s exposure to crypto mining.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "This evidence collectively supports the claim that [CEO Jensen] Huang knowingly misled investors about Nvidia’s exposure to crypto mining, meeting the standard for ‘scienter,’ or intent to deceive,” the DOJ and SEC argued."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="90" data-confidence="71.06000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#90</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 71%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang was promoted to be the director of LSI's CoreWare.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang was promoted to be the director of LSI&#x27;s CoreWare"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="91" data-confidence="71.06000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#91</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 71%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang resigned his job after 1990 to pursue a venture in making graphics chips for PC games.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang, along with Priem and Malachowsky, each resigned their jobs to pursue a venture together in making graphics chips for PC games."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="92" data-confidence="71.06000000000002" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#92</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 71%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang suggested the company be named 'Nvidia'.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Huang suggested that the company be named &quot;Nvidia&quot;"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, Nvidia</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="93" data-confidence="71.06000000000002" data-risk="0" data-trend="leadership" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#93</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="trend-badge-fact" style="background:#3b82f615;color:#3b82f6;border:1px solid #3b82f633">🎯 Strategy</span> 
+                <span class="confidence">Confidence: 71%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang stated his company will remain in California because he believes that’s where the talent pool is.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The Nvidia CEO said his company will remain in California because “that’s where the talent pool is.”"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang, California</div>
+<div class="detail-trend">📊 Trend signals: Strategy</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="94" data-confidence="65.96" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#94</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 66%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Jensen Huang created the $2 TRILLION "colossus" of the AI revolution.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "created the $2 TRILLION collossus of the AI revolution"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="95" data-confidence="65.96" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#95</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 66%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">A house owned by Jensen Huang has seven bedrooms and ten bathrooms over 11,000 square feet of space.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The house has seven bedrooms and ten bathrooms over 11,000 square feet of space."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Jensen Huang</div></div>
+        </div>
+        </div>
+        <div class="pagination">
+            <button class="page-btn" onclick="changePage(-1)" id="prevBtn" disabled>← Previous</button>
+            <span class="page-info">Page <span id="currentPage">1</span> of 4 (95 facts)</span>
+            <button class="page-btn" onclick="changePage(1)" id="nextBtn">Next →</button>
+        </div>
+        
+            </div>
+        </div>
+        
+        <!-- ═══ CONNECTIONS ═══ -->
+        <div class="section">
+            <div class="section-header open" onclick="toggleSection(this)">
+                🕸️ Connections & Relationships (17)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ NVIDIA</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#2563eb22;color:#2563eb;border:1px solid #2563eb44">leadership</span>
+                    <span class="conn-period">1993-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang is the CEO of NVIDIA']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ NVIDIA</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#0891b222;color:#0891b2;border:1px solid #0891b244">board_member</span>
+                    <span class="conn-period">1993-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang has served as a member of the board of directors of NVIDIA since its inception']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Chris Malachowsky</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">co-founder</span>
+                    <span class="conn-period">1993</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang founded NVIDIA in April 1993 with Chris Malachowsky and Curtis Priem']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Curtis Priem</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">co-founder</span>
+                    <span class="conn-period">1993</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang founded NVIDIA in April 1993 with Chris Malachowsky and Curtis Priem']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Lori Huang</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#ec489922;color:#ec4899;border:1px solid #ec489944">family</span>
+                    <span class="conn-period">1989-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang's wife is Lori Huang"]</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Advanced Micro Devices, Inc.</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#6366f122;color:#6366f1;border:1px solid #6366f144">employer</span>
+                    <span class="conn-period">1984-1985</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['Prior to founding NVIDIA, Jensen Huang held positions at Advanced Micro Devices, Inc. from 1984 to 1985']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ LSI Logic Corp.</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#6366f122;color:#6366f1;border:1px solid #6366f144">employer</span>
+                    <span class="conn-period">1985-1993</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:80%;background:#10b981"></div>
+                    <span class="strength-label">80%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang held a variety of positions at LSI Logic Corp. from 1985 to 1993']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Stanford University</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#05966922;color:#059669;border:1px solid #05966944">education</span>
+                    <span class="conn-period">1992</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:80%;background:#10b981"></div>
+                    <span class="strength-label">80%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang earned a master's degree in electrical engineering from Stanford University in 1992"]</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Oregon State University</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#05966922;color:#059669;border:1px solid #05966944">education</span>
+                    <span class="conn-period">1984</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:80%;background:#10b981"></div>
+                    <span class="strength-label">80%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang received his undergraduate degree in electrical engineering from Oregon State University in 1984']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Wilfred Corrigan</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">1993</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang secured funding for Nvidia from LSI's CEO, Wilfred Corrigan"]</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Don Valentine</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">1993</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:60%;background:#f59e0b"></div>
+                    <span class="strength-label">60%</span>
+                </div>
+                <div class="conn-evidence">['Wilfred Corrigan introduced Jensen Huang to venture capitalist Don Valentine']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Jen-Hsun & Lori Huang Foundation</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">philanthropy</span>
+                    <span class="conn-period">2007-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang and his wife, Lori Huang, established the Jen-Hsun & Lori Huang Foundation in 2007']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Fortune</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#eab30822;color:#eab308;border:1px solid #eab30844">recognition</span>
+                    <span class="conn-period">2017</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:60%;background:#f59e0b"></div>
+                    <span class="strength-label">60%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang was named Fortune's Businessperson of the Year in 2017"]</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Harvard Business Review</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#eab30822;color:#eab308;border:1px solid #eab30844">recognition</span>
+                    <span class="conn-period">2019</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang was ranked No. 1 on Harvard Business Review's list of the world's 100 best-performing CEOs in 2019"]</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Pascal Daloz</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2025</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:60%;background:#f59e0b"></div>
+                    <span class="strength-label">60%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang and Dassault Systèmes CEO Pascal Daloz announced a partnership to build a shared industrial AI architecture']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Dassault Systèmes</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2025</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:60%;background:#f59e0b"></div>
+                    <span class="strength-label">60%</span>
+                </div>
+                <div class="conn-evidence">['Jensen Huang and Dassault Systèmes CEO Pascal Daloz announced a partnership to build a shared industrial AI architecture']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Jensen Huang ↔ Denny's</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#6366f122;color:#6366f1;border:1px solid #6366f144">employer</span>
+                    <span class="conn-period">early career</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:40%;background:#6b7280"></div>
+                    <span class="strength-label">40%</span>
+                </div>
+                <div class="conn-evidence">["Jensen Huang once earned $2.65 an hour at Denny's"]</div>
+            </div>
+            
+            </div>
+        </div>
+        
+        <!-- ═══ TREND ANALYSIS ═══ -->
+        <div class="section">
+            <div class="section-header open" onclick="toggleSection(this)">
+                📊 Trend Analysis (16 signals)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                <div class="trend-group"><div class="trend-header" style="color:#10b981">📈 Growth & Expansion (10 signals)</div><div class="trend-item">• Jensen Huang stated that over $100 billion will be invested worldwide in 2025. <span class="trend-recent">RECENT</span></div><div class="trend-item">• Jensen Huang's net worth was $158.1 billion in 2025. <span class="trend-recent">RECENT</span></div><div class="trend-item">• Jensen Huang described Nvidia's investment in OpenAI as potentially “the largest investment we’ve ever made.”</div></div><div class="trend-group"><div class="trend-header" style="color:#ef4444">⚠️ Risk Trajectory (2 signals)</div><div class="trend-item">• The United States Court of Appeals for the Ninth Circuit revived securities fraud claims against Jensen Huang under Section 10(b) and Rule 10b-5.</div><div class="trend-item">• Jensen Huang was alleged in an investor lawsuit to have made false statements concealing Nvidia's reliance on the volatile market through sales to cry</div></div><div class="trend-group"><div class="trend-header" style="color:#3b82f6">🎯 Strategic Direction (3 signals)</div><div class="trend-item">• Jensen Huang calls for addressing the urgent need for more skilled labor in the U.S.</div><div class="trend-item">• Jensen Huang warns that the U.S. risks losing its AI edge to China without energy and infrastructure reform.</div><div class="trend-item">• Jensen Huang stated his company will remain in California because he believes that’s where the talent pool is.</div></div><div class="trend-group"><div class="trend-header" style="color:#8b5cf6">🌐 Geopolitical Dynamics (1 signals)</div><div class="trend-item">• Jensen Huang warns that the U.S. risks losing its AI edge to China without energy and infrastructure reform.</div></div>
+            </div>
+        </div>
+        
+        <!-- ═══ FOOTER ═══ -->
+        <div class="footer">
+            Generated by Deep Research AI Agent · 95 facts (110 raw) · 17 connections · 5 risk flags · Quality Score 96.9/100
+        </div>
+    </div>
+    
+    <script>
+        // ── Section Toggle ──
+        function toggleSection(header) {
+            header.classList.toggle('open');
+            const content = header.nextElementSibling;
+            content.classList.toggle('open');
+        }
+        
+        // ── Expandable Fact Details (click anywhere on card) ──
+        function toggleFactDetail(factEl, event) {
+            // Don't toggle if user clicked a link or button inside the card
+            if (event && (event.target.tagName === 'A' || event.target.tagName === 'BUTTON')) return;
+            factEl.classList.toggle('expanded');
+        }
+        
+        // ── Fact Sorting (includes trend sort) ──
+        function sortFacts(mode) {
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            const container = document.getElementById('factsContainer');
+            const facts = Array.from(container.querySelectorAll('.fact'));
+            
+            facts.sort((a, b) => {
+                if (mode === 'confidence-desc') {
+                    return parseFloat(b.dataset.confidence) - parseFloat(a.dataset.confidence);
+                } else if (mode === 'confidence-asc') {
+                    return parseFloat(a.dataset.confidence) - parseFloat(b.dataset.confidence);
+                } else if (mode === 'risk') {
+                    return parseInt(b.dataset.risk) - parseInt(a.dataset.risk);
+                } else if (mode === 'trend') {
+                    return parseInt(b.dataset.hasTrend || 0) - parseInt(a.dataset.hasTrend || 0);
+                } else {
+                    return parseInt(a.dataset.index) - parseInt(b.dataset.index);
+                }
+            });
+            
+            facts.forEach(f => container.appendChild(f));
+            currentPage = 1;
+            showPage(1);
+        }
+        
+        // ── Search ──
+        function searchContent() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const items = document.querySelectorAll('.fact, .connection, .risk');
+            items.forEach(item => {
+                const match = item.textContent.toLowerCase().includes(input);
+                item.style.display = match ? '' : 'none';
+            });
+            if (!input) {
+                currentPage = 1;
+                showPage(1);
+            }
+        }
+        
+        // ── Multi-Select Category Filter ──
+        let activeCategories = new Set(['all']);
+        
+        function toggleCategory(btn, cat) {
+            if (cat === 'all') {
+                // "All" resets — deselect everything else, select All
+                activeCategories.clear();
+                activeCategories.add('all');
+                document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+            } else {
+                // Toggle specific category
+                // First, deselect "All" if it was active
+                const allBtn = document.querySelector('.cat-tab[data-cat="all"]');
+                if (activeCategories.has('all')) {
+                    activeCategories.delete('all');
+                    if (allBtn) allBtn.classList.remove('active');
+                }
+                
+                if (activeCategories.has(cat)) {
+                    // Deselect this category
+                    activeCategories.delete(cat);
+                    btn.classList.remove('active');
+                    // If nothing selected, revert to All
+                    if (activeCategories.size === 0) {
+                        activeCategories.add('all');
+                        if (allBtn) allBtn.classList.add('active');
+                    }
+                } else {
+                    // Select this category (additive)
+                    activeCategories.add(cat);
+                    btn.classList.add('active');
+                }
+            }
+            
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            const facts = document.querySelectorAll('.fact');
+            let visibleIndex = 0;
+            facts.forEach(f => {
+                const factCat = f.getAttribute('data-category');
+                const matches = activeCategories.has('all') || activeCategories.has(factCat);
+                if (matches) {
+                    visibleIndex++;
+                    f.style.display = visibleIndex <= factsPerPage ? '' : 'none';
+                } else {
+                    f.style.display = 'none';
+                }
+            });
+            currentPage = 1;
+            updatePaginationForCategory();
+        }
+        
+        // ── Pagination ──
+        let currentPage = 1;
+        const factsPerPage = 25;
+        const totalFacts = 95;
+        const totalPages = 4;
+        
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            const maxPages = getMaxPages();
+            if (newPage < 1 || newPage > maxPages) return;
+            currentPage = newPage;
+            showPage(currentPage);
+        }
+        
+        function getVisibleFacts() {
+            const facts = document.querySelectorAll('.fact');
+            let visible = [];
+            facts.forEach(f => {
+                const cat = f.getAttribute('data-category');
+                if (activeCategories.has('all') || activeCategories.has(cat)) {
+                    visible.push(f);
+                }
+            });
+            return visible;
+        }
+        
+        function getMaxPages() {
+            return Math.ceil(getVisibleFacts().length / factsPerPage);
+        }
+        
+        function showPage(page) {
+            const visibleFacts = getVisibleFacts();
+            const start = (page - 1) * factsPerPage;
+            const end = start + factsPerPage;
+            
+            // Hide all facts first
+            document.querySelectorAll('.fact').forEach(f => f.style.display = 'none');
+            
+            // Show only visible facts in page range
+            visibleFacts.forEach((f, i) => {
+                f.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+            
+            const pageSpan = document.getElementById('currentPage');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const maxPages = Math.ceil(visibleFacts.length / factsPerPage);
+            
+            if (pageSpan) pageSpan.textContent = page;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= maxPages;
+        }
+        
+        function updatePaginationForCategory() {
+            const count = getVisibleFacts().length;
+            const maxPages = Math.ceil(count / factsPerPage);
+            const pageInfo = document.querySelector('.page-info');
+            if (pageInfo) pageInfo.textContent = 'Page 1 of ' + maxPages + ' (' + count + ' facts)';
+            const pageSpan = document.getElementById('currentPage');
+            if (pageSpan) pageSpan.textContent = '1';
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = maxPages <= 1;
+        }
+    </script>
+</body>
+</html>
