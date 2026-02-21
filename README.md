@@ -16,7 +16,7 @@
 
 ## What This Does
 
-Give it a name. It returns a complete due diligence dossier.
+Run a single command with any person or company name. The agent autonomously researches them across the web and generates a comprehensive due diligence report giving facts, risks, connections, and trends that are scored on a 100-point scale.
 
 ```bash
 python scripts/research.py "Jensen Huang" --save --html --iterations 10
