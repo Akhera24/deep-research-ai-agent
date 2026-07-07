@@ -650,10 +650,21 @@ Extract maximum 30 facts. Start extraction:"""
         4. Calculate verification scores
         """
         processed = []
-        
+
+        # Relevance backstop: keep a fact if it mentions ANY significant token
+        # of the target, rather than requiring the whole target string to
+        # appear contiguously. A qualified query like "phil gallagher avnet"
+        # never appears as one phrase in real sentences ("Phil Gallagher ...
+        # CEO of Avnet"), so a whole-string check drops every real fact. The
+        # extraction prompt already scopes facts to the target; this is only a
+        # light backstop against cross-entity noise.
+        target_tokens = [t for t in target_name.lower().split() if len(t) >= 3]
+
         for fact in facts:
-            # Skip if not about target
-            if target_name.lower() not in fact.content.lower():
+            content_lower = fact.content.lower()
+            # Skip if not about target (no significant target token present).
+            # If the target has no significant tokens, keep the fact.
+            if target_tokens and not any(t in content_lower for t in target_tokens):
                 continue
             
             # Adjust confidence by source reliability
