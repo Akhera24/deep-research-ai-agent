@@ -1,0 +1,29 @@
+# Secrets and local state must never reach the image (PHASE3_DESIGN §11.R6)
+.env
+.env.*
+!.env.example
+venv/
+fresh-venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+
+# Local artifacts
+research_results/
+research_report_*.html
+*.db
+logs/
+*.log
+
+# Non-runtime content
+docs/
+research/
+evaluation/
+tests/
+PLAN.md
+PROGRESS.md
+README.md
+LICENSE
+.DS_Store
