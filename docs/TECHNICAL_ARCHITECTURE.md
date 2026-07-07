@@ -4,6 +4,12 @@
 **Version**: 1.0  
 **Last Updated**: January 2026
 
+> **Note (July 2026):** This is a design-phase document; parts of its module
+> layout and pricing predate the current implementation. The source of truth
+> for model IDs and pricing is `config/settings.py`. Model IDs in code samples
+> were refreshed 2026-07 (Opus 4.8 / Gemini 3.1 Flash-Lite / GPT-5.4 mini).
+
+
 ---
 
 ## Table of Contents
@@ -329,7 +335,7 @@ def initialize_research(state: ResearchState) -> ResearchState:
 def research_coordinator_agent(state: ResearchState) -> ResearchState:
     """
     High-level research planning and strategy.
-    Uses Claude Opus 4 for superior reasoning.
+    Uses Claude Opus 4.8 for superior reasoning.
     
     Responsibilities:
     1. Analyze initial query
@@ -340,7 +346,7 @@ def research_coordinator_agent(state: ResearchState) -> ResearchState:
     from src.agents.coordinator import ResearchCoordinator
     
     logger.info("Running research coordinator")
-    coordinator = ResearchCoordinator(model="claude-opus-4-20250514")
+    coordinator = ResearchCoordinator(model="claude-opus-4-8")
     
     try:
         # Generate comprehensive search plan
@@ -376,12 +382,12 @@ def research_coordinator_agent(state: ResearchState) -> ResearchState:
 def data_collection_agent(state: ResearchState) -> ResearchState:
     """
     Execute searches and collect data from multiple sources.
-    Uses Gemini 2.5 for efficient multi-source processing.
+    Uses Gemini 3.1 Flash-Lite for efficient multi-source processing.
     """
     from src.agents.collector import DataCollector
     
     logger.info(f"Running data collector (iteration {state['iteration_count']})")
-    collector = DataCollector(model="gemini-2.5-pro")
+    collector = DataCollector(model="gemini-3.1-flash-lite")
     
     # Get next batch of searches
     next_searches = state["pending_searches"][:3]  # Parallel batch of 3
@@ -576,7 +582,7 @@ class ResearchCoordinator(BaseAgent):
     """
     Master coordinator that plans research strategy.
     
-    Uses Claude Opus 4 for superior strategic thinking.
+    Uses Claude Opus 4.8 for superior strategic thinking.
     
     Responsibilities:
     1. Analyze initial query and extract target entity
@@ -759,7 +765,7 @@ class DataCollector(BaseAgent):
     """
     Executes searches and collects data from multiple sources.
     
-    Uses Gemini 2.5 for:
+    Uses Gemini 3.1 Flash-Lite for:
     - Large context window (1M tokens)
     - Efficient document processing
     - Multi-source synthesis
@@ -1003,8 +1009,8 @@ class MultiModelRouter:
         """Define capabilities of each model"""
         
         return {
-            "claude-opus-4": ModelCapability(
-                name="claude-opus-4-20250514",
+            "claude-opus-4-8": ModelCapability(
+                name="claude-opus-4-8",
                 strengths=[
                     "strategic_thinking",
                     "nuanced_analysis",
@@ -1017,8 +1023,8 @@ class MultiModelRouter:
                 rate_limit=50,
                 reliability_score=0.98
             ),
-            "gemini-2.5": ModelCapability(
-                name="gemini-2.5-pro",
+            "gemini-3.1": ModelCapability(
+                name="gemini-3.1-flash-lite",
                 strengths=[
                     "large_context",
                     "multimodal",
@@ -1031,8 +1037,8 @@ class MultiModelRouter:
                 rate_limit=360,
                 reliability_score=0.95
             ),
-            "gpt-4.1": ModelCapability(
-                name="gpt-4-turbo-preview",
+            "gpt-5.4": ModelCapability(
+                name="gpt-5.4-mini",
                 strengths=[
                     "structured_output",
                     "function_calling",
@@ -1056,39 +1062,39 @@ class MultiModelRouter:
         
         return {
             TaskType.STRATEGY_PLANNING: {
-                "primary": "claude-opus-4",
-                "fallback": "gpt-4.1",
+                "primary": "claude-opus-4-8",
+                "fallback": "gpt-5.4",
                 "rationale": "Claude excels at strategic thinking"
             },
             TaskType.DOCUMENT_PROCESSING: {
-                "primary": "gemini-2.5",
-                "fallback": "claude-opus-4",
+                "primary": "gemini-3.1",
+                "fallback": "claude-opus-4-8",
                 "rationale": "Gemini has 1M context window"
             },
             TaskType.STRUCTURED_OUTPUT: {
-                "primary": "gpt-4.1",
-                "fallback": "claude-opus-4",
-                "rationale": "GPT-4 has reliable JSON mode"
+                "primary": "gpt-5.4",
+                "fallback": "claude-opus-4-8",
+                "rationale": "GPT-5.4 mini has reliable JSON mode"
             },
             TaskType.RISK_ASSESSMENT: {
-                "primary": "claude-opus-4",
-                "fallback": "gpt-4.1",
+                "primary": "claude-opus-4-8",
+                "fallback": "gpt-5.4",
                 "rationale": "Claude best at nuanced risk analysis"
             },
             TaskType.FACT_EXTRACTION: {
-                "primary": "gemini-2.5",
-                "fallback": "gpt-4.1",
+                "primary": "gemini-3.1",
+                "fallback": "gpt-5.4",
                 "rationale": "Gemini efficient for large documents"
             },
             TaskType.CONNECTION_ANALYSIS: {
-                "primary": "claude-opus-4",
-                "fallback": "gemini-2.5",
+                "primary": "claude-opus-4-8",
+                "fallback": "gemini-3.1",
                 "rationale": "Claude best at finding subtle connections"
             },
             TaskType.VERIFICATION: {
-                "primary": "gpt-4.1",
-                "fallback": "claude-opus-4",
-                "rationale": "GPT-4 good at systematic checking"
+                "primary": "gpt-5.4",
+                "fallback": "claude-opus-4-8",
+                "rationale": "GPT-5.4 mini good at systematic checking"
             }
         }
     

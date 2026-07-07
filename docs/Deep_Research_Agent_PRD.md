@@ -84,7 +84,7 @@ Leverage multiple AI models with distinct capabilities, intelligently routing re
 > "As a system architect, I want to use the best AI model for each specific task, so that I maximize quality while managing costs and rate limits."
 
 **Acceptance Criteria**:
-- ✅ Minimum 3 AI models integrated (Claude, Gemini, GPT-4)
+- ✅ Minimum 3 AI models integrated (Claude, Gemini, GPT-5)
 - ✅ Intelligent routing based on task type
 - ✅ Automatic fallback on rate limits or errors
 - ✅ Cost tracking per model
@@ -93,10 +93,10 @@ Leverage multiple AI models with distinct capabilities, intelligently routing re
 **Model Assignment**:
 | Task | Primary Model | Fallback | Reason |
 |------|---------------|----------|---------|
-| Strategy Planning | Claude Opus 4 | GPT-4.1 | Superior reasoning |
-| Document Processing | Gemini 2.5 | Claude | Large context |
-| Structured Output | GPT-4.1 | Claude | Reliable JSON |
-| Risk Assessment | Claude Opus 4 | Gemini | Nuanced analysis |
+| Strategy Planning | Claude Opus 4.8 | GPT-5.4 mini | Superior reasoning |
+| Document Processing | Gemini 3.1 Flash-Lite | Claude | Large context |
+| Structured Output | GPT-5.4 mini | Claude | Reliable JSON |
+| Risk Assessment | Claude Opus 4.8 | Gemini | Nuanced analysis |
 
 **Success Metrics**:
 - 99.5% uptime with fallback mechanisms

@@ -197,55 +197,57 @@ def test_workflow():
         return False
 
 # ============================================================================
-# RUN ALL TESTS
+# RUN ALL TESTS (script mode only — module-level sys.exit() breaks pytest
+# collection, so everything below is guarded)
 # ============================================================================
 
-run_test("1. Configuration Loading", test_config)
-run_test("2. Multi-Model Router", test_router)
-run_test("3. Search Strategy Engine", test_strategy)
-run_test("4. Search Executor", test_search_executor)
-run_test("5. Fact Extractor", test_fact_extractor)
-run_test("6. Complete Workflow", test_workflow)
+if __name__ == "__main__":
+    run_test("1. Configuration Loading", test_config)
+    run_test("2. Multi-Model Router", test_router)
+    run_test("3. Search Strategy Engine", test_strategy)
+    run_test("4. Search Executor", test_search_executor)
+    run_test("5. Fact Extractor", test_fact_extractor)
+    run_test("6. Complete Workflow", test_workflow)
 
-# ============================================================================
-# PRINT SUMMARY
-# ============================================================================
+    # ========================================================================
+    # PRINT SUMMARY
+    # ========================================================================
 
-print("=" * 60)
-print("TEST SUMMARY")
-print("=" * 60)
+    print("=" * 60)
+    print("TEST SUMMARY")
+    print("=" * 60)
 
-passed = 0
-failed = 0
+    passed = 0
+    failed = 0
 
-for name, success, error in results:
-    if success:
-        print(f"✅ {name}")
-        passed += 1
+    for name, success, error in results:
+        if success:
+            print(f"✅ {name}")
+            passed += 1
+        else:
+            print(f"❌ {name}")
+            if error:
+                print(f"   Error: {error}")
+            failed += 1
+
+    print()
+    print(f"{passed}/{len(results)} tests passed")
+    print()
+
+    if failed == 0:
+        print("🎉 ALL TESTS PASSED!")
+        print()
+        print("✅ System is ready for evaluation!")
+        print()
+        print("Next command:")
+        print("   python scripts/run_evaluation.py P001_EASY")
+        sys.exit(0)
     else:
-        print(f"❌ {name}")
-        if error:
-            print(f"   Error: {error}")
-        failed += 1
-
-print()
-print(f"{passed}/{len(results)} tests passed")
-print()
-
-if failed == 0:
-    print("🎉 ALL TESTS PASSED!")
-    print()
-    print("✅ System is ready for evaluation!")
-    print()
-    print("Next command:")
-    print("   python scripts/run_evaluation.py P001_EASY")
-    sys.exit(0)
-else:
-    print("⚠️  SOME TESTS FAILED")
-    print()
-    print("But don't worry - if test_workflow_no_checkpoint.py passed,")
-    print("your system works! These are test suite issues, not code issues.")
-    print()
-    print("You can still run:")
-    print("   python scripts/run_evaluation.py P001_EASY")
-    sys.exit(0)  # Exit 0 so setup doesn't fail
+        print("⚠️  SOME TESTS FAILED")
+        print()
+        print("But don't worry - if test_workflow_no_checkpoint.py passed,")
+        print("your system works! These are test suite issues, not code issues.")
+        print()
+        print("You can still run:")
+        print("   python scripts/run_evaluation.py P001_EASY")
+        sys.exit(0)  # Exit 0 so setup doesn't fail

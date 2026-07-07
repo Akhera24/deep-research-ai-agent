@@ -2,6 +2,12 @@
 
 ## Executive Summary
 
+> **Note (July 2026):** This is a design-phase document; parts of its module
+> layout and pricing predate the current implementation. The source of truth
+> for model IDs and pricing is `config/settings.py`. Model IDs in code samples
+> were refreshed 2026-07 (Opus 4.8 / Gemini 3.1 Flash-Lite / GPT-5.4 mini).
+
+
 This document outlines the complete architecture, implementation strategy, and technical specifications for building a production-grade autonomous research agent capable of conducting comprehensive investigations on individuals and entities.
 
 ---
@@ -61,7 +67,7 @@ This document outlines the complete architecture, implementation strategy, and t
                       ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                    Multi-Model Layer                         │
-│   Claude Opus 4 | Gemini 2.5 | GPT-4.1 | Perplexity         │
+│   Claude Opus 4.8 | Gemini 3.1 | GPT-5.4 | Perplexity         │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ↓
@@ -92,17 +98,17 @@ This document outlines the complete architecture, implementation strategy, and t
 ### AI Models & APIs
 
 #### Primary Models (Multi-Model Strategy)
-1. **Claude Opus 4** (Anthropic)
+1. **Claude Opus 4.8** (Anthropic)
    - **Use Case**: Deep analysis, risk assessment, nuanced reasoning
    - **Strengths**: Superior reasoning, ethical considerations, context handling
    - **Rate Limit**: 50 req/min (tier 4)
    
-2. **Gemini 2.5 Pro** (Google)
+2. **Gemini 3.1 Flash-Lite** (Google)
    - **Use Case**: Multi-modal analysis, document processing, fact extraction
    - **Strengths**: Large context window, multimodal capabilities
    - **Rate Limit**: 360 req/min
 
-3. **GPT-4.1 Turbo** (OpenAI)
+3. **GPT-5.4 mini** (OpenAI)
    - **Use Case**: Structured output, function calling, rapid iterations
    - **Strengths**: Reliable structured output, fast response times
    - **Rate Limit**: 500 req/min (tier 5)
@@ -235,7 +241,7 @@ class ResearchState(TypedDict):
 - **Outputs**: Search plan, priority list, quality scores
 
 #### Agent 2: Data Collection Agent
-- **Model**: Gemini 2.5 Pro
+- **Model**: Gemini 3.1 Flash-Lite
 - **Responsibilities**:
   - Web search execution
   - Multi-source data gathering
@@ -245,7 +251,7 @@ class ResearchState(TypedDict):
 - **Outputs**: Raw data, extracted facts
 
 #### Agent 3: Analysis & Verification Agent
-- **Model**: GPT-4.1 Turbo
+- **Model**: GPT-5.4 mini
 - **Responsibilities**:
   - Fact verification
   - Cross-referencing
@@ -265,7 +271,7 @@ class ResearchState(TypedDict):
 - **Outputs**: Risk assessment report
 
 #### Agent 5: Connection Mapping Agent
-- **Model**: Gemini 2.5 Pro
+- **Model**: Gemini 3.1 Flash-Lite
 - **Responsibilities**:
   - Relationship identification
   - Network analysis
@@ -654,7 +660,7 @@ def test_api_keys():
     try:
         client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         response = client.messages.create(
-            model="claude-opus-4-20250514",
+            model="claude-opus-4-8",
             max_tokens=10,
             messages=[{"role": "user", "content": "Hi"}]
         )
@@ -674,9 +680,9 @@ def test_api_keys():
     try:
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-5.4-mini",
             messages=[{"role": "user", "content": "Hi"}],
-            max_tokens=10
+            max_completion_tokens=10
         )
         results["openai"] = "✅ Success"
     except Exception as e:

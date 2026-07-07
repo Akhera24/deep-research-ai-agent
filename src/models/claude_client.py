@@ -1,7 +1,7 @@
 """
 Claude (Anthropic) Model Client
 
-Integration with Claude Opus 4 for advanced reasoning and analysis.
+Integration with Claude Opus 4.8 for advanced reasoning and analysis.
 
 Use Cases:
 - Strategy planning (best-in-class reasoning)
@@ -9,8 +9,8 @@ Use Cases:
 - Complex analysis (multi-step thinking)
 - Ethical considerations
 
-Model: claude-opus-4-20250514
-Context: 200K tokens
+Model: claude-opus-4-8
+Context: 1M tokens
 Strengths: Reasoning, analysis, writing quality
 
 Features:
@@ -40,13 +40,13 @@ logger = get_logger(__name__)
 
 class ClaudeClient(BaseModelClient):
     """
-    Claude Opus 4 client implementation.
+    Claude Opus 4.8 client implementation.
     
     Features:
     - Superior reasoning capabilities
     - High-quality analysis
     - Ethical guardrails
-    - 200K context window
+    - 1M context window
     - Prompt caching for cost savings
     
     Performance:
@@ -128,7 +128,6 @@ class ClaudeClient(BaseModelClient):
             **kwargs: Additional parameters
                 - use_cache: bool (default True) - Enable/disable caching
                 - max_tokens: int - Override default
-                - temperature: float - Override default
             
         Returns:
             Claude's response text
@@ -153,22 +152,21 @@ class ClaudeClient(BaseModelClient):
             
             # Get parameters (allow override)
             max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-            temperature = kwargs.get("temperature", self.config.temperature)
-            
+
             # Make API call
             self.logger.debug(
                 "Calling Claude API",
                 extra={
                     "prompt_length": len(prompt),
-                    "max_tokens": max_tokens,
-                    "temperature": temperature
+                    "max_tokens": max_tokens
                 }
             )
-            
+
+            # No sampling params (temperature/top_p/top_k): claude-opus-4-8
+            # and claude-sonnet-5 reject them with 400.
             response = self.client.messages.create(
                 model=self.config.model_name,
                 max_tokens=max_tokens,
-                temperature=temperature,
                 system=system,
                 messages=messages
             )

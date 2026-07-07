@@ -82,3 +82,15 @@ research_results/
 research_report_*.html
 
 
+
+# Local research / working notes (not part of the shipped project)
+research/
+
+# Generated compliance report (output of scripts/check_requirements.py)
+evaluation/requirements_compliance.json
+
+# Internal planning/execution logs — local only until Phase 3 ships
+# (remove the PHASE3_DESIGN line when committing the Phase 3 PR)
+PLAN.md
+PROGRESS.md
+docs/PHASE3_DESIGN.md

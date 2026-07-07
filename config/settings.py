@@ -11,7 +11,7 @@ Features:
 - Security-focused (mask sensitive values)
 - Helper methods for common operations
 - Comprehensive model configurations
-- All AI model configurations (Claude, Gemini, GPT-4)
+- All AI model configurations (Claude, Gemini, GPT-5)
 - Search engine settings (Brave, Serper)
 - Database configuration (PostgreSQL, Redis)
 - Rate limiting and cost tracking
@@ -22,12 +22,12 @@ Features:
 Usage:
     >>> from config.settings import settings
     >>> print(settings.CLAUDE_MODEL)
-    'claude-opus-4-20250514'
+    'claude-opus-4-8'
     >>> print(settings.mask_sensitive('ANTHROPIC_API_KEY'))
     'sk-ant-api...xyz'
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, model_validator
 from typing import List, Optional
 from functools import lru_cache
@@ -37,10 +37,10 @@ class Settings(BaseSettings):
     """
     Main application settings loaded from environment variables.
     
-    Model Pricing (as of Jan 2026):
-    - Claude Opus 4: $15/$75 per 1M input/output tokens
-    - Gemini 2.0 Flash: $5/$15 per 1M input/output tokens  
-    - GPT-4 Turbo: $10/$30 per 1M input/output tokens
+    Model Pricing (as of Jul 2026):
+    - Claude Opus 4.8: $5/$25 per 1M input/output tokens
+    - Gemini 3.1 Flash-Lite: $0.25/$1.50 per 1M input/output tokens
+    - GPT-5.4 mini: $0.75/$4.50 per 1M input/output tokens
     
     All settings can be overridden via environment variables.
     """
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # ========================================================================
     ANTHROPIC_API_KEY: str = Field(..., description="Anthropic API key for Claude")
     GOOGLE_API_KEY: str = Field(..., description="Google API key for Gemini")
-    OPENAI_API_KEY: str = Field(..., description="OpenAI API key for GPT-4")
+    OPENAI_API_KEY: str = Field(..., description="OpenAI API key for GPT-5")
     PERPLEXITY_API_KEY: Optional[str] = Field(default=None, description="Perplexity API key (optional)")
     
     # ========================================================================
@@ -70,15 +70,18 @@ class Settings(BaseSettings):
     # ========================================================================
     # DATABASE
     # ========================================================================
-    DATABASE_URL: str = Field(..., description="PostgreSQL connection URL")
+    DATABASE_URL: str = Field(
+        default="sqlite:///research.db",
+        description="Database connection URL (sqlite default for local/CLI; Postgres in production)"
+    )
     REDIS_URL: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
     
     # ========================================================================
     # CLAUDE (ANTHROPIC) CONFIGURATION
     # ========================================================================
     CLAUDE_MODEL: str = Field(
-        default="claude-opus-4-20250514",
-        description="Claude model identifier"
+        default="claude-opus-4-8",
+        description="Claude model identifier (dateless pinned snapshot; official Opus 4 replacement)"
     )
     CLAUDE_RATE_LIMIT: int = Field(
         default=50,
@@ -86,17 +89,20 @@ class Settings(BaseSettings):
         ge=1
     )
     CLAUDE_MAX_TOKENS: int = Field(default=4000, ge=1, le=100000)
+    # DEPRECATED no-op: claude-opus-4-8 / claude-sonnet-5 reject temperature
+    # with 400; the Claude client no longer sends it. Kept so existing .env
+    # files don't break.
     CLAUDE_TEMPERATURE: float = Field(default=0.3, ge=0.0, le=2.0)
     CLAUDE_TIMEOUT: int = Field(default=60, ge=5, le=300)
     
     # Claude Pricing (per 1 million tokens)
     # These names MUST match what claude_client.py expects!
     CLAUDE_INPUT_COST_PER_1M: float = Field(
-        default=15.0,
+        default=5.0,
         description="Claude input cost per 1M tokens (USD)"
     )
     CLAUDE_OUTPUT_COST_PER_1M: float = Field(
-        default=75.0,
+        default=25.0,
         description="Claude output cost per 1M tokens (USD)"
     )
     
@@ -104,8 +110,8 @@ class Settings(BaseSettings):
     # GEMINI (GOOGLE) CONFIGURATION
     # ========================================================================
     GEMINI_MODEL: str = Field(
-        default="gemini-2.5-flash",
-        description="Gemini model identifier (2.5 Flash - stable, recommended)"
+        default="gemini-3.1-flash-lite",
+        description="Gemini model identifier (3.1 Flash-Lite, GA; gemini-2.5-* sunsets 2026-10-16)"
     )
     GEMINI_RATE_LIMIT: int = Field(
         default=360,
@@ -118,20 +124,20 @@ class Settings(BaseSettings):
     
     # Gemini Pricing (per 1 million tokens)
     GEMINI_INPUT_COST_PER_1M: float = Field(
-        default=0.15,
-        description="Gemini 2.5 Flash input cost per 1M tokens (USD)"
+        default=0.25,
+        description="Gemini 3.1 Flash-Lite input cost per 1M tokens (USD)"
     )
     GEMINI_OUTPUT_COST_PER_1M: float = Field(
-        default=0.60,
-        description="Gemini 2.5 Flash output cost per 1M tokens (USD)"
+        default=1.50,
+        description="Gemini 3.1 Flash-Lite output cost per 1M tokens (USD)"
     )
     
     # ========================================================================
-    # OPENAI (GPT-4) CONFIGURATION
+    # OPENAI (GPT-5) CONFIGURATION
     # ========================================================================
     OPENAI_MODEL: str = Field(
-        default="gpt-4-turbo-preview",
-        description="OpenAI model identifier"
+        default="gpt-5.4-mini",
+        description="OpenAI model identifier (structured output / verification fallback)"
     )
     OPENAI_RATE_LIMIT: int = Field(
         default=500,
@@ -144,11 +150,11 @@ class Settings(BaseSettings):
     
     # OpenAI Pricing (per 1 million tokens)
     OPENAI_INPUT_COST_PER_1M: float = Field(
-        default=10.0,
+        default=0.75,
         description="OpenAI input cost per 1M tokens (USD)"
     )
     OPENAI_OUTPUT_COST_PER_1M: float = Field(
-        default=30.0,
+        default=4.50,
         description="OpenAI output cost per 1M tokens (USD)"
     )
     
@@ -409,9 +415,9 @@ class Settings(BaseSettings):
         Example:
             >>> settings.get_model_costs()
             {
-                'claude': {'input': 15.0, 'output': 75.0},
-                'gemini': {'input': 5.0, 'output': 15.0},
-                'openai': {'input': 10.0, 'output': 30.0}
+                'claude': {'input': 5.0, 'output': 25.0},
+                'gemini': {'input': 0.25, 'output': 1.50},
+                'openai': {'input': 0.75, 'output': 4.50}
             }
         """
         return {
@@ -439,13 +445,13 @@ class Settings(BaseSettings):
     # PYDANTIC CONFIGURATION
     # ========================================================================
     
-    class Config:
-        """Pydantic configuration"""
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields for future additions
-        populate_by_name = True  # Allow alias population
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="allow",  # Allow extra fields for future additions
+        populate_by_name=True,  # Allow alias population
+    )
 
 
 @lru_cache()
@@ -462,7 +468,7 @@ def get_settings() -> Settings:
     Example:
         >>> settings = get_settings()
         >>> print(settings.CLAUDE_MODEL)
-        'claude-opus-4-20250514'
+        'claude-opus-4-8'
     """
     return Settings()
 
@@ -488,8 +494,7 @@ def validate_settings() -> bool:
         "ANTHROPIC_API_KEY",
         "GOOGLE_API_KEY",
         "OPENAI_API_KEY",
-        "BRAVE_API_KEY",
-        "DATABASE_URL"
+        "BRAVE_API_KEY"
     ]
     
     missing = []

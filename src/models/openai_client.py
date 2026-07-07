@@ -1,7 +1,7 @@
 """
-OpenAI (GPT-4) Model Client
+OpenAI (GPT-5) Model Client
 
-Integration with GPT-4 Turbo for structured output and reliable JSON generation.
+Integration with GPT-5.4 mini for structured output and reliable JSON generation.
 
 Use Cases:
 - Structured data extraction (JSON mode)
@@ -9,8 +9,8 @@ Use Cases:
 - Reliable formatted output
 - Fast iteration cycles
 
-Model: gpt-4-turbo-preview
-Context: 128K tokens
+Model: gpt-5.4-mini
+Context: 400K tokens
 Strengths: Structured output, reliability, speed
 
 Features:
@@ -38,13 +38,13 @@ logger = get_logger(__name__)
 
 class OpenAIClient(BaseModelClient):
     """
-    GPT-4 Turbo client implementation.
+    GPT-5.4 mini client implementation.
     
     Features:
     - Reliable structured output (JSON mode)
     - Function calling capabilities
     - Fast inference
-    - 128K context window
+    - 400K context window
     
     Performance:
     - Fastest response times (avg 2-3s)
@@ -87,9 +87,13 @@ class OpenAIClient(BaseModelClient):
         
         # Token encoder (OpenAI provides exact encoder)
         try:
-            # Use model-specific encoder
-            if "gpt-4" in config.model_name:
-                self.encoder = tiktoken.encoding_for_model("gpt-4")
+            # gpt-5.x / gpt-4.1 / gpt-4o use o200k_base. Don't use
+            # encoding_for_model(): it KeyErrors on "gpt-5.4-*" IDs (its
+            # prefix table has "gpt-5-", not "gpt-5.") and a silent
+            # cl100k_base fallback skews token counts and cost tracking.
+            model = config.model_name
+            if model.startswith(("gpt-5", "gpt-4.1", "gpt-4o")):
+                self.encoder = tiktoken.get_encoding("o200k_base")
             else:
                 self.encoder = tiktoken.get_encoding("cl100k_base")
         except Exception:
@@ -129,7 +133,7 @@ class OpenAIClient(BaseModelClient):
                 - temperature: Override default
             
         Returns:
-            GPT-4's response text
+            The model's response text
             
         Raises:
             RateLimitError: When rate limit exceeded
@@ -155,10 +159,13 @@ class OpenAIClient(BaseModelClient):
             response_format = kwargs.get("response_format", "text")
             
             # Build API call parameters
+            # gpt-5.x rejects "max_tokens" with 400 — the current param is
+            # "max_completion_tokens" (backward-compatible across the lineup).
+            # temperature IS still accepted on the OpenAI path.
             api_params = {
                 "model": self.config.model_name,
                 "messages": messages,
-                "max_tokens": max_tokens,
+                "max_completion_tokens": max_tokens,
                 "temperature": temperature,
             }
             
@@ -194,7 +201,7 @@ class OpenAIClient(BaseModelClient):
                     self.logger.debug("Valid JSON response received")
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Invalid JSON in response: {e}")
-                    # GPT-4 JSON mode should always return valid JSON
+                    # JSON mode should always return valid JSON
                     # If this happens, it's a bug
                     raise
             
@@ -258,7 +265,7 @@ class OpenAIClient(BaseModelClient):
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Call GPT-4 with JSON mode and parse response.
+        Call the model with JSON mode and parse response.
         
         Convenience method that:
         1. Enables JSON mode

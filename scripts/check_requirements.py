@@ -80,7 +80,7 @@ class RequirementsChecker:
         self._check_requirement(
             "Multi-Model Integration (2+ AI models)",
             lambda: self._verify_multi_model(),
-            "Claude Opus 4, Gemini 2.5 Pro, GPT-4 Turbo integrated"
+            "Claude Opus 4.8, Gemini 3.1 Flash-Lite, GPT-5.4 mini integrated"
         )
         
         # Consecutive Search Strategy
@@ -106,11 +106,14 @@ class RequirementsChecker:
         
         content = router_file.read_text()
         
-        # Check for all three models
-        has_claude = "claude-opus-4" in content.lower()
-        has_gemini = "gemini-2.5" in content.lower() or "gemini" in content.lower()
-        has_openai = "gpt-4" in content.lower()
-        
+        # Check all three providers are wired into the router. Provider enums,
+        # not model-ID substrings: model IDs live in settings and rotate
+        # (that rotation is what broke the project) — the router's job is
+        # provider integration.
+        has_claude = "ModelProvider.ANTHROPIC" in content
+        has_gemini = "ModelProvider.GOOGLE" in content
+        has_openai = "ModelProvider.OPENAI" in content
+
         return has_claude and has_gemini and has_openai
     
     def _verify_consecutive_search(self) -> bool:

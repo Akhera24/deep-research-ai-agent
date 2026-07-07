@@ -23,15 +23,28 @@ python scripts/research.py "Jensen Huang" --save --html --iterations 10
 ```
 
 The agent autonomously:
-1. **Plans** an investigation strategy using Claude Opus 4 — generating 15 targeted search queries across biographical, professional, financial, legal, behavioral, and connections categories
+1. **Plans** an investigation strategy using Claude Opus 4.8 — generating 15 targeted search queries across biographical, professional, financial, legal, behavioral, and connections categories
 2. **Searches** the web iteratively — executing queries via Brave Search and Serper, refining based on findings each round
-3. **Extracts** structured facts from raw search results using Gemini 2.5 Flash for speed
+3. **Extracts** structured facts from raw search results using Gemini 3.1 Flash-Lite for speed
 4. **Verifies** facts through cross-referencing and confidence scoring
 5. **Assesses risks** — securities fraud, compliance issues, reputational concerns — using Claude's reasoning
 6. **Maps connections** — co-founders, employers, family, partners, investors — with relationship strength scores
 7. **Generates** an interactive HTML report with consolidation, filtering, sorting, trend analysis, and a 100-point quality score
 
-### Real Performance (Jensen Huang, 10 iterations)
+### Real Performance (Jensen Huang, re-baselined July 2026 on current models, 3 iterations)
+
+| Metric | Result |
+|--------|--------|
+| Facts discovered | 48 (40 after consolidation) |
+| Risk flags | 9 across multiple categories |
+| Connections mapped | 25 across 10 relationship types |
+| Quality score | 95.8/100 — Grade A |
+| Duration | 147 seconds (2.5 minutes) |
+| Model cost | **$0.19** (Claude $0.182 · Gemini $0.006 · GPT unused fallback) |
+| Fallback calls | 0 — every task served by its primary model |
+
+<details>
+<summary>Previous baseline (Jensen Huang, 10 iterations, retired 2025 models)</summary>
 
 | Metric | Result |
 |--------|--------|
@@ -43,6 +56,7 @@ The agent autonomously:
 | Duration | 327 seconds (5.4 minutes) |
 | Cost | ~$0.56 total API spend |
 | Search iterations | 4 (stopped at 93% coverage threshold) |
+</details>
 
 ---
 
@@ -106,8 +120,8 @@ The agent autonomously:
          ┌─────────────────┼─────────────────┐
          ▼                 ▼                 ▼
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Claude Opus 4│  │ Gemini 2.5   │  │ GPT-4 Turbo  │
-│              │  │ Flash        │  │              │
+│ Claude Opus  │  │ Gemini 3.1   │  │ GPT-5.4 mini │
+│ 4.8          │  │ Flash-Lite   │  │              │
 │ • Strategy   │  │ • Extraction │  │ • Fallback   │
 │ • Risk       │  │ • Speed      │  │ • Structure  │
 │ • Connections│  │ • Volume     │  │ • JSON       │
@@ -142,12 +156,18 @@ The system routes tasks to the optimal model based on task type:
 
 | Task | Model | Reasoning |
 |------|-------|-----------|
-| Strategy planning | Claude Opus 4 | Superior reasoning, strategic thinking |
-| Query refinement | Claude Opus 4 | Analytical depth, gap identification |
-| Fact extraction | Gemini 2.5 Flash | Speed, large context window (2M tokens) |
-| Risk assessment | Claude Opus 4 | Nuanced analysis, pattern recognition |
-| Connection mapping | Claude Opus 4 | Relationship inference, synthesis |
-| Fallback | GPT-4 Turbo | Reliable structured output |
+| Strategy planning | Claude Opus 4.8 | Superior reasoning, strategic thinking |
+| Query refinement | Claude Opus 4.8 | Analytical depth, gap identification |
+| Fact extraction | Gemini 3.1 Flash-Lite | Speed, large context window (~300K tokens verified) |
+| Risk assessment | Claude Opus 4.8 | Nuanced analysis, pattern recognition |
+| Connection mapping | Claude Opus 4.8 | Relationship inference, synthesis |
+| Fallback | GPT-5.4 mini | Reliable structured output |
+
+> **Model note (July 2026):** `claude-opus-4-20250514` and `gpt-4-turbo-preview`
+> are retired at the API (404), and `gemini-2.5-flash` shuts down **2026-10-16** —
+> if you pin old model IDs via env vars, they will stop working. Current defaults
+> live in `config/settings.py`. Run `python scripts/preflight_check.py` to verify
+> all configured models respond before a research run.
 
 ---
 
@@ -165,7 +185,7 @@ deep-research-agent/
 │   │   ├── base_client.py        # Abstract base for AI clients (523 lines)
 │   │   ├── claude_client.py      # Anthropic Claude client with prompt caching (380 lines)
 │   │   ├── gemini_client.py      # Google Gemini client (374 lines)
-│   │   ├── openai_client.py      # OpenAI GPT-4 client (314 lines)
+│   │   ├── openai_client.py      # OpenAI GPT-5 client (314 lines)
 │   │   └── router.py             # Multi-model task router (698 lines)
 │   ├── search/
 │   │   ├── strategy.py           # Consecutive search strategy engine (1,406 lines)
@@ -202,7 +222,7 @@ deep-research-agent/
 ### Prerequisites
 
 - **Python 3.11+**
-- API keys for: **Anthropic** (Claude), **Google** (Gemini), **OpenAI** (GPT-4), **Brave Search**
+- API keys for: **Anthropic** (Claude), **Google** (Gemini), **OpenAI** (GPT-5), **Brave Search**
 - Optional: **Serper** (Google search fallback)
 
 ### Installation
@@ -230,10 +250,11 @@ Copy `.env.example` to `.env` and fill in your keys:
 
 ```bash
 # Required
-ANTHROPIC_API_KEY=sk-ant-...        # Claude Opus 4
-GOOGLE_API_KEY=AI...                # Gemini 2.5 Flash
-OPENAI_API_KEY=sk-...               # GPT-4 Turbo (fallback)
+ANTHROPIC_API_KEY=sk-ant-...        # Claude Opus 4.8
+GOOGLE_API_KEY=AI...                # Gemini 3.1 Flash-Lite
+OPENAI_API_KEY=sk-...               # GPT-5.4 mini (fallback)
 BRAVE_API_KEY=BSA...                # Brave Search
+DATABASE_URL=sqlite:///research.db  # Job/session storage
 
 # Optional
 SERPER_API_KEY=...                  # Google search via Serper (fallback)
@@ -271,11 +292,11 @@ python scripts/research.py "Elon Musk" -i 20 -s --output results/elon.json --htm
 
 ### 1. Strategy Planning
 
-Claude Opus 4 generates an initial set of 15 targeted search queries spanning 6 categories (biographical, professional, financial, legal, behavioral, connections) at varying depth levels (1-5). Each query has a specific investigative purpose.
+Claude Opus 4.8 generates an initial set of 15 targeted search queries spanning 6 categories (biographical, professional, financial, legal, behavioral, connections) at varying depth levels (1-5). Each query has a specific investigative purpose.
 
 ### 2. Iterative Search & Extraction
 
-The system executes 5 queries per iteration, extracts facts using Gemini 2.5 Flash, then refines the next batch of queries based on what's been discovered and what gaps remain. This consecutive search strategy means each iteration is informed by all previous findings.
+The system executes 5 queries per iteration, extracts facts using Gemini 3.1 Flash-Lite, then refines the next batch of queries based on what's been discovered and what gaps remain. This consecutive search strategy means each iteration is informed by all previous findings.
 
 ### 3. Coverage-Driven Termination
 
@@ -323,22 +344,26 @@ The system produces a research quality score from 0-100:
 
 ## Cost Breakdown
 
-Typical costs per research run (based on Jensen Huang, 10 iterations):
+Measured costs per research run (Jensen Huang, 3 iterations, July 2026 models):
 
 | Component | Model | Cost |
 |-----------|-------|------|
-| Strategy planning (4×) | Claude Opus 4 | ~$0.20 |
-| Fact extraction (4×) | Gemini 2.5 Flash | ~$0.006 |
-| Risk assessment | Claude Opus 4 | ~$0.10 |
-| Connection mapping | Claude Opus 4 | ~$0.15 |
-| Search API calls (20) | Brave Search | ~$0.10 |
-| **Total** | | **~$0.56** |
+| Strategy/refinement, risk, connections (6 calls) | Claude Opus 4.8 | $0.182 |
+| Fact extraction (3 calls) | Gemini 3.1 Flash-Lite | $0.006 |
+| Structured-output fallback (0 calls — unused) | GPT-5.4 mini | $0.00 |
+| Search API calls (~15) | Brave Search | ~$0.08 |
+| **Total** | | **~$0.27** (model spend $0.19) |
+
+A longer 10-iteration run scales roughly linearly on extraction/search but not
+on the fixed reasoning calls; expect ~$0.30–0.45 all-in. Cheaper lever:
+`CLAUDE_MODEL=claude-sonnet-5` (~2.5× cheaper reasoning; A/B planned before
+public launch).
 
 ---
 
 ## Key Design Decisions
 
-**Why multi-model instead of single model?** Claude Opus 4 excels at strategic reasoning and nuanced analysis but is expensive and slower. Gemini 2.5 Flash handles bulk extraction from large documents at 1/50th the cost and 2× the speed. GPT-4 Turbo provides reliable structured JSON output as a fallback. Using each model for what it does best keeps costs under $1/report while maintaining quality.
+**Why multi-model instead of single model?** Claude Opus 4.8 excels at strategic reasoning and nuanced analysis but is expensive and slower. Gemini 3.1 Flash-Lite handles bulk extraction from large documents at a fraction of the cost and 2× the speed. GPT-5.4 mini provides reliable structured JSON output as a fallback. Using each model for what it does best keeps costs under $1/report while maintaining quality.
 
 **Why Jaccard + containment for deduplication?** Pure Jaccard similarity misses subset relationships ("born in Taiwan" vs "born February 17, 1963, in Tainan, Taiwan" — Jaccard is low because the detailed fact has many unique words). Containment catches these asymmetric relationships. The min-2-shared-words guard prevents false merges on very short facts.
 
@@ -367,5 +392,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Built with Claude Opus 4 · Gemini 2.5 Flash · GPT-4 Turbo · LangGraph · Brave Search
+  Built with Claude Opus 4.8 · Gemini 3.1 Flash-Lite · GPT-5.4 mini · LangGraph · Brave Search
 </p>

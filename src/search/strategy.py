@@ -342,7 +342,7 @@ class SearchStrategyEngine:
         """
         Generate comprehensive initial query set using AI.
         
-        Uses Claude Opus 4 to create intelligent, context-aware queries
+        Uses Claude Opus 4.8 to create intelligent, context-aware queries
         that cover all major research areas. Falls back to template-based
         generation if AI call fails.
         

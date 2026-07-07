@@ -5,7 +5,7 @@ Intelligent routing of requests to optimal AI model based on task type.
 
 Key Requirements Met:
   "Multi-Model Integration" - Implements 3 distinct AI models
-  Different capabilities per model (Claude/Gemini/GPT-4)
+  Different capabilities per model (Claude/Gemini/GPT-5)
   Intelligent task-based routing
   Automatic fallback mechanisms
   Cost optimization and tracking
@@ -79,9 +79,9 @@ class ModelRouter:
     - Provide convenience methods for common operations
     
     Routing Strategy:
-    - Claude Opus 4: Strategy, risk assessment, nuanced analysis
-    - Gemini 2.5: Large documents, multimodal, fast processing
-    - GPT-4 Turbo: Structured output, verification, reliability
+    - Claude Opus 4.8: Strategy, risk assessment, nuanced analysis
+    - Gemini 3.1 Flash-Lite: Large documents, multimodal, fast processing
+    - GPT-5.4 mini: Structured output, verification, reliability
     
     FAANG Quality Features:
     - Comprehensive error handling
@@ -115,9 +115,9 @@ class ModelRouter:
         Initialize router with all model clients.
         
         Creates instances of:
-        - ClaudeClient (Anthropic Claude Opus 4)
-        - GeminiClient (Google Gemini 2.5 Pro)
-        - OpenAIClient (OpenAI GPT-4 Turbo)
+        - ClaudeClient (Anthropic Claude Opus 4.8)
+        - GeminiClient (Google Gemini 3.1 Flash-Lite)
+        - OpenAIClient (OpenAI GPT-5.4 mini)
         
         Each client is configured with appropriate rate limits,
         retry logic, and monitoring.
@@ -169,57 +169,57 @@ class ModelRouter:
             TaskType.STRATEGY_PLANNING: {
                 "primary": ModelProvider.ANTHROPIC,
                 "fallback": [ModelProvider.OPENAI, ModelProvider.GOOGLE],
-                "reasoning": "Claude Opus 4: Superior reasoning, strategic thinking, planning",
+                "reasoning": "Claude Opus 4.8: Superior reasoning, strategic thinking, planning",
                 "expected_quality": 0.95,
-                "expected_cost_per_1k": 0.045  # $15/$75 per 1M tokens (in/out)
+                "expected_cost_per_1k": 0.015  # $5/$25 per 1M tokens (in/out avg)
             },
-            
+
             TaskType.DOCUMENT_PROCESSING: {
                 "primary": ModelProvider.GOOGLE,
                 "fallback": [ModelProvider.ANTHROPIC, ModelProvider.OPENAI],
-                "reasoning": "Gemini 2.5: 2M token context, efficient processing, multimodal",
+                "reasoning": "Gemini 3.1 Flash-Lite: large context, efficient processing",
                 "expected_quality": 0.90,
-                "expected_cost_per_1k": 0.010  # $5/$15 per 1M tokens
+                "expected_cost_per_1k": 0.000875  # $0.25/$1.50 per 1M tokens
             },
-            
+
             TaskType.STRUCTURED_OUTPUT: {
                 "primary": ModelProvider.OPENAI,
                 "fallback": [ModelProvider.ANTHROPIC, ModelProvider.GOOGLE],
-                "reasoning": "GPT-4: Reliable JSON mode, function calling, structured data",
+                "reasoning": "GPT-5.4 mini: Reliable JSON mode, function calling, structured data",
                 "expected_quality": 0.98,
-                "expected_cost_per_1k": 0.020  # $10/$30 per 1M tokens
+                "expected_cost_per_1k": 0.002625  # $0.75/$4.50 per 1M tokens
             },
-            
+
             TaskType.RISK_ASSESSMENT: {
                 "primary": ModelProvider.ANTHROPIC,
                 "fallback": [ModelProvider.OPENAI, ModelProvider.GOOGLE],
-                "reasoning": "Claude Opus 4: Nuanced risk analysis, pattern recognition, ethics",
+                "reasoning": "Claude Opus 4.8: Nuanced risk analysis, pattern recognition, ethics",
                 "expected_quality": 0.93,
-                "expected_cost_per_1k": 0.045
+                "expected_cost_per_1k": 0.015
             },
-            
+
             TaskType.FACT_EXTRACTION: {
                 "primary": ModelProvider.GOOGLE,
                 "fallback": [ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
                 "reasoning": "Gemini: Efficient extraction from large documents, speed",
                 "expected_quality": 0.88,
-                "expected_cost_per_1k": 0.010
+                "expected_cost_per_1k": 0.000875
             },
-            
+
             TaskType.VERIFICATION: {
                 "primary": ModelProvider.OPENAI,
                 "fallback": [ModelProvider.ANTHROPIC, ModelProvider.GOOGLE],
-                "reasoning": "GPT-4: Systematic verification, consistency, reliability",
+                "reasoning": "GPT-5.4 mini: Systematic verification, consistency, reliability",
                 "expected_quality": 0.92,
-                "expected_cost_per_1k": 0.020
+                "expected_cost_per_1k": 0.002625
             },
-            
+
             TaskType.ANALYSIS: {
                 "primary": ModelProvider.ANTHROPIC,
                 "fallback": [ModelProvider.GOOGLE, ModelProvider.OPENAI],
-                "reasoning": "Claude Opus 4: General analysis, synthesis, deep insights",
+                "reasoning": "Claude Opus 4.8: General analysis, synthesis, deep insights",
                 "expected_quality": 0.91,
-                "expected_cost_per_1k": 0.045
+                "expected_cost_per_1k": 0.015
             }
         }
     
@@ -537,7 +537,7 @@ class ModelRouter:
         
         Useful for:
         - Debugging routing decisions
-        - UI display ("This will use Claude Opus 4")
+        - UI display ("This will use Claude Opus 4.8")
         - Testing routing logic
         
         Does NOT actually call the model, just returns which

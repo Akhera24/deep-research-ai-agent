@@ -39,6 +39,10 @@ def test_separator(title: str):
     print("=" * 70)
 
 
+# Print helper, not a test — stop pytest collecting it by name
+test_separator.__test__ = False
+
+
 def test_claude_client():
     """Test Claude client with real API call"""
     test_separator("TEST 1: Claude Client (Reasoning)")

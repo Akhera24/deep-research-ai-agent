@@ -1,28 +1,23 @@
 """
 Gemini (Google) Model Client
 
-Integration with Gemini 2.5 Flash for document processing.
-
-MIGRATION: Upgraded to google.genai (modern SDK) with backward compatibility
+Integration with Gemini Flash models for document processing.
 
 Use Cases:
-- Large document processing (2M token context)
+- Large document processing (large context window)
 - Multi-source data synthesis
 - Efficient fact extraction
 - Cost-effective bulk operations
 
-Model: gemini-2.5-flash
-Context: 2M tokens (largest available)
+Model: gemini-3.1-flash-lite (settings.GEMINI_MODEL)
 Strengths: Speed, large context, cost-effective
 
 Features:
-- 2M token context window
+- Large context window
 - Fast inference (~2-3s)
 - Relaxed safety settings for research
 - Cost-effective processing
-- Backward compatibility with old SDK
 - Comprehensive error handling
-- Modern SDK with graceful fallback
 - Token estimation with fallback
 - Production-ready configuration
 - Implements all required abstract methods
@@ -31,23 +26,8 @@ Features:
 
 from typing import Optional, Dict, Any
 
-# ============================================================================
-# GOOGLE GENAI IMPORTS - Try new, fall back to old
-# ============================================================================
-try:
-    from google import genai
-    from google.genai import types
-    GENAI_AVAILABLE = True
-    logger_msg = "✅ Using NEW google.genai SDK (no warnings!)"
-except ImportError:
-    # Fallback to old package
-    import warnings
-    warnings.filterwarnings('ignore', category=FutureWarning, module='google.generativeai')
-    import google.generativeai as genai
-    from google.generativeai.types import HarmCategory, HarmBlockThreshold
-    GENAI_AVAILABLE = False
-    types = None
-    logger_msg = "⚠️  Using deprecated google.generativeai"
+from google import genai
+from google.genai import types
 
 # ============================================================================
 # INTERNAL IMPORTS
@@ -75,24 +55,22 @@ logger = get_logger(__name__)
 
 class GeminiClient(BaseModelClient):
     """
-    Gemini 2.5 Flash client implementation.
-    
-    CORRECTED: Now properly implements BaseModelClient abstract methods:
+    Gemini Flash client implementation (model from settings.GEMINI_MODEL).
+
+    Implements BaseModelClient abstract methods:
     - _make_api_call() -> str (required by base class)
     - _estimate_tokens() -> int (required by base class)
-    
+
     Features:
-    - 2M token context window (largest available)
+    - Large context window
     - Fast inference (~2-3s average)
     - Multimodal capabilities (text, images, video)
     - Cost-effective for large documents
     - Relaxed safety settings for research
-    - Backward compatibility with old SDK
-    
+
     Performance:
-    - Context: 2M tokens (vs Claude's 200K)
     - Speed: 2-3s per request
-    - Cost: $0.15/$0.60 per 1M tokens (vs Claude's $15/$75)
+    - Cost: $0.25/$1.50 per 1M tokens (gemini-3.1-flash-lite; vs Claude's $5/$25)
     - Use case: Document processing, bulk extraction
     
     Safety Settings:
@@ -137,63 +115,33 @@ class GeminiClient(BaseModelClient):
             raise ValueError("Google API key not configured")
         
         # ====================================================================
-        # INITIALIZE SDK (New or Old)
+        # INITIALIZE SDK (google-genai)
         # ====================================================================
-        if GENAI_AVAILABLE:
-            # NEW SDK: google.genai
-            try:
-                self.client = genai.Client(api_key=self.config.api_key)
-                self.model = None  # Not used in new SDK
-                logger.info(logger_msg)
-            except Exception as e:
-                logger.error(f"Failed to initialize new Gemini SDK: {e}")
-                raise
-        else:
-            # OLD SDK: google.generativeai
-            try:
-                genai.configure(api_key=self.config.api_key)
-                self.client = None  # Not used in old SDK
-                self.model = genai.GenerativeModel(
-                    model_name=self.config.model_name,
-                    generation_config={
-                        "temperature": self.config.temperature,
-                        "max_output_tokens": self.config.max_tokens,
-                    },
-                    safety_settings={
-                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                    }
-                )
-                logger.info(logger_msg)
-                logger.warning("   To remove warnings: pip install google-genai")
-            except Exception as e:
-                logger.error(f"Failed to initialize old Gemini SDK: {e}")
-                raise
-        
-        # Safety settings for new SDK (prepared but only used if new SDK)
-        if GENAI_AVAILABLE:
-            self.safety_settings = [
-                types.SafetySetting(
-                    category="HARM_CATEGORY_HATE_SPEECH",
-                    threshold="BLOCK_NONE"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_HARASSMENT",
-                    threshold="BLOCK_NONE"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="BLOCK_NONE"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold="BLOCK_NONE"
-                )
-            ]
-        else:
-            self.safety_settings = None
+        try:
+            self.client = genai.Client(api_key=self.config.api_key)
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini SDK: {e}")
+            raise
+
+        # Relaxed safety settings (research agent needs flexibility)
+        self.safety_settings = [
+            types.SafetySetting(
+                category="HARM_CATEGORY_HATE_SPEECH",
+                threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_HARASSMENT",
+                threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold="BLOCK_NONE"
+            )
+        ]
         
         # Token encoder (optional, for better cost estimation)
         if TIKTOKEN_AVAILABLE:
@@ -211,9 +159,8 @@ class GeminiClient(BaseModelClient):
             "Gemini client initialized",
             extra={
                 "model": self.config.model_name,
-                "context_window": "2M tokens",
                 "safety_settings": "relaxed",
-                "sdk": "google.genai" if GENAI_AVAILABLE else "google.generativeai (deprecated)"
+                "sdk": "google.genai"
             }
         )
     
@@ -265,29 +212,19 @@ class GeminiClient(BaseModelClient):
         )
         
         try:
-            # ================================================================
-            # CALL API (Different for new vs old SDK)
-            # ================================================================
-            if GENAI_AVAILABLE:
-                # NEW SDK: google.genai
-                response = self.client.models.generate_content(
-                    model=self.config.model_name,
-                    contents=full_prompt,
-                    config=types.GenerateContentConfig(
-                        temperature=self.config.temperature,
-                        max_output_tokens=self.config.max_tokens,
-                        safety_settings=self.safety_settings
-                    )
+            response = self.client.models.generate_content(
+                model=self.config.model_name,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=self.config.temperature,
+                    max_output_tokens=self.config.max_tokens,
+                    safety_settings=self.safety_settings
                 )
-                
-                # Extract text from new SDK response
-                content = response.text if hasattr(response, 'text') else str(response)
-                
-            else:
-                # OLD SDK: google.generativeai
-                response = self.model.generate_content(full_prompt)
-                content = response.text
-            
+            )
+
+            # Extract text from response
+            content = response.text if hasattr(response, 'text') else str(response)
+
             logger.debug(
                 "Gemini response received",
                 extra={

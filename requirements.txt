@@ -1,101 +1,71 @@
 # ============================================================================
-# Deep Research AI Agent - Production Dependencies
+# Deep Research AI Agent - Dependencies
 # ============================================================================
-# Installation:
-#   pip install -r requirements.txt
+# Direct dependencies only (transitive deps resolved by pip).
+# Load-bearing pins are exact working-venv floors (repinned 2026-07-07);
+# legacy utility floors are loose-but-satisfiable.
 #
-# Note: This file is compatible with newer LangGraph 1.0+ versions
+# Install:
+#   pip install -r requirements.txt
 # ============================================================================
 
-# ============================================================================
-# CORE WEB FRAMEWORK
-# ============================================================================
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
+# ── Web framework (API serving; Phase 3 deploy) ──
+fastapi>=0.129
+uvicorn[standard]>=0.27
 python-multipart>=0.0.6
 
-# ============================================================================
-# AGENT ORCHESTRATION (LangGraph 1.0+ Compatible)
-# ============================================================================
-# NOTE: You have langgraph 1.0.5 installed, which is newer than 0.2.x
-# This is fine - the code works with both versions
-langgraph>=0.2.0  # Works with 0.2.x and 1.0.x
-langgraph-checkpoint>=1.0.0  # Required for SqliteSaver
-langchain>=0.1.0
-langchain-core>=0.1.10
-langchain-anthropic>=0.1.0
-langchain-openai>=0.0.5
-langchain-google-genai>=1.0.1
+# ── Agent orchestration ──
+langgraph>=1.0
+langgraph-checkpoint>=4.0   # optional SqliteSaver path in src/core/workflow.py
+langchain-core>=1.2         # langgraph runtime dep, pinned deliberately
 
-# ============================================================================
-# AI MODEL CLIENTS
-# ============================================================================
-anthropic>=0.18.0  # You have 0.75.0 - works fine
-openai>=1.10.0  # You have 2.14.0 - works fine
-google-generativeai>=0.3.2
+# ── AI model clients ──
+anthropic>=0.83
+openai>=2.21
+google-genai>=1.64          # replaces google-generativeai (EOL 2025-11-30)
+tiktoken>=0.12              # direct dep: unguarded import in claude_client.py / openai_client.py
 
-# ============================================================================
-# HTTP & ASYNC (CRITICAL - WAS MISSING!)
-# ============================================================================
-aiohttp>=3.9.0  # ← THIS WAS MISSING! Needed by executor.py
-httpx>=0.26.0
-requests>=2.31.0
+# ── HTTP & async ──
+aiohttp>=3.13               # search executor
+httpx>=0.26                 # Phase 3: Turnstile siteverify
+requests>=2.31
 
-# ============================================================================
-# WEB SCRAPING & PARSING
-# ============================================================================
-beautifulsoup4>=4.12.3
-lxml>=5.1.0
-playwright>=1.41.0
+# ── Web scraping & parsing ──
+beautifulsoup4>=4.12
 
-# ============================================================================
-# DATABASE & CACHING
-# ============================================================================
-sqlalchemy>=2.0.25
-alembic>=1.13.1
-psycopg2-binary>=2.9.9
-redis>=5.0.1
+# ── Database ──
+sqlalchemy>=2.0.46
+psycopg2-binary>=2.9        # Phase 3: Postgres job table on Railway
 
-# ============================================================================
-# DATA VALIDATION & SETTINGS
-# ============================================================================
-pydantic>=2.5.3
-pydantic-settings>=2.1.0
-python-dotenv>=1.0.0
+# ── Data validation & settings ──
+pydantic>=2.12
+pydantic-settings>=2.13
+python-dotenv>=1.0
 
-# ============================================================================
-# RETRY LOGIC & RATE LIMITING
-# ============================================================================
-tenacity>=8.2.3
-ratelimit>=2.2.1
+# ── Retry logic ──
+tenacity>=8.2
 
-# ============================================================================
-# LOGGING & MONITORING
-# ============================================================================
-structlog>=24.1.0
-sentry-sdk>=1.40.0
+# ── Logging ──
+structlog>=24.1
 
-# ============================================================================
-# TESTING FRAMEWORK
-# ============================================================================
-pytest>=7.4.4
-pytest-asyncio>=0.23.3
-pytest-cov>=4.1.0
+# ── Phase 3: rate limiting, sanitization, SSE ──
+slowapi>=0.1.9              # per-IP rate limiting
+bleach>=6.1                 # HTML sanitization of scraped facts (stored-XSS guard)
+sse-starlette>=2.1          # SSE progress streams
+markupsafe>=2.1             # direct pin: load-bearing for HTML escaping in reports
 
-# ============================================================================
-# CODE QUALITY & TYPE CHECKING
-# ============================================================================
-mypy>=1.8.0
-black>=24.1.1
+# ── Utilities ──
+python-dateutil>=2.8
+
+# ── Testing ──
+pytest>=7.4
+pytest-asyncio>=0.23
+pytest-cov>=4.1
+
+# ── Code quality ──
+mypy>=1.8
+black>=24.1
 ruff>=0.1.13
 
-# ============================================================================
-# UTILITIES
-# ============================================================================
-python-dateutil>=2.8.2  
-
-# ============================================================================
-# OPTIONAL (Install if needed)
-# ============================================================================
-# tqdm>=4.66.1  # Progress bars
-# rich>=13.7.0  # Pretty terminal output
+# ── Optional (install if needed) ──
+# sentry-sdk>=1.40  # error tracking — enable when SENTRY_DSN is configured
