@@ -355,9 +355,14 @@ Measured costs per research run (Jensen Huang, 3 iterations, July 2026 models):
 | **Total** | | **~$0.27** (model spend $0.19) |
 
 A longer 10-iteration run scales roughly linearly on extraction/search but not
-on the fixed reasoning calls; expect ~$0.30–0.45 all-in. Cheaper lever:
-`CLAUDE_MODEL=claude-sonnet-5` (~2.5× cheaper reasoning; A/B planned before
-public launch).
+on the fixed reasoning calls; expect ~$0.30–0.45 all-in.
+
+**Reasoning model:** the default is `claude-opus-4-8`. A Sonnet 5 A/B
+(2 subjects × 2 models) found the two at parity on well-documented individuals
+(96.0 vs 95.6) but Opus meaningfully ahead on a company subject (83.6 vs 65.5 —
+Sonnet lost connection mapping entirely), for only ~$0.06/report more. Opus 4.8
+is therefore the chosen model. `CLAUDE_MODEL=claude-sonnet-5` remains available
+as a cheaper env override, best suited to person-only workloads.
 
 ---
 
