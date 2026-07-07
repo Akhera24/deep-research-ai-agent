@@ -24,6 +24,28 @@ logger = get_logger(__name__)
 
 DEV_SECRET_DEFAULT = "dev-secret-key-change-in-production"
 
+# Turnstile default = Cloudflare's always-pass TEST key; real deploys override it.
+_TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA"
+
+
+def _log_config_presence() -> None:
+    """Log PRESENT/MISSING for deploy-critical config — NAMES ONLY, no values."""
+    checks = {
+        "SECRET_KEY_is_real": settings.SECRET_KEY != DEV_SECRET_DEFAULT,
+        "ADMIN_BYPASS_TOKEN": bool(settings.ADMIN_BYPASS_TOKEN),
+        "TURNSTILE_SITE_KEY_is_real": settings.TURNSTILE_SITE_KEY != _TURNSTILE_TEST_SITE_KEY,
+        "TURNSTILE_EXPECTED_HOSTNAME": bool(settings.TURNSTILE_EXPECTED_HOSTNAME),
+        "ANTHROPIC_API_KEY": bool(settings.ANTHROPIC_API_KEY),
+        "GOOGLE_API_KEY": bool(settings.GOOGLE_API_KEY),
+        "OPENAI_API_KEY": bool(settings.OPENAI_API_KEY),
+        "BRAVE_API_KEY": bool(settings.BRAVE_API_KEY),
+        "SERPER_API_KEY": bool(settings.SERPER_API_KEY),
+        "DATABASE_URL_is_postgres": settings.DATABASE_URL.startswith("postgres"),
+    }
+    present = sorted(k for k, ok in checks.items() if ok)
+    missing = sorted(k for k, ok in checks.items() if not ok)
+    logger.info("Config presence check", extra={"present": present, "missing": missing})
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +55,12 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(
             "SECRET_KEY is the development default; set a real SECRET_KEY in production"
         )
+
+    # Config visibility (never values): a deploy log line listing which
+    # deploy-critical vars are PRESENT vs MISSING makes a Railway deploy
+    # verifiable without exposing secrets. /healthz doesn't touch Turnstile,
+    # so this is the only signal that the submit path is actually configured.
+    _log_config_presence()
 
     await init_db()
     swept = await startup_sweep()  # §11.R1: running AND queued → failed

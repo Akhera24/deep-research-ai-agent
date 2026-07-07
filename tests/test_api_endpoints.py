@@ -89,6 +89,10 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(api_db.settings, "DATABASE_URL", f"sqlite:///{tmp_path}/api.db")
     monkeypatch.setattr(api_db.settings, "ADMIN_BYPASS_TOKEN", "test-admin-token")
     monkeypatch.setattr(api_db.settings, "ENVIRONMENT", "development")
+    # Pin Cloudflare's official TEST sitekey so CI never depends on the real
+    # keys a developer may have in their local .env (reviewer instruction).
+    monkeypatch.setattr(api_db.settings, "TURNSTILE_SITE_KEY", "1x00000000000000000000AA")
+    monkeypatch.setattr(api_db.settings, "TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA")
     monkeypatch.setattr(routes_mod, "verify_turnstile", _turnstile_ok)
     monkeypatch.setattr(jobs_mod, "ResearchOrchestrator", FakeOrchestrator)
     FakeOrchestrator.total_cost = 0.05
