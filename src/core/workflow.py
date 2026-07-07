@@ -16,7 +16,7 @@ Features :
 """
 
 import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Awaitable, Callable, Dict, Any, List, Optional
 from datetime import datetime
 import json
 import re
@@ -150,15 +150,21 @@ class ResearchOrchestrator:
     async def research(
         self,
         target_name: str,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None
     ) -> Dict[str, Any]:
         """
         Execute complete research on target.
-        
+
         Args:
             target_name: Person/entity to research
             context: Optional context (occupation, location, etc.)
-            
+            progress_callback: Optional async callback invoked after every
+                graph node with {node, iteration, facts, coverage}. Used by
+                the job API for progress/heartbeat writes and the per-job
+                budget abort (an exception raised inside the callback aborts
+                the run). CLI callers leave this None — behavior unchanged.
+
         Returns:
             Dictionary with:
             - facts: List of extracted facts
@@ -204,9 +210,23 @@ class ResearchOrchestrator:
         }
         
         try:
-            # Run workflow
-            final_state = await self.workflow.ainvoke(initial_state)
-            
+            # Run workflow. stream_mode="values" yields the full state after
+            # every node — equivalent to ainvoke when the stream is drained,
+            # plus per-node progress hooks (PHASE3_DESIGN §11.R3).
+            final_state = None
+            async for state_snapshot in self.workflow.astream(
+                initial_state, stream_mode="values"
+            ):
+                final_state = state_snapshot
+                if progress_callback is not None:
+                    await progress_callback({
+                        "node": state_snapshot.get("stage", "unknown"),
+                        "iteration": state_snapshot.get("iteration", 0),
+                        "max_iterations": self.max_iterations,
+                        "facts": len(state_snapshot.get("facts", [])),
+                        "coverage": state_snapshot.get("coverage", {}),
+                    })
+
             # Format results
             result = self._format_results(final_state)
             
