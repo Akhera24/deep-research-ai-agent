@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Research Agent</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+               background: #f1f5f9; color: #1e293b; line-height: 1.6;
+               display: flex; flex-direction: column; min-height: 100vh; }
+        main { flex: 1; max-width: 640px; width: 100%; margin: 0 auto; padding: 48px 20px; }
+        h1 { font-size: 1.6em; margin-bottom: 4px; }
+        .sub { color: #64748b; margin-bottom: 28px; }
+        form { background: white; border-radius: 12px; padding: 24px;
+               box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        label { font-weight: 600; display: block; margin-bottom: 8px; }
+        input[type=text] { width: 100%; padding: 12px; font-size: 1em; border: 1px solid #cbd5e1;
+               border-radius: 8px; margin-bottom: 16px; }
+        button { background: #2d5a8e; color: white; border: 0; border-radius: 8px;
+               padding: 12px 24px; font-size: 1em; cursor: pointer; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .turnstile-box { margin-bottom: 16px; }
+        #status { margin-top: 24px; display: none; background: white; border-radius: 12px;
+               padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        #bar-outer { background: #e2e8f0; border-radius: 6px; height: 10px; margin: 12px 0; overflow: hidden; }
+        #bar { background: #3b82f6; height: 100%; width: 2%; transition: width 0.6s; }
+        #phase { color: #64748b; font-size: 0.92em; }
+        #error { color: #b91c1c; margin-top: 12px; display: none; }
+        #report-link { display: none; margin-top: 12px; font-weight: 600; }
+        footer { text-align: center; font-size: 0.78em; color: #94a3b8; padding: 24px 16px;
+               max-width: 720px; margin: 0 auto; }
+        footer a { color: #64748b; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Deep Research Agent</h1>
+    <p class="sub">Autonomous due-diligence research on a person or company — facts, risks, connections, scored report.</p>
+
+    <form id="research-form">
+        <label for="query">Person or company name</label>
+        <input type="text" id="query" name="query" maxlength="200"
+               placeholder="e.g. Jensen Huang, Berkshire Hathaway Inc." required>
+        <div class="turnstile-box">
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+        </div>
+        <button type="submit" id="submit-btn">Start research</button>
+        <div id="error"></div>
+    </form>
+
+    <div id="status">
+        <strong id="status-title">Researching…</strong>
+        <div id="bar-outer"><div id="bar"></div></div>
+        <div id="phase">queued</div>
+        <a id="report-link" href="#">View the report →</a>
+    </div>
+</main>
+
+<footer>
+    Research is compiled automatically from public web sources and may contain errors —
+    verify independently before acting on it. Reports and the submitted name are stored
+    for up to 7 days, then deleted; a salted hash of your IP address is kept for the same
+    period for abuse prevention. By submitting you accept these terms.
+    Removal/takedown requests: <a href="mailto:akhera677@gmail.com">akhera677@gmail.com</a>.
+</footer>
+
+<script>
+const form = document.getElementById('research-form');
+const btn = document.getElementById('submit-btn');
+const errBox = document.getElementById('error');
+const statusBox = document.getElementById('status');
+const bar = document.getElementById('bar');
+const phase = document.getElementById('phase');
+const title = document.getElementById('status-title');
+const reportLink = document.getElementById('report-link');
+let es = null;
+
+function fail(msg) {
+    errBox.textContent = msg;
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    // Turnstile tokens are single-use — re-render before any retry.
+    if (window.turnstile) turnstile.reset();
+}
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errBox.style.display = 'none';
+    btn.disabled = true;
+    const token = window.turnstile ? turnstile.getResponse() : '';
+    const query = document.getElementById('query').value;
+
+    let resp;
+    try {
+        resp = await fetch('/api/research', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({query: query, turnstile_token: token || ''})
+        });
+    } catch (err) {
+        return fail('Network error — please try again.');
+    }
+
+    if (resp.status === 429) return fail('Rate limit reached (3 reports/hour). Try again later.');
+    if (resp.status === 503) return fail('Monthly research budget exhausted. Try again next month.');
+    if (resp.status === 403) {
+        const d = await resp.json().catch(() => ({}));
+        return fail(d.detail || 'Challenge failed — please retry.');
+    }
+    if (resp.status === 422) return fail('Invalid name — use letters, digits and & . , \' - ( ) only.');
+    if (!resp.ok) return fail('Unexpected error (' + resp.status + ').');
+
+    const job = await resp.json();
+    statusBox.style.display = 'block';
+    title.textContent = 'Researching…';
+    watch(job.events_url, job.report_url);
+});
+
+function watch(eventsUrl, reportUrl) {
+    if (es) es.close();
+    es = new EventSource(eventsUrl);   // auto-reconnects across the 15-min proxy cap / redeploys
+
+    es.addEventListener('progress', (e) => {
+        const p = JSON.parse(e.data);
+        const iter = p.iteration || 0, max = p.max_iterations || 10;
+        bar.style.width = Math.max(2, Math.min(95, Math.round(100 * iter / max))) + '%';
+        phase.textContent = (p.phase || 'working') +
+            (p.facts ? ' — ' + p.facts + ' facts' : '') +
+            (iter ? ' (iteration ' + iter + '/' + max + ')' : '');
+    });
+
+    es.addEventListener('completed', (e) => {
+        const p = JSON.parse(e.data);
+        es.close();
+        bar.style.width = '100%';
+        title.textContent = 'Research complete' +
+            (p.quality_score ? ' — quality ' + p.quality_score + '/100' : '');
+        phase.textContent = '';
+        reportLink.href = p.report_url || reportUrl;
+        reportLink.style.display = 'inline-block';
+        btn.disabled = false;
+        if (window.turnstile) turnstile.reset();
+    });
+
+    es.addEventListener('failed', (e) => {
+        const p = JSON.parse(e.data);
+        es.close();
+        title.textContent = 'Research failed';
+        phase.textContent = p.error || '';
+        btn.disabled = false;
+        if (window.turnstile) turnstile.reset();
+    });
+}
+</script>
+</body>
+</html>

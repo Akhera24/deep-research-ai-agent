@@ -34,8 +34,10 @@ requests>=2.31
 beautifulsoup4>=4.12
 
 # ── Database ──
-sqlalchemy>=2.0.46
-psycopg2-binary>=2.9        # Phase 3: Postgres job table on Railway
+sqlalchemy[asyncio]>=2.0.46  # [asyncio] pulls greenlet, required by the async engine
+psycopg2-binary>=2.9        # legacy sync src/database/ module
+asyncpg>=0.29               # async Postgres driver (API job table on Railway)
+aiosqlite>=0.20             # async sqlite driver (API local dev)
 
 # ── Data validation & settings ──
 pydantic>=2.12
@@ -48,11 +50,12 @@ tenacity>=8.2
 # ── Logging ──
 structlog>=24.1
 
-# ── Phase 3: rate limiting, sanitization, SSE ──
+# ── Phase 3: rate limiting, sanitization, SSE, templating ──
 slowapi>=0.1.9              # per-IP rate limiting
 bleach>=6.1                 # HTML sanitization of scraped facts (stored-XSS guard)
 sse-starlette>=2.1          # SSE progress streams
 markupsafe>=2.1             # direct pin: load-bearing for HTML escaping in reports
+jinja2>=3.1                 # server-rendered index page
 
 # ── Utilities ──
 python-dateutil>=2.8

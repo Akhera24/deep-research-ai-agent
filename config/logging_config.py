@@ -42,9 +42,21 @@ def configure_structlog():
     
     Development: Pretty console output with colors
     Production: JSON output for log aggregation
-    
+
     This is called automatically on import.
     """
+    # keys whose VALUES are the research subject / search text (PII, §12.S3)
+    _pii_keys = {"target", "query", "target_name", "search_query", "prompt", "full_prompt"}
+
+    def _redact_pii(logger, method_name, event_dict):
+        for k in list(event_dict.keys()):
+            if k in _pii_keys:
+                event_dict[k] = "<redacted>"
+            elif k == "extra" and isinstance(event_dict[k], dict):
+                for ek in list(event_dict[k].keys()):
+                    if ek in _pii_keys:
+                        event_dict[k][ek] = "<redacted>"
+        return event_dict
     # Shared processors
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -52,11 +64,16 @@ def configure_structlog():
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
-    
+
     # Environment-specific rendering
     if settings.ENVIRONMENT == "development":
         processors.append(structlog.dev.ConsoleRenderer())
     else:
+        # PHASE3_DESIGN §12.S3: outside development, the raw research subject /
+        # search strings must not reach the log aggregator (Railway retains
+        # logs, which would outlive the 7-day PII wipe). Single chokepoint —
+        # redacts regardless of which module emitted the event.
+        processors.append(_redact_pii)
         processors.append(structlog.processors.JSONRenderer())
     
     # Configure structlog

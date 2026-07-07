@@ -245,6 +245,23 @@ class Settings(BaseSettings):
     )
     
     # ========================================================================
+    # JOB API (Phase 3 — PHASE3_DESIGN §8)
+    # ========================================================================
+    REPORT_RETENTION_DAYS: int = Field(default=7, ge=1, description="Days before reports expire (410 + PII purge)")
+    MONTHLY_BUDGET_USD: float = Field(default=40.0, ge=0, description="Hard monthly spend cap (POST returns 503 past it)")
+    DAILY_SOFT_ALERT_USD: float = Field(default=5.0, ge=0, description="Daily spend soft-alert threshold (log/webhook only, never blocks)")
+    PER_JOB_BUDGET_USD: float = Field(default=1.0, ge=0, description="Per-job abort threshold")
+    MAX_CONCURRENT_JOBS: int = Field(default=3, ge=1, description="Global concurrent research jobs")
+    RATE_LIMIT_REPORTS_PER_HOUR: int = Field(default=3, ge=1, description="Per-IP job submissions per hour")
+    ADMIN_BYPASS_TOKEN: Optional[str] = Field(default=None, description="X-Admin-Token value that skips rate limit + Turnstile")
+    # Cloudflare's OFFICIAL always-pass test keys — replace with real keys in
+    # Railway env vars before public launch (PHASE3_DESIGN §10.H).
+    TURNSTILE_SITE_KEY: str = Field(default="1x00000000000000000000AA")
+    TURNSTILE_SECRET_KEY: str = Field(default="1x0000000000000000000000000000000AA")
+    TURNSTILE_EXPECTED_HOSTNAME: Optional[str] = Field(default=None, description="If set, siteverify hostname must match (anti token-farming, §11.R6)")
+    ALERT_WEBHOOK_URL: Optional[str] = Field(default=None, description="Optional webhook for daily soft alerts")
+
+    # ========================================================================
     # SECURITY
     # ========================================================================
     SECRET_KEY: str = Field(
