@@ -37,9 +37,119 @@ _semaphore: Optional[asyncio.Semaphore] = None
 
 API_JOB_MAX_ITERATIONS = 10
 
+# Bounds for the activity feed / ticker / live-report keys inside
+# Job.progress (PLAN.md A2 + A.2/UX2): the whole dict is rewritten on every
+# update and streamed over SSE, so the payload and the DB row stay small.
+ACTIVITY_MAX = 30
+SAMPLE_FACTS_MAX = 3
+SAMPLE_FACT_CHARS = 140
+REPORT_FACTS_MAX = 40
+FACT_CONTENT_CHARS = 160
+
+
+def _truncate(s: str, limit: int) -> str:
+    return s if len(s) <= limit else s[:limit - 1] + "…"
+
 
 class BudgetExceeded(Exception):
     """Raised inside the progress callback when per-job spend passes the cap."""
+
+
+def _apply_activity(progress_state: dict, event) -> None:
+    """Merge one executor/extractor activity event into the shared dict.
+
+    Job.progress is persisted by FULL-COLUMN overwrite, so both writers —
+    the node-boundary progress callback and the activity callback — mutate
+    this ONE dict and persist it whole; a partial write would clobber the
+    other writer's keys (REVIEW-LEARNINGS, shared-writer rule).
+    """
+    if not isinstance(event, dict):
+        return
+    # Monotonic per-job seq = the client's stable row key: survives reconnect
+    # snapshot re-sends AND legitimately-repeated events (e.g. cache hits).
+    seq = progress_state.get("activity_seq", 0) + 1
+    progress_state["activity_seq"] = seq
+    entry = {k: v for k, v in event.items() if k not in ("samples", "facts_new")}
+    entry["seq"] = seq
+    feed = progress_state.setdefault("activity", [])
+    feed.append(entry)
+    del feed[:-ACTIVITY_MAX]
+
+    samples = [s for s in (event.get("samples") or []) if isinstance(s, str)]
+    if samples:
+        ticker = progress_state.setdefault("sample_facts", [])
+        ticker.extend(_truncate(s, SAMPLE_FACT_CHARS) for s in samples)
+        del ticker[:-SAMPLE_FACTS_MAX]
+
+    _apply_report_preview(progress_state, event)
+
+
+def _apply_report_preview(progress_state: dict, event: dict) -> None:
+    """Fold an event into the bounded live-report preview (PLAN.md A.2/UX2)."""
+    kind, status = event.get("kind"), event.get("status")
+
+    if kind == "extract" and status == "done":
+        facts_new = [f for f in (event.get("facts_new") or [])
+                     if isinstance(f, dict) and isinstance(f.get("content"), str)]
+        if not facts_new:
+            return
+        preview = progress_state.setdefault("report_preview", {})
+        facts = preview.setdefault("facts", [])
+        fact_seq = preview.get("fact_seq", 0)
+        for f in facts_new:
+            fact_seq += 1
+            facts.append({
+                "id": f"f{fact_seq}",   # collision-safe key (review MA3)
+                "content": _truncate(f["content"], FACT_CONTENT_CHARS),
+                "category": f.get("category") or "other",
+                "confidence": f.get("confidence"),
+            })
+        preview["fact_seq"] = fact_seq
+        preview["facts_found"] = fact_seq  # running discovery count (MI4)
+        if len(facts) > REPORT_FACTS_MAX:
+            keep = sorted(facts, key=lambda x: x.get("confidence") or 0,
+                          reverse=True)[:REPORT_FACTS_MAX]
+            keep_ids = {k["id"] for k in keep}
+            facts[:] = [f for f in facts if f["id"] in keep_ids]
+        by_cat: dict = {}
+        for f in facts:
+            by_cat[f["category"]] = by_cat.get(f["category"], 0) + 1
+        preview["by_category"] = by_cat
+
+    elif kind == "llm" and status == "done":
+        task = event.get("task")
+        if task == "risk_assessment":
+            progress_state.setdefault("report_preview", {})["risks"] = {
+                "count": event.get("risks", 0),
+                "severities": event.get("severities") or {},
+            }
+        elif task == "connection_mapping":
+            progress_state.setdefault("report_preview", {})["connections"] = {
+                "count": event.get("connections", 0),
+                "sample": [s for s in (event.get("sample") or [])
+                           if isinstance(s, str)][:3],
+            }
+        elif task == "verification":
+            progress_state.setdefault("report_preview", {})["verification"] = {
+                "verified": event.get("verified", 0),
+                "deduped": event.get("deduped", 0),
+            }
+
+
+def _progress_snapshot(progress_state: dict) -> dict:
+    """Whole-dict copy for persistence — lists copied too, so in-place
+    mutation after the write can't alias the row payload."""
+    snap = dict(progress_state)
+    for key in ("activity", "sample_facts"):
+        if isinstance(snap.get(key), list):
+            snap[key] = list(snap[key])
+    preview = snap.get("report_preview")
+    if isinstance(preview, dict):
+        preview = dict(preview)
+        if isinstance(preview.get("facts"), list):
+            preview["facts"] = list(preview["facts"])
+        snap["report_preview"] = preview
+    return snap
 
 
 def _get_semaphore() -> asyncio.Semaphore:
@@ -111,8 +221,14 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
                 logger.warning("Job rejected at dequeue: budget", extra={"job_id": str(job_id)})
                 return
 
+        # ONE shared mutable progress dict, owned here (PLAN.md Step A2 /
+        # REVIEW-LEARNINGS): both callbacks below mutate it and persist it
+        # WHOLE. All callbacks run on this job's coroutine, so writes never
+        # interleave mid-mutation.
+        progress_state: dict = {"phase": "starting", "activity": [],
+                                "sample_facts": []}
         await _update(job_id, status=RUNNING, started_at=utcnow(), heartbeat_at=utcnow(),
-                      progress={"phase": "starting"})
+                      progress=_progress_snapshot(progress_state))
 
         # ONE orchestrator per job (§11.R4) — private router, private cost.
         orchestrator = ResearchOrchestrator(
@@ -122,16 +238,17 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
 
         async def progress_callback(p: dict) -> None:
             cost = _router_cost(orchestrator)
+            progress_state.update({
+                "phase": p.get("node"),
+                "iteration": p.get("iteration"),
+                "max_iterations": p.get("max_iterations"),
+                "facts": p.get("facts"),
+                "coverage": (p.get("coverage") or {}).get("average"),
+            })
             await _update(
                 job_id,
                 heartbeat_at=utcnow(),
-                progress={
-                    "phase": p.get("node"),
-                    "iteration": p.get("iteration"),
-                    "max_iterations": p.get("max_iterations"),
-                    "facts": p.get("facts"),
-                    "coverage": (p.get("coverage") or {}).get("average"),
-                },
+                progress=_progress_snapshot(progress_state),
                 cost_usd=cost,
             )
             if cost >= settings.PER_JOB_BUDGET_USD:
@@ -139,8 +256,23 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
                     f"per-job budget ${settings.PER_JOB_BUDGET_USD:.2f} exceeded"
                 )
 
+        async def activity_callback(event: dict) -> None:
+            # UI-only writer: no cost update, no budget check — cost/abort
+            # granularity stays at node boundaries (plan-review, "budget
+            # gate unchanged"). Heartbeats during long nodes help the reaper.
+            _apply_activity(progress_state, event)
+            await _update(
+                job_id,
+                heartbeat_at=utcnow(),
+                progress=_progress_snapshot(progress_state),
+            )
+
         try:
-            result = await orchestrator.research(query, progress_callback=progress_callback)
+            result = await orchestrator.research(
+                query,
+                progress_callback=progress_callback,
+                activity_callback=activity_callback,
+            )
         except BudgetExceeded as e:
             cost = _router_cost(orchestrator)
             await _finish(job_id, FAILED, error=str(e), cost_usd=cost)

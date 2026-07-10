@@ -1,0 +1,10 @@
+# Dev-only dependencies (PLAN.md Rev 2.1, Step A3 test harness).
+# Prod installs requirements.txt ONLY (Dockerfile lines 6-7) — nothing here
+# reaches the Railway image.
+#
+# Playwright was removed in Phase 2 as an unused prod dependency; it returns
+# here DEV-ONLY because the loading screen is the frontend's first real
+# client-side logic (untrusted-text rendering, reconnect, phase mapping) and
+# must be tested in a real browser. Browser install: playwright install chromium
+-r requirements.txt
+pytest-playwright>=0.5
