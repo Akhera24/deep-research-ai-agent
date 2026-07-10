@@ -18,7 +18,7 @@ Features:
 
 import json
 import re
-from typing import List, Dict, Any, Set, Optional
+from typing import Awaitable, Callable, List, Dict, Any, Set, Optional
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from collections import Counter
@@ -27,6 +27,29 @@ from config.logging_config import get_logger
 from src.models.router import ModelRouter, TaskType
 
 logger = get_logger(__name__)
+
+
+async def _emit_activity(
+    callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]],
+    event: Dict[str, Any],
+) -> None:
+    """Deliver one activity event to the optional UI callback.
+
+    Fire-and-forget by contract (PLAN.md Step A2): activity is a UI-only
+    channel, so a failing callback must never cost extracted facts — an
+    unguarded raise here would land in extract()'s broad except and
+    silently discard the batch. Never use this channel for control flow
+    (budget aborts stay on progress_callback). Event contents are never
+    logged (§12.S3).
+    """
+    if callback is None:
+        return
+    try:
+        await callback(event)
+    except Exception as e:  # noqa: BLE001 — deliberate isolation
+        logger.warning(
+            "Activity callback failed", extra={"error": type(e).__name__}
+        )
 
 
 # ============================================================================
@@ -168,16 +191,26 @@ class FactExtractor:
         self,
         search_results: List[Any],
         target_name: str,
-        max_facts: int = 50
+        max_facts: int = 50,
+        activity_callback: Optional[
+            Callable[[Dict[str, Any]], Awaitable[None]]
+        ] = None
     ) -> List[Fact]:
         """
         Extract facts from search results.
-        
+
         Args:
             search_results: List of SearchResult objects
             target_name: Person/entity being researched
             max_facts: Maximum facts to extract
-            
+            activity_callback: Optional async UI hook; receives
+                {"kind": "extract", "status": "start"} when extraction
+                begins and {"kind": "extract", "status": "done", "facts",
+                "samples"} when it ends — including the failure path, so
+                the UI never shows a dangling "start" (fire-and-forget —
+                see _emit_activity). None (the default) leaves behavior
+                unchanged.
+
         Returns:
             List of extracted facts with confidence scores
             
@@ -203,6 +236,10 @@ class FactExtractor:
         )
         
         try:
+            await _emit_activity(
+                activity_callback, {"kind": "extract", "status": "start"}
+            )
+
             # Prepare text for extraction
             combined_text = self._prepare_text_for_extraction(search_results)
             
@@ -246,15 +283,34 @@ class FactExtractor:
                     "avg_confidence": f"{self._calc_avg_confidence(unique_facts):.2f}"
                 }
             )
-            
+
+            await _emit_activity(activity_callback, {
+                "kind": "extract",
+                "status": "done",
+                "facts": len(unique_facts),
+                "samples": [f.content for f in unique_facts[:3]],
+                # Full new-fact payload for the live report preview (UX2).
+                # NOTE: Fact.id is deliberately NOT sent — its timestamp
+                # default can collide within a batch (plan-review-A2 MA3);
+                # jobs.py assigns collision-safe sequence ids instead.
+                "facts_new": [
+                    {"content": f.content, "category": f.category,
+                     "confidence": round(f.confidence, 2)}
+                    for f in unique_facts
+                ],
+            })
             return unique_facts
-            
+
         except Exception as e:
             logger.error(
                 "Fact extraction failed",
                 extra={"target": target_name, "error": str(e)},
                 exc_info=True
             )
+            await _emit_activity(activity_callback, {
+                "kind": "extract", "status": "done", "facts": 0, "samples": [],
+                "facts_new": [],
+            })
             return []
     
     # ========================================================================

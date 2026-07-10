@@ -49,6 +49,77 @@ from src.extraction.extractor import FactExtractor, Fact
 
 logger = get_logger(__name__)
 
+# Friendly model labels for activity events (plan-review-A2 MI1). Only used
+# where a ModelResponse is actually in hand — never guessed (MI2).
+_PROVIDER_LABEL = {"anthropic": "Claude", "google": "Gemini", "openai": "GPT"}
+
+
+async def _emit_activity(
+    callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]],
+    event: Dict[str, Any],
+) -> None:
+    """Deliver one activity event to the optional UI callback.
+
+    Fire-and-forget by contract (PLAN.md A2/UX1, plan-review-A2 MA1): a
+    raising callback propagating from a node body would fail the whole job
+    (plan/refine) or silently downgrade real AI results to the regex
+    fallback (risks/connections). Never use this channel for control flow;
+    event contents are never logged (§12.S3).
+    """
+    if callback is None:
+        return
+    try:
+        await callback(event)
+    except Exception as e:  # noqa: BLE001 — deliberate isolation
+        logger.warning(
+            "Activity callback failed", extra={"error": type(e).__name__}
+        )
+
+
+def _enrich_activity(
+    callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]],
+    **extra: Any,
+) -> Optional[Callable[[Dict[str, Any]], Awaitable[None]]]:
+    """Wrap an activity callback so every event carries stable UI keys the
+    emitter can't know — e.g. the query's category and the server-side
+    iteration (plan-review-A3 R4/R5). Returns None for None, preserving the
+    no-callback fast path."""
+    if callback is None:
+        return None
+
+    async def wrapped(event: Dict[str, Any]) -> None:
+        await callback({**event, **extra})
+
+    return wrapped
+
+
+def _filter_refined_queries(refined, pending_texts, target_name):
+    """A3.3 refine hygiene (plan-review-A3 R8/R9).
+
+    The strategy engine's deduplicate_queries already rejects executed and
+    within-batch duplicates — but NOT queries still sitting in the pending
+    queue (so successive refines could enqueue the same query repeatedly
+    before any copy ran), and nothing rejects degenerate self-queries like
+    '"X" AND "X"'. No stopword list: any non-boolean leftover token keeps
+    the query (R9 — '"Tim Cook" biography' must survive).
+    """
+    target_tokens = {t for t in re.split(r"\W+", target_name.lower()) if t}
+    seen = {t.strip().lower() for t in pending_texts}
+    kept = []
+    for q in refined:
+        norm = q.text.strip().lower()
+        if norm in seen:
+            continue
+        leftover = [
+            t for t in re.split(r"\W+", norm)
+            if t and t not in ("and", "or") and t not in target_tokens
+        ]
+        if not leftover:
+            continue
+        kept.append(q)
+        seen.add(norm)
+    return kept
+
 
 # ============================================================================
 # RESEARCH ORCHESTRATOR
@@ -129,6 +200,14 @@ class ResearchOrchestrator:
         self.strategy_engine = SearchStrategyEngine(self.router)
         self.search_executor = SearchExecutor()
         self.fact_extractor = FactExtractor(self.router)
+
+        # Fine-grained activity hook (PLAN.md Step A2). Lives on the INSTANCE,
+        # never on LangGraph state (state must stay serializable) — safe
+        # because there is one orchestrator per job and checkpoints are off
+        # for API jobs (jobs.py, enable_checkpoints=False).
+        self._activity_callback: Optional[
+            Callable[[Dict[str, Any]], Awaitable[None]]
+        ] = None
         
         # Build LangGraph workflow
         self.workflow = self._build_workflow()
@@ -151,7 +230,8 @@ class ResearchOrchestrator:
         self,
         target_name: str,
         context: Optional[Dict[str, Any]] = None,
-        progress_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
+        activity_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None
     ) -> Dict[str, Any]:
         """
         Execute complete research on target.
@@ -164,6 +244,13 @@ class ResearchOrchestrator:
                 the job API for progress/heartbeat writes and the per-job
                 budget abort (an exception raised inside the callback aborts
                 the run). CLI callers leave this None — behavior unchanged.
+            activity_callback: Optional async callback for fine-grained
+                events from INSIDE search/extraction (per-search results,
+                extraction start/done + sample facts). Fire-and-forget UI
+                channel — exceptions are swallowed at the emit sites, so it
+                must never be used for control flow (budget aborts stay on
+                progress_callback). None (the default) leaves the CLI path
+                unchanged.
 
         Returns:
             Dictionary with:
@@ -183,7 +270,9 @@ class ResearchOrchestrator:
         """
         if not target_name or not target_name.strip():
             raise ValueError("target_name cannot be empty")
-        
+
+        self._activity_callback = activity_callback
+
         logger.info(
             "Starting research",
             extra={
@@ -346,19 +435,28 @@ class ResearchOrchestrator:
         logger.info(f"Node: Plan Strategy - {state['target_name']}")
         
         state["stage"] = "strategy_planning"
-        
+
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "strategy_planning", "status": "start",
+        })
+
         # Generate initial queries
         queries = self.strategy_engine.generate_initial_queries(
             target_name=state["target_name"],
             context=state["context"],
             max_queries=15
         )
-        
+
         state["queries"] = queries
         state["pending_queries"] = [q.text for q in queries]
-        
+
         logger.info(f"Generated {len(queries)} initial queries")
-        
+
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "strategy_planning", "status": "done",
+            "queries": len(queries),
+        })
+
         return state
     
     async def _node_execute_searches(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -377,11 +475,17 @@ class ResearchOrchestrator:
         
         # Execute searches in parallel
         all_results = []
+        iteration = state.get("iteration", 0)
         for query in queries_to_execute:
+            category = getattr(query.category, "value", None) or str(query.category)
             try:
                 results = await self.search_executor.search(
                     query.text,
-                    max_results=10
+                    max_results=10,
+                    activity_callback=_enrich_activity(
+                        self._activity_callback,
+                        category=category, iteration=iteration,
+                    )
                 )
                 all_results.extend(results)
                 
@@ -438,7 +542,11 @@ class ResearchOrchestrator:
             facts = await self.fact_extractor.extract(
                 search_results=recent_results,
                 target_name=state["target_name"],
-                max_facts=self.max_facts
+                max_facts=self.max_facts,
+                activity_callback=_enrich_activity(
+                    self._activity_callback,
+                    iteration=state.get("iteration", 0),
+                )
             )
             
             # Add to state
@@ -493,18 +601,34 @@ class ResearchOrchestrator:
         ]
         
         # Generate follow-up queries
+        refined_queries = []
         if findings:
             refined_queries = self.strategy_engine.refine_based_on_findings(
                 target_name=state["target_name"],
                 findings=findings,
                 max_follow_ups=15
             )
-            
+
+            # A3.3: drop pending-queue duplicates + degenerate self-queries
+            # BEFORE queueing (count and sample_queries below are post-filter).
+            refined_queries = _filter_refined_queries(
+                refined_queries,
+                [q.text for q in state["queries"]],
+                state["target_name"],
+            )
+
             # Add refined queries to queue
             state["queries"].extend(refined_queries)
-            
+
             logger.info(f"Generated {len(refined_queries)} follow-up queries")
-        
+
+        # Fires even on a zero-fact iteration (plan-review-A2 MI3).
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "query_refinement", "status": "done",
+            "queries": len(refined_queries),
+            "sample_queries": [q.text for q in refined_queries[:2]],
+        })
+
         return state
     
     async def _node_verify_facts(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -688,7 +812,12 @@ class ResearchOrchestrator:
             f"Verification complete: {len(facts)} -> {len(unique_facts)} facts "
             f"(deduped), {total_verified} verified, {high_conf} high-confidence"
         )
-        
+
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "verification", "status": "done",
+            "verified": total_verified, "deduped": len(facts) - len(unique_facts),
+        })
+
         return state
 
 # ==============================================================================
@@ -718,7 +847,11 @@ class ResearchOrchestrator:
             state["risk_flags"] = []
             logger.info("Insufficient facts for risk assessment")
             return state
-        
+
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "risk_assessment", "status": "start",
+        })
+        model_label = None
         try:
             # Build comprehensive context for AI
             # Process up to 100 facts (was 40) — the securities fraud facts in
@@ -861,7 +994,8 @@ class ResearchOrchestrator:
                     risk["trend"] = "isolated"
             
             state["risk_flags"] = risk_flags
-            
+            model_label = _PROVIDER_LABEL.get(response.provider.value)
+
             logger.info(
                 f"Identified {len(risk_flags)} risk flags via AI (enhanced)",
                 extra={
@@ -871,22 +1005,32 @@ class ResearchOrchestrator:
                     "severity_breakdown": self._count_by_severity(risk_flags)
                 }
             )
-            
-            return state
-            
+
         except Exception as e:
             logger.error(
                 f"AI risk assessment failed: {e}",
                 extra={"target": target_name, "error": str(e)},
                 exc_info=True
             )
-            
+
             # FALLBACK: Pattern-based risk detection
             logger.warning("Falling back to pattern-based risk detection")
             state["risk_flags"] = self._fallback_pattern_risk_detection(facts, target_name)
             logger.info(f"Fallback found {len(state['risk_flags'])} risk flags")
-            
-            return state
+
+        # Emitted AFTER the try/except (plan-review-A2 MA1) so a callback
+        # problem can never trip the fallback; model omitted when no
+        # ModelResponse is in hand (MI2 — fallback path).
+        done_event = {
+            "kind": "llm", "task": "risk_assessment", "status": "done",
+            "risks": len(state["risk_flags"]),
+            "severities": self._count_by_severity(state["risk_flags"]),
+        }
+        if model_label:
+            done_event["model"] = model_label
+        await _emit_activity(self._activity_callback, done_event)
+
+        return state
 
 
     def _count_by_severity(self, risks: List[Dict]) -> Dict[str, int]:
@@ -926,7 +1070,11 @@ class ResearchOrchestrator:
             state["connections"] = []
             logger.info("Insufficient facts for connection mapping")
             return state
-        
+
+        await _emit_activity(self._activity_callback, {
+            "kind": "llm", "task": "connection_mapping", "status": "start",
+        })
+        model_label = None
         try:
             # Filter facts most likely to contain connections
             relevant_facts = []
@@ -1130,7 +1278,8 @@ class ResearchOrchestrator:
                     unique_connections.append(conn)
             
             state["connections"] = unique_connections
-            
+            model_label = _PROVIDER_LABEL.get(response.provider.value)
+
             logger.info(
                 f"Mapped {len(unique_connections)} connections via AI",
                 extra={
@@ -1139,22 +1288,32 @@ class ResearchOrchestrator:
                     "types": list(set(c.get("relationship_type") for c in unique_connections))
                 }
             )
-            
-            return state
-            
+
         except Exception as e:
             logger.error(
                 f"AI connection mapping failed: {e}",
                 extra={"target": target_name, "error": str(e)},
                 exc_info=True
             )
-            
+
             # FALLBACK: Pattern-based connection extraction
             logger.warning("Falling back to pattern-based connection extraction")
             state["connections"] = self._fallback_pattern_connection_extraction(facts, target_name)
             logger.info(f"Fallback found {len(state['connections'])} connections")
-            
-            return state
+
+        # After the try/except (plan-review-A2 MA1); model omitted on the
+        # fallback path (MI2).
+        done_event = {
+            "kind": "llm", "task": "connection_mapping", "status": "done",
+            "connections": len(state["connections"]),
+            "sample": [c.get("entity_2") for c in state["connections"][:3]
+                       if isinstance(c.get("entity_2"), str)],
+        }
+        if model_label:
+            done_event["model"] = model_label
+        await _emit_activity(self._activity_callback, done_event)
+
+        return state
     
     # ==============================================================================
     # HELPER METHODS for parsing and pattern recognition

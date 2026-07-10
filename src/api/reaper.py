@@ -5,8 +5,10 @@ Every 60s:
 - running jobs whose heartbeat is older than 5 minutes → failed (edge case #8;
   second layer behind the startup sweep)
 - rows past expires_at → expired, with the PII purge: report_html,
-  report_json, client_ip_hash AND query NULLed (§12.S2). The row skeleton
-  (id, status, timestamps, cost) is kept for audit.
+  report_json, client_ip_hash, query AND progress NULLed (§12.S2). progress
+  joined the purge in Phase A: its activity/sample_facts keys carry search
+  queries derived from the researched name plus scraped snippets. The row
+  skeleton (id, status, timestamps, cost) is kept for audit.
 
 Datetime comparisons are done in Python via utc_naive() — sqlite returns
 naive datetimes, Postgres aware ones (§11.R5).
@@ -70,6 +72,7 @@ async def reap_once() -> dict:
                     report_json=None,
                     client_ip_hash=None,
                     query=None,
+                    progress=None,
                 )
             )
 

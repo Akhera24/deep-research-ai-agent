@@ -51,11 +51,31 @@ class FakeOrchestrator:
         self.router = _Router()
         self.router.clients = {"fake": self._client}
 
-    async def research(self, query, context=None, progress_callback=None):
+    async def research(self, query, context=None, progress_callback=None,
+                       activity_callback=None):
+        # Interleave activity around the node-boundary write, like the real
+        # orchestrator does — every test therefore exercises the shared
+        # progress_state merge (REVIEW-LEARNINGS clobber rule).
+        if activity_callback is not None:
+            await activity_callback({
+                "kind": "search", "engine": "brave",
+                "query": f"{query} career", "results": 5,
+            })
         if progress_callback is not None:
             await progress_callback({
                 "node": "extracting_facts", "iteration": 1, "max_iterations": 10,
                 "facts": 2, "coverage": {"average": 0.4},
+            })
+        if activity_callback is not None:
+            await activity_callback({
+                "kind": "extract", "status": "done", "facts": 2,
+                "samples": [f"Planted {XSS} fact", "Normal fact"],
+                "facts_new": [
+                    {"content": f"Planted {XSS} fact",
+                     "category": "professional", "confidence": 0.9},
+                    {"content": "Normal fact", "category": "biographical",
+                     "confidence": 0.8},
+                ],
             })
         if type(self).fail_with is not None:
             raise type(self).fail_with
@@ -185,6 +205,38 @@ class TestJobLifecycle:
         # S3: no report file leaked to disk
         assert not any(f.startswith("research_report_Test_Subject") for f in os.listdir("."))
 
+    def test_shared_progress_dict_survives_both_writers(self, client):
+        """M1 clobber regression (REVIEW-LEARNINGS): the activity writer and
+        the node-boundary writer persist Job.progress by full overwrite —
+        interleaved writes must never wipe each other's keys. Fail the job
+        after all callbacks so the last mid-run progress row is preserved
+        (_finish for FAILED doesn't rewrite progress)."""
+        FakeOrchestrator.fail_with = RuntimeError("boom after callbacks")
+        r = client.post("/api/research", json={"query": "Test Subject"}, headers=ADMIN)
+        job_id = r.json()["job_id"]
+
+        status = _wait_terminal(client, job_id)
+        assert status["status"] == FAILED
+        p = status["progress"]
+        # Node-boundary keys survived the LATER activity write...
+        assert p["phase"] == "extracting_facts"
+        assert p["iteration"] == 1
+        # ...and activity keys survived the node-boundary write in between.
+        assert [e["kind"] for e in p["activity"]] == ["search", "extract"]
+        assert p["activity"][0]["results"] == 5
+        assert [e["seq"] for e in p["activity"]] == [1, 2]   # stable row keys
+        # Ticker populated; hostile content flows through RAW (the client
+        # textContent boundary is load-bearing — A4a).
+        assert p["sample_facts"] == [f"Planted {XSS} fact", "Normal fact"]
+        # The feed entry never duplicates the samples/facts_new payloads.
+        assert "samples" not in p["activity"][1]
+        assert "facts_new" not in p["activity"][1]
+        # A.2/UX2: live-report preview survives too, with seq ids + raw content.
+        pv = p["report_preview"]
+        assert [f["id"] for f in pv["facts"]] == ["f1", "f2"]
+        assert pv["facts"][0]["content"] == f"Planted {XSS} fact"
+        assert pv["by_category"] == {"professional": 1, "biographical": 1}
+
     def test_unknown_job_404(self, client):
         r = client.get(f"/api/research/{uuid.uuid4()}")
         assert r.status_code == 404
@@ -303,7 +355,11 @@ class TestReaper:
                           created_at=utcnow() - timedelta(days=8),
                           expires_at=utcnow() - timedelta(days=1),
                           report_html="<html>old</html>", report_json={"a": 1},
-                          client_ip_hash="deadbeef", progress={}))
+                          client_ip_hash="deadbeef",
+                          progress={"phase": "complete",
+                                    "activity": [{"kind": "search",
+                                                  "query": "Old Person career"}],
+                                    "sample_facts": ["Old Person is a CEO"]}))
                 await s.commit()
 
         async def _reap():
@@ -322,9 +378,12 @@ class TestReaper:
 
         stale, expired = client.portal.call(_fetch)
         assert stale.status == FAILED and "stale heartbeat" in stale.error
-        # §12.S2 PII purge: html, json, ip hash AND query all NULL
+        # §12.S2 PII purge: html, json, ip hash, query AND progress all NULL
+        # (Phase A: progress.activity/sample_facts carry query-derived strings
+        # and scraped snippets, so it joined the purge).
         assert expired.status == EXPIRED
         assert expired.report_html is None
         assert expired.report_json is None
         assert expired.client_ip_hash is None
         assert expired.query is None
+        assert expired.progress is None

@@ -22,7 +22,7 @@ import asyncio
 import aiohttp
 import hashlib
 import time
-from typing import List, Dict, Any, Optional
+from typing import Awaitable, Callable, List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
@@ -40,6 +40,29 @@ from config.logging_config import get_logger
 from config.settings import settings
 
 logger = get_logger(__name__)
+
+
+async def _emit_activity(
+    callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]],
+    event: Dict[str, Any],
+) -> None:
+    """Deliver one activity event to the optional UI callback.
+
+    Fire-and-forget by contract (PLAN.md Step A2): activity is a UI-only
+    channel, so a failing callback must never cost research data — an
+    unguarded raise here would land in the callers' broad excepts and
+    silently discard the batch. Never use this channel for control flow
+    (budget aborts stay on progress_callback). Event contents are never
+    logged (§12.S3).
+    """
+    if callback is None:
+        return
+    try:
+        await callback(event)
+    except Exception as e:  # noqa: BLE001 — deliberate isolation
+        logger.warning(
+            "Activity callback failed", extra={"error": type(e).__name__}
+        )
 
 
 # ============================================================================
@@ -227,16 +250,23 @@ class SearchExecutor:
         self,
         query: str,
         max_results: int = 10,
-        engine: Optional[str] = None
+        engine: Optional[str] = None,
+        activity_callback: Optional[
+            Callable[[Dict[str, Any]], Awaitable[None]]
+        ] = None
     ) -> List[SearchResult]:
         """
         Execute search query with automatic fallback.
-        
+
         Args:
             query: Search query string
             max_results: Maximum results to return (default 10)
             engine: Specific engine to use, or None for auto-selection
-            
+            activity_callback: Optional async UI hook; receives one
+                {"kind": "search", "engine", "query", "results"} event per
+                completed search (fire-and-forget — see _emit_activity).
+                None (the default) leaves behavior unchanged.
+
         Returns:
             List of search results, sorted by relevance
             
@@ -270,6 +300,12 @@ class SearchExecutor:
                 if cached_results:
                     self.stats["cache_hits"] += 1
                     logger.debug(f"Cache hit for query: {query}")
+                    await _emit_activity(activity_callback, {
+                        "kind": "search",
+                        "engine": cached_results[0].search_engine,
+                        "query": query,
+                        "results": len(cached_results),
+                    })
                     return cached_results
             
             # Try engines in order
@@ -320,7 +356,13 @@ class SearchExecutor:
                     "engine_used": results[0].search_engine if results else "none"
                 }
             )
-            
+
+            await _emit_activity(activity_callback, {
+                "kind": "search",
+                "engine": results[0].search_engine if results else "none",
+                "query": query,
+                "results": len(results),
+            })
             return results
             
         except Exception as e:
@@ -460,7 +502,6 @@ class SearchExecutor:
         
         Serper features:
         - Access to Google search results
-        - $50 free credit (20k searches)
         - Fast and reliable
         - Good for production
         

@@ -10,7 +10,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                background: #f1f5f9; color: #1e293b; line-height: 1.6;
                display: flex; flex-direction: column; min-height: 100vh; }
-        main { flex: 1; max-width: 640px; width: 100%; margin: 0 auto; padding: 48px 20px; }
+        main { flex: 1; max-width: 680px; width: 100%; margin: 0 auto; padding: 48px 20px; }
         h1 { font-size: 1.6em; margin-bottom: 4px; }
         .sub { color: #64748b; margin-bottom: 28px; }
         form { background: white; border-radius: 12px; padding: 24px;
@@ -21,12 +21,104 @@
         button { background: #2d5a8e; color: white; border: 0; border-radius: 8px;
                padding: 12px 24px; font-size: 1em; cursor: pointer; }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
+        button:focus-visible, [role=tab]:focus-visible { outline: 2px solid #2d5a8e; outline-offset: 2px; }
         .turnstile-box { margin-bottom: 16px; }
+
         #status { margin-top: 24px; display: none; background: white; border-radius: 12px;
                padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        #status-head { display: flex; justify-content: space-between; align-items: baseline; }
+        #elapsed { color: #94a3b8; font-size: 0.85em; font-variant-numeric: tabular-nums; }
         #bar-outer { background: #e2e8f0; border-radius: 6px; height: 10px; margin: 12px 0; overflow: hidden; }
-        #bar { background: #3b82f6; height: 100%; width: 2%; transition: width 0.6s; }
-        #phase { color: #64748b; font-size: 0.92em; }
+        #bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 2%;
+               transition: width 0.6s cubic-bezier(.3,.7,.4,1); }
+        #phase { color: #1e293b; font-size: 0.95em; font-weight: 600;
+               transition: opacity 0.25s; }
+        #phase.swap { opacity: 0; }
+        #activity-line { color: #475569; font-size: 0.9em; margin-top: 4px; min-height: 1.4em; }
+        #eta { color: #94a3b8; font-size: 0.8em; margin-top: 2px; }
+        #no-facts { color: #92400e; background: #fef3c7; border-radius: 6px;
+               padding: 6px 10px; font-size: 0.85em; margin-top: 10px; }
+
+        /* ---- Live report (top panel) ---- */
+        #live-report { margin-top: 16px; }
+        #tabs { display: flex; gap: 4px; border-bottom: 1px solid #e2e8f0; }
+        #tabs [role=tab] { background: none; color: #64748b; padding: 8px 14px; font-size: 0.9em;
+               border: 0; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; cursor: pointer; }
+        #tabs [role=tab][aria-selected=true] { color: #1e293b; font-weight: 600;
+               border-bottom-color: #3b82f6; background: #f8fafc; }
+        .tabpanel { padding: 14px 2px 4px; }
+        #counters { display: flex; gap: 12px; }
+        .counter { flex: 1; background: #f8fafc; border-radius: 10px; padding: 12px; text-align: center; }
+        .counter .num { font-size: 1.5em; font-weight: 700; color: #1e293b;
+               font-variant-numeric: tabular-nums; display: block; }
+        .counter .cap { font-size: 0.75em; color: #64748b; }
+        #verify-note { font-size: 0.8em; color: #64748b; margin-top: 10px; min-height: 1.2em; }
+        #cat-bars { margin-top: 12px; }
+        .cat-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.8em; }
+        .cat-row .cat-name { width: 96px; color: #475569; text-transform: capitalize; }
+        .cat-row .cat-track { flex: 1; background: #f1f5f9; border-radius: 4px; height: 8px; overflow: hidden; }
+        .cat-row .cat-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        #facts-list { list-style: none; }
+        #facts-list li { background: #f8fafc; border-left: 3px solid #cbd5e1; border-radius: 6px;
+               padding: 8px 12px; margin-top: 8px; font-size: 0.88em; color: #334155;
+               overflow-wrap: anywhere; }
+        .fact-meta { display: block; font-size: 0.82em; color: #94a3b8; margin-top: 2px;
+               text-transform: capitalize; }
+        #facts-empty, .pending-note { color: #94a3b8; font-size: 0.85em; padding: 8px 0; }
+        .sig-box { background: #f8fafc; border-radius: 10px; padding: 12px; margin-top: 8px; }
+        .sig-box h3 { font-size: 0.85em; color: #475569; margin-bottom: 4px; }
+        .sig-line { font-size: 0.88em; color: #334155; overflow-wrap: anywhere; }
+        .chip { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: 0.78em;
+               margin: 2px 4px 0 0; background: #e2e8f0; color: #475569; }
+        .chip.sev-critical { background: #fee2e2; color: #991b1b; }
+        .chip.sev-high { background: #ffedd5; color: #9a3412; }
+        .chip.sev-medium { background: #fef3c7; color: #92400e; }
+        .chip.sev-low { background: #e0f2fe; color: #075985; }
+
+        /* Category accents (fixed whitelist — classes never derive from data) */
+        .cat-biographical { border-left-color: #3b82f6; } .fill-biographical { background: #3b82f6; }
+        .cat-professional { border-left-color: #6366f1; } .fill-professional { background: #6366f1; }
+        .cat-financial    { border-left-color: #059669; } .fill-financial    { background: #059669; }
+        .cat-legal        { border-left-color: #dc2626; } .fill-legal        { background: #dc2626; }
+        .cat-connections  { border-left-color: #d97706; } .fill-connections  { background: #d97706; }
+        .cat-behavioral   { border-left-color: #7c3aed; } .fill-behavioral   { background: #7c3aed; }
+        .cat-other        { border-left-color: #94a3b8; } .fill-other        { background: #94a3b8; }
+
+        /* ---- Research brief (A3.2 opening: instant, client-only) ---- */
+        #brief { background: #f8fafc; border-radius: 10px; padding: 10px 14px;
+               margin-bottom: 10px; font-size: 0.88em; color: #334155; }
+        #brief-subject { font-weight: 600; }
+        .brief-line { color: #64748b; font-size: 0.92em; }
+        #plan-note { font-size: 0.8em; color: #2d5a8e; margin-top: 8px; min-height: 1.2em; }
+        @keyframes pulse-once { 50% { opacity: 0.35; } }
+        #cat-bars.pulse .cat-fill { animation: pulse-once 0.7s ease 1; }
+
+        /* ---- Research log (bottom panel, visible-compact) ---- */
+        #log-panel { margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        #log-head { display: flex; justify-content: space-between; align-items: baseline; }
+        #log-panel h2 { font-size: 0.85em; color: #64748b; font-weight: 600; }
+        #log-toggle { background: none; border: 0; color: #64748b; font-size: 0.78em;
+               cursor: pointer; padding: 2px 6px; text-decoration: underline; }
+        #log-scroll { max-height: 168px; overflow-y: auto; margin-top: 6px; }
+        #activity-feed { list-style: none; }
+        #activity-feed li { font-size: 0.82em; color: #64748b; padding: 3px 0 3px 14px;
+               border-bottom: 1px solid #f1f5f9; overflow-wrap: anywhere; position: relative; }
+        #activity-feed li::before { content: ''; position: absolute; left: 0; top: 0.75em;
+               width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
+        #activity-feed li.k-search::before { background: #3b82f6; }
+        #activity-feed li.k-extract::before { background: #7c3aed; }
+        #activity-feed li.k-llm::before { background: #059669; }
+
+        /* ---- Motion (entrances; disabled under reduced motion) ---- */
+        .enter { animation: rise-in 0.35s cubic-bezier(.2,.7,.3,1) both;
+                 animation-delay: calc(var(--i, 0) * 70ms); }
+        @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
+        @media (prefers-reduced-motion: reduce) {
+            .enter { animation: none; }
+            #bar, .cat-fill, #phase { transition: none; }
+            .skel-card { animation: none; }
+        }
+
         #error { color: #b91c1c; margin-top: 12px; display: none; }
         #report-link { display: none; margin-top: 12px; font-weight: 600; }
         footer { text-align: center; font-size: 0.78em; color: #94a3b8; padding: 24px 16px;
@@ -51,9 +143,62 @@
     </form>
 
     <div id="status">
-        <strong id="status-title">Researching…</strong>
+        <div id="status-head">
+            <strong id="status-title">Researching…</strong>
+            <span id="elapsed"></span>
+        </div>
         <div id="bar-outer"><div id="bar"></div></div>
         <div id="phase">queued</div>
+        <div id="activity-line"></div>
+        <div id="eta">Deep research usually takes 2–4 minutes.</div>
+        <div id="no-facts" hidden>Still searching — limited public sources for this name.</div>
+
+        <div id="live-report">
+            <div id="brief"></div>
+            <div id="tabs" role="tablist" aria-label="Live report">
+                <button role="tab" id="tab-btn-overview" aria-selected="true" aria-controls="tab-overview" type="button">Overview</button>
+                <button role="tab" id="tab-btn-facts" aria-selected="false" aria-controls="tab-facts" type="button">Facts</button>
+                <button role="tab" id="tab-btn-signals" aria-selected="false" aria-controls="tab-signals" type="button">Risks &amp; connections</button>
+            </div>
+            <section class="tabpanel" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
+                <div id="counters">
+                    <div class="counter"><span class="num" id="count-facts">0</span><span class="cap">facts found so far</span></div>
+                    <div class="counter"><span class="num" id="count-risks">–</span><span class="cap">risk flags</span></div>
+                    <div class="counter"><span class="num" id="count-connections">–</span><span class="cap">connections</span></div>
+                </div>
+                <div id="plan-note"></div>
+                <div id="verify-note"></div>
+                <div id="cat-bars"></div>
+            </section>
+            <section class="tabpanel" id="tab-facts" role="tabpanel" aria-labelledby="tab-btn-facts" hidden>
+                <div id="facts-empty">Facts will appear here as they're found.</div>
+                <ul id="facts-list"></ul>
+            </section>
+            <section class="tabpanel" id="tab-signals" role="tabpanel" aria-labelledby="tab-btn-signals" hidden>
+                <div class="sig-box" id="risks-box">
+                    <h3>Risk flags</h3>
+                    <div class="pending-note">Analyzed near the end of the run — coming up.</div>
+                </div>
+                <div class="sig-box" id="connections-box">
+                    <h3>Connections</h3>
+                    <div class="pending-note">Mapped near the end of the run — coming up.</div>
+                </div>
+            </section>
+        </div>
+
+        <div id="log-panel">
+            <div id="log-head">
+                <h2>Research log</h2>
+                <!-- TECHNICAL-LOG toggle: disabled pending a polish pass
+                     (human decision 2026-07-10). Re-enable together with the
+                     TECHNICAL-LOG JS block below; when it returns, restore the
+                     technical-view XSS assertions (plan-review-A3 R2) in
+                     tests/e2e/test_loading_screen.py.
+                <button id="log-toggle" type="button" aria-pressed="false">Technical log</button>
+                -->
+            </div>
+            <div id="log-scroll"><ul id="activity-feed"></ul></div>
+        </div>
         <a id="report-link" href="#">View the report →</a>
     </div>
 </main>
@@ -76,6 +221,434 @@ const phase = document.getElementById('phase');
 const title = document.getElementById('status-title');
 const reportLink = document.getElementById('report-link');
 let es = null;
+
+// A1: phase-weighted, always-moving bar. Keys are the ACTUAL emitted stage
+// strings — workflow.py state["stage"] plus queued/starting/complete from
+// jobs.py. query_refinement is emitted but absent from the ResearchStage
+// enum, so we map raw strings, never the enum. Unknown phases hold the
+// previous bucket; the monotonic clamp means the bar never moves backwards.
+const PHASE_LABEL = {
+    queued: 'Queued',
+    starting: 'Starting up',
+    initialization: 'Setting up',
+    strategy_planning: 'Planning research strategy',
+    data_collection: 'Searching the web',
+    fact_extraction: 'Reading & extracting facts',
+    query_refinement: 'Refining follow-up queries',
+    verification: 'Cross-checking facts',
+    risk_assessment: 'Assessing risk signals',
+    connection_mapping: 'Mapping connections',
+    report_generation: 'Writing your report',
+    complete: 'Complete'
+};
+const PHASE_PCT = {
+    queued: 0, starting: 2, initialization: 4, strategy_planning: 6,
+    verification: 78, risk_assessment: 85, connection_mapping: 92,
+    report_generation: 97, complete: 100
+};
+// The search loop (data_collection → fact_extraction → query_refinement)
+// spans 10–70%, advancing with iteration and position inside the loop.
+const LOOP_POS = {data_collection: 0, fact_extraction: 1 / 3, query_refinement: 2 / 3};
+let barPct = 0;
+
+function phasePct(p) {
+    if (p.phase in PHASE_PCT) return PHASE_PCT[p.phase];
+    if (p.phase in LOOP_POS) {
+        const max = Math.max(p.max_iterations || 10, 1);
+        const perIter = 60 / max;
+        return Math.min(70, 10 + ((p.iteration || 0) + LOOP_POS[p.phase]) * perIter);
+    }
+    return barPct;   // unknown phase: hold, never stall at 0
+}
+
+// A3/A.2: live report + research log + strip + timer. Everything below
+// renders UNTRUSTED scraped web content (queries, titles, fact snippets) —
+// text lands in the DOM via textContent/createElement ONLY, never as HTML,
+// and CSS classes only ever come from the fixed whitelists below (MI5).
+const activityLine = document.getElementById('activity-line');
+const feed = document.getElementById('activity-feed');
+const logScroll = document.getElementById('log-scroll');
+const logToggle = document.getElementById('log-toggle');
+const noFacts = document.getElementById('no-facts');
+const liveReport = document.getElementById('live-report');
+const brief = document.getElementById('brief');
+const planNote = document.getElementById('plan-note');
+const elapsed = document.getElementById('elapsed');
+const factsList = document.getElementById('facts-list');
+const factsEmpty = document.getElementById('facts-empty');
+const catBars = document.getElementById('cat-bars');
+const verifyNote = document.getElementById('verify-note');
+const countFacts = document.getElementById('count-facts');
+const countRisks = document.getElementById('count-risks');
+const countConnections = document.getElementById('count-connections');
+const risksBox = document.getElementById('risks-box');
+const connectionsBox = document.getElementById('connections-box');
+let timerId = null;
+let eventsBySeq = new Map();    // seq -> event: ONE stream, two renderers
+let renderedRows = new Map();   // row key -> li (active renderer's DOM state)
+let seenFactIds = new Set();
+let techMode = false;           // narrative by default (A.3 decision 1)
+let lastPhaseText = '';
+
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Whitelists (MI5): CSS classes and human labels NEVER derive from event data.
+const ENGINE_NAMES = {brave: 'Brave', serper: 'Google (Serper)', scrape: 'web page'};
+const KIND_CLASS = {search: 'k-search', extract: 'k-extract', llm: 'k-llm'};
+const CAT_CLASS = {biographical: 'biographical', professional: 'professional',
+                   financial: 'financial', legal: 'legal', connections: 'connections',
+                   behavioral: 'behavioral'};
+const CAT_LABEL = {biographical: 'background', professional: 'career & roles',
+                   financial: 'financial records', legal: 'legal history',
+                   connections: 'connections', behavioral: 'public behavior'};
+const SEV_CLASS = {critical: 'sev-critical', high: 'sev-high',
+                   medium: 'sev-medium', low: 'sev-low'};
+
+// ---- Narrative texts (default): intent-level, NO engines/models/raw queries
+function llmNarrative(a) {
+    if (a.task === 'strategy_planning') {
+        return a.status === 'done'
+            ? 'Planned ' + (a.queries || 0) + ' research angles'
+            : 'Planning research strategy…';
+    }
+    if (a.task === 'query_refinement') {
+        return 'Refined strategy — ' + (a.queries || 0) + ' new angles';
+    }
+    if (a.task === 'verification') {
+        return 'Cross-checked facts — ' + (a.verified || 0) + ' corroborated · ' +
+               (a.deduped || 0) + ' duplicates merged';
+    }
+    if (a.task === 'risk_assessment') {
+        return a.status === 'done'
+            ? 'Found ' + (a.risks || 0) + ' risk flags'
+            : 'Analyzing risk signals…';
+    }
+    if (a.task === 'connection_mapping') {
+        return a.status === 'done'
+            ? 'Mapped ' + (a.connections || 0) + ' connections'
+            : 'Mapping relationships…';
+    }
+    return 'Thinking…';
+}
+
+function stripText(a) {   // always-visible strip: narrative-flavored (R3)
+    if (a.kind === 'search') {
+        return 'Investigating ' + (CAT_LABEL[a.category] || 'the subject') + '…';
+    }
+    if (a.kind === 'extract') {
+        return a.status === 'done'
+            ? 'Extracted ' + (a.facts || 0) + ' facts from sources'
+            : 'Reading sources…';
+    }
+    if (a.kind === 'llm') return llmNarrative(a);
+    return 'Working…';
+}
+
+// ---- Technical texts (toggle): full queries, engines, counts, models
+function techText(a) {
+    if (a.kind === 'search') {
+        return 'Searched "' + (a.query || '') + '" — ' +
+               (ENGINE_NAMES[a.engine] || a.engine || 'search') + ' · ' +
+               (a.results || 0) + ' results';
+    }
+    if (a.kind === 'llm') {
+        let text = llmNarrative(a);
+        if (a.model) text += ' — ' + a.model;
+        if (a.task === 'query_refinement' && a.sample_queries && a.sample_queries.length) {
+            text += ' — next: "' + a.sample_queries[0] + '"';
+        }
+        return text;
+    }
+    return stripText(a);
+}
+
+// Derive narrative rows from the full event stream. Group keys use the
+// SERVER-side iteration (R5), so reconnect re-derives identical rows.
+function narrativeRows(events) {
+    const rows = [], index = new Map(), groups = new Map();
+    function upsert(key, cls, text) {
+        const row = index.get(key);
+        if (row) { row.text = text; return; }
+        const fresh = {key: key, cls: cls, text: text};
+        index.set(key, fresh);
+        rows.push(fresh);
+    }
+    for (const a of events) {
+        const it = a.iteration || 0;
+        if (a.kind === 'search') {
+            let g = groups.get(it);
+            if (!g) { g = {labels: [], count: 0, results: 0}; groups.set(it, g); }
+            const label = CAT_LABEL[a.category] || 'more angles';
+            if (!g.labels.includes(label)) g.labels.push(label);
+            g.count += 1;
+            g.results += a.results || 0;
+            upsert('s' + it, 'k-search',
+                'Investigating ' + g.labels.join(' · ') + ' — ' + g.count +
+                (g.count === 1 ? ' search' : ' searches'));
+        } else if (a.kind === 'extract') {
+            const g = groups.get(it);
+            upsert('r' + it, 'k-extract', a.status === 'done'
+                ? 'Read ~' + (g ? g.results : 0) + ' sources — ' +
+                  (a.facts || 0) + ' new facts'
+                : 'Reading sources…');
+        } else if (a.kind === 'llm') {
+            const key = a.task === 'query_refinement' ? 'q' + a.seq : a.task;
+            upsert(key, 'k-llm', llmNarrative(a));
+        } else {
+            upsert('u' + a.seq, '', 'Working…');
+        }
+    }
+    return rows;
+}
+
+function setPhaseText(text) {
+    if (text === lastPhaseText) return;
+    lastPhaseText = text;
+    if (REDUCED_MOTION) { phase.textContent = text; return; }
+    phase.classList.add('swap');
+    setTimeout(() => { phase.textContent = text; phase.classList.remove('swap'); }, 250);
+}
+
+function tweenCount(el, target) {
+    const from = parseInt(el.textContent, 10) || 0;
+    if (REDUCED_MOTION || target <= from) { el.textContent = String(target); return; }
+    const t0 = performance.now(), dur = 500;
+    function step(t) {
+        const k = Math.min(1, (t - t0) / dur);
+        el.textContent = String(Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3))));
+        if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function appendKeyed(container, items, keyOf, build, seen) {
+    let batchIdx = 0;
+    for (const item of items) {
+        const key = keyOf(item);
+        if (key == null || seen.has(key)) continue;
+        seen.add(key);
+        const el = build(item);
+        el.classList.add('enter');
+        el.style.setProperty('--i', String(batchIdx++));
+        container.appendChild(el);
+    }
+    return batchIdx;   // how many NEW nodes were added
+}
+
+// Ingest a snapshot's activity list; returns the events not seen before.
+function ingestEvents(acts) {
+    const fresh = [];
+    for (const a of acts) {
+        if (a && a.seq != null && !eventsBySeq.has(a.seq)) {
+            eventsBySeq.set(a.seq, a);
+            fresh.push(a);
+        }
+    }
+    return fresh;
+}
+
+// Reconcile the active renderer's rows against the DOM: new keys append
+// (animated), existing keys update textContent in place — so group rows
+// grow without re-animating and reconnect replays add nothing.
+function syncLog(animate = true) {
+    const events = [...eventsBySeq.values()].sort((a, b) => a.seq - b.seq);
+    const rows = techMode
+        ? events.map(a => ({key: 't' + a.seq, cls: KIND_CLASS[a.kind] || '',
+                            text: techText(a)}))
+        : narrativeRows(events);
+    const follow = logScroll.scrollTop + logScroll.clientHeight >=
+                   logScroll.scrollHeight - 24;
+    let batch = 0;
+    for (const r of rows) {
+        let el = renderedRows.get(r.key);
+        if (!el) {
+            el = document.createElement('li');
+            el.className = r.cls;
+            if (animate) {
+                el.classList.add('enter');
+                el.style.setProperty('--i', String(batch++));
+            }
+            renderedRows.set(r.key, el);
+            feed.appendChild(el);
+        }
+        if (el.textContent !== r.text) el.textContent = r.text;
+    }
+    if (batch && follow) logScroll.scrollTop = logScroll.scrollHeight;
+}
+
+/* TECHNICAL-LOG (disabled pending polish pass — human decision 2026-07-10;
+   techText/techMode above stay in place so this re-enables cleanly):
+logToggle.addEventListener('click', () => {
+    techMode = !techMode;
+    logToggle.setAttribute('aria-pressed', String(techMode));
+    logToggle.textContent = techMode ? 'Simple log' : 'Technical log';
+    feed.replaceChildren();
+    renderedRows = new Map();
+    syncLog(false);                 // full re-render, no entrance animation
+    logScroll.scrollTop = logScroll.scrollHeight;
+});
+*/
+
+// All six category rows render from the start at 0 (A3.2: the zeroed
+// Overview IS the skeleton) and fill as facts arrive.
+function renderCatBars(byCat) {
+    const total = Object.values(byCat).reduce((a, b) => a + b, 0) || 1;
+    catBars.replaceChildren(...Object.keys(CAT_CLASS).map(c => {
+        const count = byCat[c] || 0;
+        const row = document.createElement('div');
+        row.className = 'cat-row';
+        const name = document.createElement('span');
+        name.className = 'cat-name';
+        name.textContent = c;
+        const track = document.createElement('div');
+        track.className = 'cat-track';
+        const fill = document.createElement('div');
+        fill.className = 'cat-fill fill-' + c;
+        fill.style.width = Math.round(100 * count / total) + '%';
+        track.appendChild(fill);
+        const n = document.createElement('span');
+        n.textContent = String(count);
+        row.append(name, track, n);
+        return row;
+    }));
+}
+
+function renderBrief(subject) {
+    // Subject is the USER'S OWN input (server-validated on 202) — still
+    // textContent-only, same discipline as every other sink.
+    brief.replaceChildren();
+    const s = document.createElement('div');
+    s.id = 'brief-subject';
+    s.textContent = 'Subject: ' + subject;
+    const line = document.createElement('div');
+    line.className = 'brief-line';
+    line.textContent = 'Sources: public web · Coverage: background, ' +
+        'career & roles, financial records, legal history, connections, ' +
+        'public behavior';
+    brief.append(s, line);
+}
+
+function renderPreview(pv) {
+    if (!pv) return;
+    tweenCount(countFacts, pv.facts_found || 0);
+    appendKeyed(factsList, pv.facts || [], f => f.id, f => {
+        const el = document.createElement('li');
+        el.className = 'cat-' + (CAT_CLASS[f.category] || 'other');
+        el.textContent = f.content;
+        const meta = document.createElement('span');
+        meta.className = 'fact-meta';
+        meta.textContent = (CAT_CLASS[f.category] || 'other') +
+            (typeof f.confidence === 'number'
+                ? ' · confidence ' + Math.round(f.confidence * 100) + '%' : '');
+        el.appendChild(meta);
+        return el;
+    }, seenFactIds);
+    factsEmpty.hidden = seenFactIds.size > 0;
+
+    renderCatBars(pv.by_category || {});
+
+    if (pv.verification) {
+        verifyNote.textContent = 'Cross-checked: ' + (pv.verification.verified || 0) +
+            ' corroborated · ' + (pv.verification.deduped || 0) + ' duplicates merged';
+    }
+    if (pv.risks) {
+        tweenCount(countRisks, pv.risks.count || 0);
+        const line = document.createElement('div');
+        line.className = 'sig-line';
+        const sevs = pv.risks.severities || {};
+        for (const sev of ['critical', 'high', 'medium', 'low']) {
+            if (!sevs[sev]) continue;
+            const chip = document.createElement('span');
+            chip.className = 'chip ' + SEV_CLASS[sev];
+            chip.textContent = sevs[sev] + ' ' + sev;
+            line.appendChild(chip);
+        }
+        if (!line.childNodes.length) line.textContent = 'No risk flags identified yet.';
+        risksBox.replaceChildren(risksBox.querySelector('h3'), line);
+    }
+    if (pv.connections) {
+        tweenCount(countConnections, pv.connections.count || 0);
+        const line = document.createElement('div');
+        line.className = 'sig-line';
+        line.textContent = (pv.connections.sample || []).join(' · ') || '—';
+        connectionsBox.replaceChildren(connectionsBox.querySelector('h3'), line);
+    }
+}
+
+function render(p) {
+    barPct = Math.max(barPct, phasePct(p));
+    bar.style.width = Math.max(2, barPct) + '%';
+    const iter = p.iteration || 0, max = p.max_iterations || 10;
+    setPhaseText((PHASE_LABEL[p.phase] || p.phase || 'Working') +
+        (iter ? ' (iteration ' + iter + '/' + max + ')' : ''));
+    const acts = p.activity || [];
+    activityLine.textContent = acts.length ? stripText(acts[acts.length - 1]) : '';
+    const fresh = ingestEvents(acts);
+    syncLog();
+    for (const a of fresh) {
+        // A3.2: planning becomes a visible deliverable in the Overview.
+        if (a.kind === 'llm' && a.task === 'strategy_planning' &&
+            a.status === 'done') {
+            planNote.textContent = (a.queries || 0) + ' research angles planned';
+            if (!REDUCED_MOTION) {
+                catBars.classList.add('pulse');
+                setTimeout(() => catBars.classList.remove('pulse'), 800);
+            }
+        }
+    }
+    renderPreview(p.report_preview);
+    noFacts.hidden = !(iter >= 2 && (p.facts || 0) === 0 && seenFactIds.size === 0);
+}
+
+function startTimer() {
+    stopTimer();
+    const startedAt = Date.now();
+    elapsed.textContent = '0:00';
+    timerId = setInterval(() => {
+        const s = Math.floor((Date.now() - startedAt) / 1000);
+        elapsed.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }, 1000);
+}
+
+function stopTimer() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+}
+
+// Tabs (keyboard-operable buttons; aria-selected drives styling)
+const TAB_IDS = ['overview', 'facts', 'signals'];
+for (const id of TAB_IDS) {
+    document.getElementById('tab-btn-' + id).addEventListener('click', () => {
+        for (const other of TAB_IDS) {
+            document.getElementById('tab-btn-' + other)
+                .setAttribute('aria-selected', String(other === id));
+            document.getElementById('tab-' + other).hidden = other !== id;
+        }
+    });
+}
+
+function resetPanel(subject) {
+    title.textContent = 'Researching…';
+    barPct = 0;
+    bar.style.width = '2%';
+    lastPhaseText = '';
+    activityLine.textContent = '';
+    feed.replaceChildren();
+    factsList.replaceChildren();
+    eventsBySeq = new Map();
+    renderedRows = new Map();
+    seenFactIds = new Set();
+    countFacts.textContent = '0';
+    countRisks.textContent = '–';
+    countConnections.textContent = '–';
+    verifyNote.textContent = '';
+    planNote.textContent = '';
+    factsEmpty.hidden = false;
+    noFacts.hidden = true;
+    // A3.2 opening: brief + zeroed Overview render IMMEDIATELY — the report
+    // structure itself is the skeleton.
+    renderBrief(subject);
+    renderCatBars({});
+    reportLink.style.display = 'none';
+}
 
 function fail(msg) {
     errBox.textContent = msg;
@@ -114,7 +687,8 @@ form.addEventListener('submit', async (e) => {
 
     const job = await resp.json();
     statusBox.style.display = 'block';
-    title.textContent = 'Researching…';
+    resetPanel(query);
+    startTimer();
     watch(job.events_url, job.report_url);
 });
 
@@ -123,21 +697,20 @@ function watch(eventsUrl, reportUrl) {
     es = new EventSource(eventsUrl);   // auto-reconnects across the 15-min proxy cap / redeploys
 
     es.addEventListener('progress', (e) => {
-        const p = JSON.parse(e.data);
-        const iter = p.iteration || 0, max = p.max_iterations || 10;
-        bar.style.width = Math.max(2, Math.min(95, Math.round(100 * iter / max))) + '%';
-        phase.textContent = (p.phase || 'working') +
-            (p.facts ? ' — ' + p.facts + ' facts' : '') +
-            (iter ? ' (iteration ' + iter + '/' + max + ')' : '');
+        render(JSON.parse(e.data));
     });
 
     es.addEventListener('completed', (e) => {
         const p = JSON.parse(e.data);
         es.close();
+        stopTimer();
+        barPct = 100;
         bar.style.width = '100%';
         title.textContent = 'Research complete' +
             (p.quality_score ? ' — quality ' + p.quality_score + '/100' : '');
-        phase.textContent = '';
+        setPhaseText('Complete');
+        activityLine.textContent = '';
+        noFacts.hidden = true;
         reportLink.href = p.report_url || reportUrl;
         reportLink.style.display = 'inline-block';
         btn.disabled = false;
@@ -147,8 +720,11 @@ function watch(eventsUrl, reportUrl) {
     es.addEventListener('failed', (e) => {
         const p = JSON.parse(e.data);
         es.close();
+        stopTimer();
         title.textContent = 'Research failed';
-        phase.textContent = p.error || '';
+        setPhaseText(p.error || '');
+        activityLine.textContent = '';
+        noFacts.hidden = true;
         btn.disabled = false;
         if (window.turnstile) turnstile.reset();
     });
