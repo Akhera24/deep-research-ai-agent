@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Due Diligence Report: Stripe</title>
+    <style>
+        /* ── Reset & Base ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            padding: 20px;
+            line-height: 1.6;
+            color: #1e293b;
+        }
+
+        /* ── Home link (back to the search page; plain navigation — allowed
+              under the report CSP) ── */
+        .home-link {
+            display: block;
+            max-width: 1100px;
+            margin: 0 auto 10px;
+            color: #64748b;
+            font-size: 0.88em;
+            text-decoration: none;
+        }
+        .home-link:hover { color: #1e293b; text-decoration: underline; }
+        @media print { .home-link { display: none; } }
+
+        /* ── Container ── */
+        .container { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08); 
+            overflow: hidden; 
+        }
+        
+        /* ── Header ── */
+        .header { 
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 50%, #3b82f6 100%); 
+            color: white; 
+            padding: 48px 40px 36px; 
+        }
+        .header h1 { font-size: 1.1em; font-weight: 400; opacity: 0.9; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+        .header h2 { font-size: 2.4em; font-weight: 700; margin-bottom: 16px; }
+        .header-meta { display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.95em; opacity: 0.85; }
+        .score-hero { 
+            display: flex; align-items: center; gap: 16px; 
+            margin-top: 24px; padding: 16px 24px; 
+            background: rgba(255,255,255,0.12); border-radius: 12px; 
+            backdrop-filter: blur(10px);
+        }
+        .score-number { font-size: 3em; font-weight: 800; line-height: 1; }
+        .score-details { font-size: 1.1em; }
+        .score-grade { font-size: 1.4em; font-weight: 700; }
+        
+        /* ── Executive Summary ── */
+        .exec-summary { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 24px; 
+            padding: 32px 40px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; 
+        }
+        .summary-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .summary-card h3 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+        
+        /* ── Score Breakdown ── */
+        .score-component { margin-bottom: 12px; }
+        .score-comp-header { display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 4px; }
+        .score-comp-bar-bg { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .score-comp-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        
+        /* ── Coverage Bars ── */
+        .coverage-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .coverage-label { width: 100px; font-size: 0.85em; color: #475569; }
+        .coverage-bar-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .coverage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .coverage-pct { width: 50px; font-size: 0.85em; color: #475569; text-align: right; }
+        
+        /* ── Strengths/Recommendations ── */
+        .sr-list { list-style: none; padding: 0; }
+        .sr-list li { padding: 6px 0; font-size: 0.9em; border-bottom: 1px solid #f1f5f9; }
+        .sr-list li:last-child { border: none; }
+        .summary-card-wide { grid-column: 1 / -1; }
+        .strength-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .strength-card {
+            display: flex; gap: 12px; padding: 14px 16px;
+            background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+            transition: box-shadow 0.2s;
+        }
+        .strength-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .strength-icon { font-size: 1.6em; flex-shrink: 0; }
+        .strength-body { flex: 1; min-width: 0; }
+        .strength-title { font-weight: 700; font-size: 0.85em; color: #334155; }
+        .strength-metric { font-size: 1.4em; font-weight: 800; line-height: 1.2; }
+        .strength-unit { font-size: 0.45em; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .strength-detail { font-size: 0.78em; color: #64748b; margin-top: 2px; line-height: 1.4; }
+        
+        /* ── Search Box ── */
+        .search-container { padding: 16px 40px; border-bottom: 1px solid #e2e8f0; }
+        .search-box { 
+            width: 100%; padding: 12px 20px; border: 2px solid #e2e8f0; border-radius: 10px; 
+            font-size: 15px; outline: none; transition: border 0.2s;
+        }
+        .search-box:focus { border-color: #3b82f6; }
+        
+        /* ── Sections ── */
+        .section { border-bottom: 1px solid #e2e8f0; }
+        .section-header { 
+            padding: 20px 40px; background: #f8fafc; cursor: pointer; 
+            font-size: 1.1em; font-weight: 600; color: #1e293b; 
+            display: flex; justify-content: space-between; align-items: center;
+            user-select: none; transition: background 0.2s;
+        }
+        .section-header:hover { background: #f1f5f9; }
+        .section-header .arrow { transition: transform 0.3s; font-size: 0.8em; }
+        .section-header.open .arrow { transform: rotate(180deg); }
+        .section-content { 
+            padding: 0 40px; 
+            max-height: 0; overflow: hidden; 
+            transition: max-height 0.4s ease, padding 0.3s ease; 
+        }
+        .section-content.open { 
+            max-height: none;  /* NO HEIGHT LIMIT — was 5000px, caused truncation */
+            padding: 24px 40px; 
+            overflow: visible;
+        }
+        
+        /* ── Category Tabs ── */
+        .category-tabs { 
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; 
+            padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; 
+        }
+        .cat-tab { 
+            padding: 6px 14px; border: 1px solid #e2e8f0; border-radius: 20px; 
+            background: white; font-size: 0.85em; cursor: pointer; transition: all 0.2s;
+        }
+        .cat-tab:hover { border-color: #3b82f6; color: #3b82f6; }
+        .cat-tab.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        
+        /* ── Facts ── */
+        .fact { 
+            background: white; padding: 16px 20px; margin: 8px 0; 
+            border: 1px solid #e2e8f0; border-radius: 10px; 
+            border-left: 4px solid #3b82f6; transition: box-shadow 0.2s;
+        }
+        .fact:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; }
+        .fact-high { border-left-color: #10b981; }
+        .fact-med { border-left-color: #f59e0b; }
+        .fact-low { border-left-color: #ef4444; }
+        .fact-header { 
+            display: flex; align-items: center; gap: 10px; 
+            margin-bottom: 8px; flex-wrap: wrap;
+        }
+        .fact-number { font-weight: 700; color: #94a3b8; font-size: 0.85em; }
+        .fact-category { 
+            padding: 2px 10px; border-radius: 12px; 
+            font-size: 0.75em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .confidence { font-size: 0.8em; color: #64748b; margin-left: auto; }
+        .verified-badge { color: #10b981; font-weight: 600; }
+        .fact-content { font-size: 0.95em; line-height: 1.7; }
+        
+        /* ── Merged Fact Badge ── */
+        .merged-badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+            background: #dbeafe; color: #1d4ed8; white-space: nowrap;
+        }
+        
+        /* ── Trend Badge on Facts ── */
+        .trend-badge-fact {
+            padding: 1px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        /* ── Consolidation Banner ── */
+        .consolidation-banner {
+            padding: 10px 16px; margin-bottom: 16px; border-radius: 8px;
+            background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+            font-size: 0.85em; font-weight: 500;
+        }
+        
+        /* ── Risk Category Label (styled pill) ── */
+        .risk-category-label {
+            padding: 3px 12px; border-radius: 12px; font-size: 0.78em;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        /* ── Multi-select Category Tabs ── */
+        .cat-tab.selected { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+        
+        /* ── Detail rows for merged/trend info ── */
+        .detail-merged { font-size: 0.85em; color: #1d4ed8; padding: 4px 0; }
+        .detail-trend { font-size: 0.85em; color: #7c3aed; padding: 4px 0; }
+        
+        /* ── Expandable Fact Details ── */
+        .fact-details { 
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+            padding: 0; margin-top: 0; border-top: none;
+        }
+        .fact.expanded .fact-details {
+            max-height: 500px; padding: 12px 0; margin-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .expand-icon { 
+            font-size: 0.8em; color: #94a3b8; transition: transform 0.3s;
+            margin-left: 8px;
+        }
+        .fact.expanded .expand-icon { transform: rotate(90deg); }
+        .detail-evidence { 
+            font-size: 0.85em; color: #475569; font-style: italic; 
+            padding: 6px 12px; margin: 4px 0; background: #f8fafc; 
+            border-left: 3px solid #cbd5e1; border-radius: 0 6px 6px 0;
+        }
+        .detail-verified { font-size: 0.85em; color: #059669; padding: 4px 0; }
+        .detail-unverified { font-size: 0.85em; color: #94a3b8; padding: 4px 0; }
+        .detail-entities { font-size: 0.85em; color: #6366f1; padding: 4px 0; }
+        .detail-risk { 
+            font-size: 0.85em; color: #ea580c; padding: 6px 10px; 
+            margin: 4px 0; background: #fff7ed; border-radius: 6px;
+        }
+        
+        /* ── Risk Badges on Facts ── */
+        .risk-badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 0.7em;
+            font-weight: 700; color: white; text-transform: uppercase;
+            letter-spacing: 0.3px; vertical-align: middle;
+        }
+        
+        /* ── Sort Controls ── */
+        .sort-controls {
+            display: flex; align-items: center; gap: 8px; 
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .sort-label { font-size: 0.85em; color: #64748b; font-weight: 600; }
+        .sort-btn {
+            padding: 4px 12px; border: 1px solid #e2e8f0; border-radius: 16px;
+            background: white; font-size: 0.8em; cursor: pointer; transition: all 0.2s;
+        }
+        .sort-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+        .sort-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
+        
+        /* ── Trend Analysis ── */
+        .trend-group {
+            margin-bottom: 20px; padding: 16px 20px;
+            background: #f8fafc; border-radius: 10px;
+            border-left: 4px solid #e2e8f0;
+        }
+        .trend-header {
+            font-size: 1.05em; font-weight: 700; margin-bottom: 10px;
+        }
+        .trend-item {
+            font-size: 0.9em; color: #334155; padding: 4px 0;
+            line-height: 1.6;
+        }
+        .trend-recent {
+            display: inline-block; padding: 1px 8px; border-radius: 10px;
+            font-size: 0.7em; font-weight: 700; background: #dbeafe;
+            color: #1d4ed8; vertical-align: middle; margin-left: 6px;
+        }
+        .no-data { color: #94a3b8; font-style: italic; }
+        
+        /* ── Connection Type Colors (expanded palette) ── */
+        .conn-type { 
+            padding: 3px 10px; border-radius: 12px; font-size: 0.75em; 
+            font-weight: 600; text-transform: lowercase; 
+        }
+        .conn-type-leadership { background: #dbeafe; color: #1e40af; }
+        .conn-type-family { background: #fce7f3; color: #be185d; }
+        .conn-type-colleague { background: #e0e7ff; color: #4338ca; }
+        .conn-type-employer { background: #d1fae5; color: #065f46; }
+        .conn-type-education { background: #fef3c7; color: #92400e; }
+        .conn-type-board_member { background: #e0e7ff; color: #3730a3; }
+        .conn-type-investor_partner { background: #dcfce7; color: #166534; }
+        .conn-type-predecessor_successor { background: #f1f5f9; color: #475569; }
+        .conn-type-recognition { background: #fef9c3; color: #a16207; }
+        .conn-type-political { background: #fee2e2; color: #991b1b; }
+        .conn-type-philanthropy { background: #f3e8ff; color: #7e22ce; }
+        .conn-type-co-founder { background: #cffafe; color: #0e7490; }
+        .conn-type-friend { background: #fce7f3; color: #9d174d; }
+        .conn-type-mentor { background: #e0f2fe; color: #0369a1; }
+        .conn-type-regulatory { background: #fef2f2; color: #b91c1c; }
+        
+        /* ── Trend Analysis ── */
+        .trend-group { margin-bottom: 16px; }
+        .trend-header { font-weight: 700; font-size: 1em; margin-bottom: 6px; }
+        .trend-item { font-size: 0.9em; color: #334155; padding: 4px 0 4px 8px; line-height: 1.5; }
+        .trend-recent { 
+            display: inline-block; padding: 1px 6px; border-radius: 8px;
+            background: #dbeafe; color: #1e40af; font-size: 0.75em; font-weight: 700;
+            vertical-align: middle; margin-left: 6px;
+        }
+        .no-data { color: #94a3b8; font-style: italic; }
+        
+        /* ── Pagination ── */
+        .pagination { 
+            display: flex; justify-content: center; align-items: center; gap: 16px; 
+            padding: 20px 0; margin-top: 16px; border-top: 1px solid #e2e8f0; 
+        }
+        .page-btn { 
+            padding: 8px 20px; border: 1px solid #3b82f6; border-radius: 8px; 
+            background: white; color: #3b82f6; font-weight: 600; cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) { background: #3b82f6; color: white; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-info { font-size: 0.9em; color: #64748b; }
+        
+        /* ── Connections ── */
+        .connection { 
+            background: white; padding: 16px 20px; margin: 8px 0; 
+            border: 1px solid #e2e8f0; border-radius: 10px; border-left: 4px solid #8b5cf6;
+        }
+        .conn-entities { font-weight: 700; font-size: 1.05em; margin-bottom: 6px; color: #1e293b; }
+        .conn-meta { display: flex; gap: 12px; margin-bottom: 8px; }
+        .conn-type { 
+            padding: 2px 10px; border-radius: 12px; 
+            font-size: 0.8em; font-weight: 600; 
+        }
+        .conn-period { font-size: 0.85em; color: #64748b; }
+        .strength-bar-container { 
+            display: flex; align-items: center; gap: 8px; margin-top: 4px; 
+        }
+        .strength-bar-container > div:first-child { 
+            flex: 1; height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; position: relative; 
+        }
+        .strength-bar { height: 100%; border-radius: 3px; }
+        .strength-label { font-size: 0.8em; color: #64748b; min-width: 36px; }
+        .conn-evidence { font-size: 0.8em; color: #94a3b8; margin-top: 6px; font-style: italic; }
+        
+        /* ── Risks ── */
+        .risk { 
+            padding: 18px 22px; margin: 10px 0; border-radius: 10px; 
+        }
+        .risk-header { 
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; 
+        }
+        .risk-header strong { font-size: 0.9em; }
+        .severity { 
+            padding: 3px 12px; border-radius: 12px; font-size: 0.75em; 
+            font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .risk-desc { font-size: 0.95em; line-height: 1.7; margin-bottom: 10px; }
+        .risk-meta { 
+            display: flex; flex-wrap: wrap; gap: 16px; 
+            font-size: 0.8em; color: #64748b; 
+        }
+        .no-data { text-align: center; padding: 40px; color: #94a3b8; font-size: 1.1em; }
+        
+        /* ── Footer ── */
+        .footer { 
+            padding: 24px 40px; background: #f8fafc; 
+            font-size: 0.8em; color: #94a3b8; text-align: center; 
+        }
+        
+        /* ── Print ── */
+        @media print {
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; }
+            .search-container, .pagination, .cat-tab { display: none !important; }
+            .section-content { max-height: none !important; padding: 20px 40px !important; overflow: visible !important; }
+            .fact { break-inside: avoid; }
+        }
+        
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            .exec-summary { grid-template-columns: 1fr; }
+            .header { padding: 28px 20px; }
+            .section-header, .section-content, .section-content.open { padding-left: 20px; padding-right: 20px; }
+            .search-container { padding: 12px 20px; }
+            .header h2 { font-size: 1.8em; }
+            .score-number { font-size: 2.2em; }
+        }
+    </style>
+</head>
+<body>
+    <a class="home-link" href="/">← Run another report</a>
+    <div class="container" id="report-top">
+        <!-- ═══ HEADER ═══ -->
+        <div class="header">
+            <h1>🔍 Deep Research — Due Diligence Report</h1>
+            <h2>Stripe</h2>
+            <div class="header-meta">
+                <span>📅 July 11, 2026 at 12:01 AM</span>
+                <span>⏱️ 390s (6.5 min)</span>
+                <span>🔄 10 iterations</span>
+                <span>🔎 50 searches</span>
+            </div>
+            <div class="score-hero">
+                <div class="score-number">90.6</div>
+                <div class="score-details">
+                    <div class="score-grade">Grade A- — Very Good</div>
+                    <div>out of 100 points</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ═══ EXECUTIVE SUMMARY ═══ -->
+        <div class="exec-summary">
+            <div class="summary-card">
+                <h3>📊 Score Breakdown</h3>
+                
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Fact Quality</span>
+                <span>32.4/35</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:93%;background:#3b82f6"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Coverage</span>
+                <span>20.2/25</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:81%;background:#10b981"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Risk Assessment</span>
+                <span>18.0/20</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:90%;background:#ef4444"></div>
+            </div>
+        </div>
+        
+        <div class="score-component">
+            <div class="score-comp-header">
+                <span>Connections</span>
+                <span>20.0/20</span>
+            </div>
+            <div class="score-comp-bar-bg">
+                <div class="score-comp-bar" style="width:100%;background:#8b5cf6"></div>
+            </div>
+        </div>
+        
+            </div>
+            <div class="summary-card">
+                <h3>📈 Research Coverage</h3>
+                
+        <div class="coverage-row">
+            <span class="coverage-label">Biographical</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:0%;background:#3b82f6"></div>
+            </div>
+            <span class="coverage-pct">0.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Professional</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:100%;background:#8b5cf6"></div>
+            </div>
+            <span class="coverage-pct">100.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Financial</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:100%;background:#10b981"></div>
+            </div>
+            <span class="coverage-pct">100.0%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Legal</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:99%;background:#ef4444"></div>
+            </div>
+            <span class="coverage-pct">99.2%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Behavioral</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:38%;background:#f59e0b"></div>
+            </div>
+            <span class="coverage-pct">38.2%</span>
+        </div>
+        
+        <div class="coverage-row">
+            <span class="coverage-label">Connections</span>
+            <div class="coverage-bar-bg">
+                <div class="coverage-bar-fill" style="width:20%;background:#06b6d4"></div>
+            </div>
+            <span class="coverage-pct">20.0%</span>
+        </div>
+        
+            </div>
+            <div class="summary-card summary-card-wide">
+                <h3>💪 Research Intelligence</h3>
+                <div class="strength-grid">
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#10b981">🔬</div>
+            <div class="strength-body">
+                <div class="strength-title">Deep Fact Discovery</div>
+                <div class="strength-metric" style="color:#10b981">108 <span class="strength-unit">facts</span></div>
+                <div class="strength-detail">108 unique facts extracted across 5 research categories</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#10b981">✅</div>
+            <div class="strength-body">
+                <div class="strength-title">Cross-Verified Intelligence</div>
+                <div class="strength-metric" style="color:#10b981">36% <span class="strength-unit">verified</span></div>
+                <div class="strength-detail">39 of 108 facts independently confirmed across multiple sources</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#3b82f6">🎯</div>
+            <div class="strength-body">
+                <div class="strength-title">High-Quality Sources</div>
+                <div class="strength-metric" style="color:#3b82f6">86% <span class="strength-unit">avg confidence</span></div>
+                <div class="strength-detail">104 of 108 facts exceed 70% confidence threshold</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#ef4444">🛡️</div>
+            <div class="strength-body">
+                <div class="strength-title">Comprehensive Risk Scan</div>
+                <div class="strength-metric" style="color:#ef4444">15 <span class="strength-unit">risks identified</span></div>
+                <div class="strength-detail">Multi-category assessment: 1 HIGH, 7 LOW, 7 MEDIUM</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#8b5cf6">📊</div>
+            <div class="strength-body">
+                <div class="strength-title">Full Research Coverage</div>
+                <div class="strength-metric" style="color:#8b5cf6">5/6 <span class="strength-unit">categories</span></div>
+                <div class="strength-detail">59.6% average coverage across all research dimensions</div>
+            </div>
+        </div>
+        <div class="strength-card">
+            <div class="strength-icon" style="color:#06b6d4">🕸️</div>
+            <div class="strength-body">
+                <div class="strength-title">Rich Network Mapping</div>
+                <div class="strength-metric" style="color:#06b6d4">19 <span class="strength-unit">connections</span></div>
+                <div class="strength-detail">19 relationships mapped across 6 relationship types</div>
+            </div>
+        </div></div>
+            </div>
+            <div class="summary-card">
+                <h3>📋 Recommendations</h3>
+                <ul class="sr-list"><li>No improvements needed</li></ul>
+            </div>
+        </div>
+        
+        <!-- ═══ SEARCH ═══ -->
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchInput" 
+                   placeholder="🔍 Search across all facts, connections, and risks..." 
+                   onkeyup="searchContent()">
+        </div>
+        
+        <!-- ═══ RISK FLAGS ═══ -->
+        <div class="section" id="risksSection">
+            <div class="section-header open" onclick="toggleSection(this)">
+                ⚠️ Risk Flags (15)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+            <div class="risk" style="background:#fff7ed;border-left:4px solid #ea580c">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#ef444418;color:#ef4444;border:1px solid #ef444440">LEGAL</span>
+                    <span class="severity" style="background:#ea580c">HIGH</span>
+                </div>
+                <div class="risk-desc">Stripe received a warning letter from the FTC regarding the &#39;debanking&#39; of consumers, with the FTC warning that denying customers access to services based on political or religious views may violate the FTC Act. This is an active regulatory concern from a federal agency touching on discrimination and consumer access issues.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 86%</span>
+                    <span>Impact: 7/10</span>
+                    <span>Trend: Emerging</span>
+                    <span>Evidence: Fact 45, Fact 46</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#ef444418;color:#ef4444;border:1px solid #ef444440">LEGAL</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Stripe has accumulated over 1,426 BBB complaints over a three-year period, with 540 in the most recent 12 months, primarily concerning the release/withholding of funds and abrupt account suspension or termination. The recent 12-month figure suggests an accelerating complaint volume relative to prior years.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 84%</span>
+                    <span>Impact: 6/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 42, Fact 79, Fact 80</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#ef444418;color:#ef4444;border:1px solid #ef444440">LEGAL</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitrator for disputes arising from account termination, combined with fund-hold policies of up to 90 days (extendable to 180 days). The combination of forced arbitration, class-action limitation, and extended fund holds creates significant legal/consumer-protection risk and limits merchant recourse.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 80%</span>
+                    <span>Impact: 6/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 33, Fact 90, Fact 91, Fact 100, Fact 43</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#f9731618;color:#f97316;border:1px solid #f9731640">COMPLIANCE</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regulation, Stripe is subject to regular and comprehensive examination by state financial regulators. This ongoing, extensive regulatory oversight represents inherent compliance exposure requiring continuous AML/KYC controls; failures could trigger enforcement.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 85%</span>
+                    <span>Impact: 5/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 8, Fact 10, Fact 12, Fact 16, Fact 44, Fact 13, Fact 7, Fact 9</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">PROFESSIONAL</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% of workforce) in November 2022, an additional 300 employees, and further layoffs in January 2025. Repeated workforce reductions over multiple years suggest ongoing cost pressures or strategic misalignment despite claimed profitability.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 85%</span>
+                    <span>Impact: 5/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 31, Fact 32, Fact 50, Fact 88</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6366f118;color:#6366f1;border:1px solid #6366f140">INTEGRITY</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Contradictory valuation data points appear across facts for overlapping periods: $159B (2025/Feb 2026/June 2026), $91.5B (Feb 2025), $70B (July 2025), $65B (Feb 2024), and $50B (March 2023). The presence of a $70B July 2025 valuation alongside a $91.5B Feb 2025 and $159B 2025 figure creates inconsistency that warrants reconciliation of primary vs. secondary market vs. tender-offer valuations.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 72%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 19, Fact 74, Fact 82, Fact 83, Fact 84, Fact 85, Fact 86, Fact 92, Fact 3</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#10b98118;color:#10b981;border:1px solid #10b98140">FINANCIAL</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Stripe remains private and provides liquidity to employees/shareholders primarily through recurring tender offers (March 2024 at $65B, Feb 2025 at $91.5B) rather than an IPO. While a legitimate strategy, repeated company-orchestrated tender offers at company-set valuations create potential for valuation management and limit market price discovery.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 70%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 3, Fact 58, Fact 73, Fact 74, Fact 77, Fact 75</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#fffbeb;border-left:4px solid #f59e0b">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">TAX</span>
+                    <span class="severity" style="background:#d97706">MEDIUM</span>
+                </div>
+                <div class="risk-desc">Stripe maintains dual U.S./Irish structure (Irish and American multinational, dual-headquartered in San Francisco and Dublin, incorporated in Delaware). The Ireland-U.S. corporate structure is a common vehicle for international tax optimization and warrants examination of transfer pricing and effective tax rate practices.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 68%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 4, Fact 18, Fact 27, Fact 47, Fact 71</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6366f118;color:#6366f1;border:1px solid #6366f140">INTEGRITY</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Inconsistencies exist in stated leadership roles and headquarters. Patrick Collison is described as CEO in multiple facts, while separate facts also refer to leadership generically; headquarters is variously described as &#39;San Francisco,&#39; &#39;South San Francisco,&#39; and &#39;San Francisco and Dublin.&#39; These are minor descriptive inconsistencies but reflect data-source variance.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 65%</span>
+                    <span>Impact: 2/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: Fact 4, Fact 18, Fact 23, Fact 27, Fact 11, Fact 25</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6366f118;color:#6366f1;border:1px solid #6366f140">INTEGRITY</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Contradictory funding-round data: one fact states Stripe raised $150M from CapitalG in 2017, another states November 2016; total raised is stated as ~$800M since 2010 despite documented rounds including $6.5B in 2023, which alone exceeds that figure. This inconsistency undermines reliability of aggregate financial disclosures.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 68%</span>
+                    <span>Impact: 3/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: Fact 17, Fact 24, Fact 68, Fact 28</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6366f118;color:#6366f1;border:1px solid #6366f140">INTEGRITY</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees by 2025, had 7,000 after 2022 layoffs, conducted January 2025 layoffs, yet other facts claim &#39;no layoffs in 2026&#39; and active hiring of 481 roles. The mixed signals complicate assessment of the company&#39;s true growth trajectory.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 60%</span>
+                    <span>Impact: 2/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: Fact 50, Fact 51, Fact 52, Fact 88, Fact 89</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">RELATIONSHIP</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund), creating a foreign-government-linked ownership tie. While common among large tech firms, sovereign wealth involvement in a regulated money-transmitter warrants awareness for foreign-influence considerations.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 70%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: Fact 57, Fact 55, Fact 56</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#8b5cf618;color:#8b5cf6;border:1px solid #8b5cf640">REPUTATIONAL</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Co-founders Patrick and John Collison are founding donors of the Arc Institute, and early investors included Elon Musk and Peter Thiel. These high-profile associations carry modest reputational exposure tied to the public standing and controversies of associated individuals and philanthropic ventures.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 55%</span>
+                    <span>Impact: 2/10</span>
+                    <span>Trend: Isolated</span>
+                    <span>Evidence: Fact 53, Fact 66</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#6b728018;color:#6b7280;border:1px solid #6b728040">PROFESSIONAL</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based billing platform Metronome expand the company into the crypto/digital-asset space, an area of heightened regulatory scrutiny. Crypto expansion introduces new AML, licensing, and compliance risk vectors for a regulated money transmitter.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 65%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Emerging</span>
+                    <span>Evidence: Fact 41, Fact 95, Fact 96</span>
+                </div>
+            </div>
+            
+            <div class="risk" style="background:#f0fdf4;border-left:4px solid #10b981">
+                <div class="risk-header">
+                    <span class="risk-category-label" style="background:#10b98118;color:#10b981;border:1px solid #10b98140">FINANCIAL</span>
+                    <span class="severity" style="background:#059669">LOW</span>
+                </div>
+                <div class="risk-desc">Governance concentration risk: both founders (Patrick as CEO, John as President) serve on the board of directors of the privately-held company, concentrating control. Limited external governance oversight in a private company handling $1.9T in payment volume warrants monitoring.</div>
+                <div class="risk-meta">
+                    <span>Confidence: 60%</span>
+                    <span>Impact: 4/10</span>
+                    <span>Trend: Established</span>
+                    <span>Evidence: Fact 5, Fact 11, Fact 25, Fact 30, Fact 72</span>
+                </div>
+            </div>
+            
+            </div>
+        </div>
+        
+        <!-- ═══ ALL FACTS ═══ -->
+        <div class="section" id="factsSection">
+            <div class="section-header open" onclick="toggleSection(this)">
+                📋 Research Facts (89 unique findings from 108 raw)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+    <div class="sort-controls">
+        <span class="sort-label">Sort by:</span>
+        <button class="sort-btn active" onclick="sortFacts('default')">Default</button>
+        <button class="sort-btn" onclick="sortFacts('confidence-desc')">Highest Confidence</button>
+        <button class="sort-btn" onclick="sortFacts('confidence-asc')">Lowest Confidence</button>
+        <button class="sort-btn" onclick="sortFacts('risk')">⚠️ Risk-Linked</button>
+        <button class="sort-btn" onclick="sortFacts('trend')">📊 Trend-Linked</button>
+    </div>
+    <div class="category-tabs" id="categoryTabs"><button class="cat-tab active" data-cat="all" onclick="toggleCategory(this, 'all')">All (89)</button><button class="cat-tab" data-cat="professional" onclick="toggleCategory(this, 'professional')">💼 Professional (49)</button><button class="cat-tab" data-cat="financial" onclick="toggleCategory(this, 'financial')">💰 Financial (25)</button><button class="cat-tab" data-cat="legal" onclick="toggleCategory(this, 'legal')">⚖️ Legal (12)</button><button class="cat-tab" data-cat="behavioral" onclick="toggleCategory(this, 'behavioral')">🗣️ Behavioral (2)</button><button class="cat-tab" data-cat="connections" onclick="toggleCategory(this, 'connections')">🔗 Connections (1)</button></div><div class="consolidation-banner">🧠 108 raw facts intelligently consolidated into 89 unique findings — duplicates merged, detail preserved</div><div id="factsContainer">
+        <div class="fact fact-high" data-category="professional" data-index="1" data-confidence="96.16" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#1</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 96% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe was founded in 2010.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Following their entrepreneurial dream, they founded Stripe in 2010."</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="2" data-confidence="96.16" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#2</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 96% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe was founded in 2010 by Patrick Collison and John Collison.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe, Inc. was founded in 2010 by Irish brothers Patrick and John Collison."</div>
+<div class="detail-evidence">📝 "The payments firm offers payment processing and technology to businesses and was founded in 2010. Co-founders John and Patrick Collison have provided little clarity on their IPO plans"</div>
+<div class="detail-verified">✅ Cross-verified across 5 sources</div>
+<div class="detail-entities">🏷️ Entities: Patrick, Patrick Collison, Stripe, John Collison</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="3" data-confidence="96.14" data-risk="1" data-trend="expansion" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#3</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="3 similar facts consolidated">🔗 3 merged</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 96% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe reached a valuation of $159 billion following a tender offer for employees and shareholders.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe valued at $159 billion after tender offer for employees, shareholders"</div>
+<div class="detail-evidence">📝 "Stripe Layoffs 2026: None. 509 Open Roles, $159B Valuation"</div>
+<div class="detail-evidence">📝 "Stripe processed $1.9T in payments in 2025, reaching a $159B valuation"</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-merged">🔗 Consolidated from 3 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="4" data-confidence="96.14" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#4</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="3 similar facts consolidated">🔗 3 merged</span> <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> <span class="risk-badge" style="background:#d97706" title="Stripe maintains dual U.S./Irish structure (Irish and American multinational, du">⚠ MEDIUM</span> <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> <span class="risk-badge" style="background:#d97706" title="Stripe maintains dual U.S./Irish structure (Irish and American multinational, du">⚠ MEDIUM</span> <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> 
+                <span class="confidence">Confidence: 96% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is dual-headquartered in South San Francisco, California, United States, and Dublin, Ireland.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "SAN FRANCISCO AND DUBLIN—Stripe, a financial infrastructure platform for businesses"</div>
+<div class="detail-evidence">📝 "dual-headquartered in South San Francisco, California, United States, and Dublin, Ireland."</div>
+<div class="detail-evidence">📝 "Stripe, a company valued at $36 billion, is headquartered in San Francisco, CA"</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: San Francisco, Ireland, California, Stripe, South San Francisco, United States</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe maintains dual U.S./Irish structure (Irish and American multinational, du</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe maintains dual U.S./Irish structure (Irish and American multinational, du</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-merged">🔗 Consolidated from 3 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="5" data-confidence="95.94" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#5</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Governance concentration risk: both founders (Patrick as CEO, John as President)">⚠ LOW</span> 
+                <span class="confidence">Confidence: 96% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">John Collison serves as the president of Stripe.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "John Collison... is the president of Stripe"</div>
+<div class="detail-verified">✅ Cross-verified across 3 sources</div>
+<div class="detail-entities">🏷️ Entities: John Collison, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Governance concentration risk: both founders (Patrick as CEO, John as President)</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="6" data-confidence="92.96000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#6</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Patrick Collison and John Collison are the co-founders of Stripe.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "CEO Patrick Collison, who founded the company with his brother John Collison"</div>
+<div class="detail-evidence">📝 "Collison and his brother, John — a Stripe co-founder — contributed"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: John Collison, Stripe, Patrick Collison</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="7" data-confidence="92.96000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#7</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe conducts an annual independent audit of its AML (Anti-Money Laundering) compliance function.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe also conducts an independent audit of its AML compliance function annually"</div>
+<div class="detail-evidence">📝 "Stripe also conducts an independent audit of its AML compliance function · annually"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Anti, Money Laundering, Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="8" data-confidence="92.96000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#8</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 93% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is subject to regular examination by state financial regulators due to its state-level money transmission licenses.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is subject to regular and comprehensive examination by state financial regulators as a result of its state-level money transmission licenses."</div>
+<div class="detail-evidence">📝 "Stripe is subject to regular and comprehensive examination by state financial ... [regulators]"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="9" data-confidence="92.30000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#9</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Governance concentration risk: both founders (Patrick as CEO, John as President)">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Governance concentration risk: both founders (Patrick as CEO, John as President)">⚠ LOW</span> 
+                <span class="confidence">Confidence: 92% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Patrick Collison serves as the CEO of Stripe.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Patrick Collison - Founder, CEO Stripe"</div>
+<div class="detail-evidence">📝 "Patrick and John Collison... serve as the company&#39;s president and CEO, respective..."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Patrick Collison</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Governance concentration risk: both founders (Patrick as CEO, John as President)</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Governance concentration risk: both founders (Patrick as CEO, John as President)</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="10" data-confidence="91.41860465116281" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#10</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe Payments Company is registered as a money transmitter with NMLS #1280479.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe Payments Company (NMLS #1280479)"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe Payments Company</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="11" data-confidence="91.41860465116281" data-risk="1" data-trend="geopolitical" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#11</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#8b5cf615;color:#8b5cf6;border:1px solid #8b5cf633">🌐 Geopolitical</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe requires users to comply with Anti-Money Laundering (AML) and Know-Your-Customer (KYC) regulations.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Compliance with anti-money laundering (AML) and know-your-customer (KYC) regulations is also a critical concern."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Anti, Money Laundering, Know, Your, Customer</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-trend">📊 Trend signals: Geopolitical</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="12" data-confidence="91.36000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#12</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is considered a major financial infrastructure platform and payment provider.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Federal Trade Commission Chairman Andrew N. Ferguson sent letters today to four major financial infrastructure platforms and payment providers"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="13" data-confidence="91.36000000000001" data-risk="1" data-trend="expansion" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#13</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe Payments Company is licensed and regulated as a money transmitter by the New York State Department of Financial Services.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe Payments Company is licensed and regulated as a money transmitter by the New York State Department of Financial Services."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe Payments Company, New York State Department, Financial Services</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="14" data-confidence="91.36000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#14</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#059669" title="Contradictory funding-round data: one fact states Stripe raised $150M from Capit">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Contradictory funding-round data: one fact states Stripe raised $150M from Capit">⚠ LOW</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe raised $150 million from CapitalG in November 2016.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2017, Patrick and John were each worth at least $3.2 billion after Stripe raised another $150 million from CapitalG."</div>
+<div class="detail-evidence">📝 "Stripe raised $150 million from CapitalG, an investment division of Google parent company Alphabet"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: November, Stripe, In</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Contradictory funding-round data: one fact states Stripe raised $150M from Capit</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Contradictory funding-round data: one fact states Stripe raised $150M from Capit</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="15" data-confidence="91.34146341463416" data-risk="1" data-trend="expansion" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#15</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="risk-badge" style="background:#059669" title="Contradictory funding-round data: one fact states Stripe raised $150M from Capit">⚠ LOW</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe raised $6.5 billion at a $50 billion valuation in 2023.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "hit a $159B valuation"</div>
+<div class="detail-evidence">📝 "having raised $6.5 billion at $50 billion valuation in 2023"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: As, June, Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Contradictory funding-round data: one fact states Stripe raised $150M from Capit</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="16" data-confidence="91.34146341463416" data-risk="0" data-trend="expansion" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#16</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe processed $1.9 trillion in payments as of June 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "processed $1.9T in payments"</div>
+<div class="detail-evidence">📝 "Stripe processed $1.9T in payments in 2025"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: June, Stripe</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="17" data-confidence="91.16000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#17</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is a financial infrastructure provider for the internet.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is a financial infrastructure provider for the internet, offering online and in-person payment processing solutions for businesses of all sizes."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="18" data-confidence="91.14000000000001" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#18</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is a financial infrastructure platform for businesses.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe, a financial infrastructure platform for businesses, has signed agreements with investors"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="19" data-confidence="90.85714285714288" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#19</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli">⚠ LOW</span> <span class="risk-badge" style="background:#d97706" title="Stripe maintains dual U.S./Irish structure (Irish and American multinational, du">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe maintains dual headquarters in San Francisco and Dublin.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "the payments processing company — which has dual headquarters in San Francisco and Dublin"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe, San Francisco, Dublin</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Inconsistencies exist in stated leadership roles and headquarters. Patrick Colli</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe maintains dual U.S./Irish structure (Irish and American multinational, du</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="20" data-confidence="90.85714285714288" data-risk="0" data-trend="expansion" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#20</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe reached a peak valuation of $95 billion in 2021.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "the closest the company has been to its peak valuation of $95 billion in 2021."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="21" data-confidence="90.85714285714288" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#21</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Governance concentration risk: both founders (Patrick as CEO, John as President)">⚠ LOW</span> 
+                <span class="confidence">Confidence: 91% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Patrick and John Collison serve on Stripe&#39;s board of directors.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Both sit on Stripe&#39;s board of directors."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Patrick, John Collison, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Governance concentration risk: both founders (Patrick as CEO, John as President)</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="22" data-confidence="87.96000000000001" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#22</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 88%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">On January 21, 2025, Stripe laid off 300 employees, representing approximately 3.5% of its workforce.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The company’s major workforce reduction happened in November 2022, when CEO Patrick Collison cut 14% of staff — roughly 1,100 employees."</div>
+<div class="detail-evidence">📝 "On January 21, Stripe announced they&#39;re laying off 300 people, about 3.5% of their workforce."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: On January, November, Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% </div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="23" data-confidence="87.96000000000001" data-risk="1" data-trend="leadership" data-has-trend="1" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#23</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% ">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#3b82f615;color:#3b82f6;border:1px solid #3b82f633">🎯 Strategy</span> 
+                <span class="confidence">Confidence: 88%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe laid off 300 employees, primarily in product, engineering, and operations divisions.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Leaked memo: Stripe lays off 300 employees, mostly in product, engineering, and operations"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% </div>
+<div class="detail-trend">📊 Trend signals: Strategy</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="24" data-confidence="87.4" data-risk="1" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#24</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s Terms of Service mandate that disputes or claims arising from account termination must be resolved by binding arbitration before a single arbitrator.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "According to Stripe’s Terms of Service, any disputes or claims that arise out of Stripe’s termination of your account will be resolved by a binding arbitration before a single arbitrator."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Terms, Service</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="25" data-confidence="87.4" data-risk="0" data-trend="" data-has-trend="0" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#25</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe offers an AI-powered tool to help users pull disputed charges, refunds, and failed payments, summarize root causes, and draft customer responses.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Pull disputed charges, refunds, and failed payments, summarize root causes, and draft customer-ready responses—reducing resolution time."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="26" data-confidence="87.4" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#26</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides a service called &#39;Smart Disputes&#39; to assist with chargeback prevention and protection.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe&#39;s network powers chargeback prevention and protection. Reduce dispute fees, help improve win rates, and save valuable time managing disputes."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Smart Disputes</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="27" data-confidence="87.4" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#27</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe, Inc. and Stripe Payments Company collectively refer to themselves as &#39;Stripe&#39; in regulatory correspondence.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "I write on behalf of Stripe, Inc. and Stripe Payments Company (collectively, Stripe) in response to the · Financial Crimes Enforcement Network’s (FinCEN) notice"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Inc, Stripe Payments Company, Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="28" data-confidence="87.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#28</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is a privately owned financial technology company.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is the largest privately owned financial technology company"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="29" data-confidence="87.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#29</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 87%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides payment processing and financial infrastructure for businesses.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is a financial infrastructure platform for businesses."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="30" data-confidence="86.4186046511628" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#30</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe, Inc. is a company that develops an AI-powered platform for online payments and financial infrastructure.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The Company develops an AI-powered platform that delivers online payments and financial infrastructure solutions"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Inc</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="31" data-confidence="86.4186046511628" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#31</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides financial infrastructure solutions for the hospitality, travel, leisure, and insurance industries.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "delivers online payments and financial infrastructure solutions to manage revenue operations for hospitality, travel, leisure, and insurance industries."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="32" data-confidence="86.4186046511628" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#32</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#059669" title="Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b">⚠ LOW</span> <span class="risk-badge" style="background:#059669" title="Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe acquired the embedded crypto wallet company Privy in 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Payment company Stripe acquires crypto wallet provider wallet Privy"</div>
+<div class="detail-evidence">📝 "In 2025, it made multiple large acquisitions, including of embedded crypto wallet company Privy"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Privy, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="33" data-confidence="86.4186046511628" data-risk="1" data-trend="risk_escalation" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#33</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe has accumulated over 1,426 BBB complaints over a three-year period, with ">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#ef444415;color:#ef4444;border:1px solid #ef444433">⚠️ Risk</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe has been the subject of BBB complaints concerning the release of funds and account suspension or termination.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Complaints on file concern issues with the release of funds and account suspension and/or termination of accounts."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe has accumulated over 1,426 BBB complaints over a three-year period, with </div>
+<div class="detail-trend">📊 Trend signals: Risk</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="34" data-confidence="86.4186046511628" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#34</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe performs account reviews that can result in a determination to pause payouts due to high risk of loss.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe has reviewed your account again as a result of this complaint and has determined that it is unable to take further action. Given the high risk of loss associated with the charges on your account, Stripe is unable to release these funds."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="35" data-confidence="86.4186046511628" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#35</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#d97706" title="As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is subject to regulatory oversight and compliance requirements as a money transmitter.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Both MSBs and money transmitters are subject to regulatory oversight and compliance requirements to prevent illicit activities and protect consumers."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: As a money transmitter with state-level licenses (NMLS #1280479) and NY DFS regu</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="36" data-confidence="86.36" data-risk="1" data-trend="risk_escalation,geopolitical" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#36</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Stripe received a warning letter from the FTC regarding the &#39;debanking&#39; ">⚠ HIGH</span> <span class="trend-badge-fact" style="background:#ef444415;color:#ef4444;border:1px solid #ef444433">⚠️ Risk</span> <span class="trend-badge-fact" style="background:#8b5cf615;color:#8b5cf6;border:1px solid #8b5cf633">🌐 Geopolitical</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe received a warning letter from the Federal Trade Commission (FTC) regarding the &#39;debanking&#39; of consumers.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The letters issued to the CEOs of PayPal, Stripe, Visa and Mastercard raise concerns about publicly reported examples of financial services companies denying their customers access to services due to their political or religious views."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Federal Trade Commission</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Stripe received a warning letter from the FTC regarding the &#39;debanking&#39; </div>
+<div class="detail-trend">📊 Trend signals: Risk, Geopolitical</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="37" data-confidence="86.36" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#37</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="risk-badge" style="background:#ea580c" title="Stripe received a warning letter from the FTC regarding the &#39;debanking&#39; ">⚠ HIGH</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The FTC warned Stripe that denying customers access to services based on political or religious views may violate the FTC Act.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Any act or practice by Stripe to refuse, suspend, or withdraw any service to prospective or existing · clients and consumers that is inconsistent with your terms of service or otherwise unfair may · violate the FTC Act and could lead to an FTC investigation and potential enforcement action."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Act</div>
+<div class="detail-risk">⚠️ Links to HIGH risk: Stripe received a warning letter from the FTC regarding the &#39;debanking&#39; </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="38" data-confidence="86.34146341463416" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#38</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe maintains dual U.S./Irish structure (Irish and American multinational, du">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe, Inc. is an Irish and American multinational financial services and software as a service (SaaS) company.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe, Inc. is an Irish and American multinational financial services and software as a service (SaaS) company"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Inc, Irish, American</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe maintains dual U.S./Irish structure (Irish and American multinational, du</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="39" data-confidence="86.34146341463416" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#39</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe primarily offers payment-processing software and application programming interfaces.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The company primarily offers payment-processing software and application programming interfaces"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="40" data-confidence="86.34146341463416" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#40</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe shipped 288 products at Sessions as of June 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "shipped 288 products at Sessions"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Sessions, June</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="41" data-confidence="86.34146341463416" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#41</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% ">⚠ MEDIUM</span> <span class="risk-badge" style="background:#059669" title="Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe conducted layoffs in 2022 and January 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Past layoffs (2022, Jan 2025) explained."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, January</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% </div>
+<div class="detail-risk">⚠️ Links to LOW risk: Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="42" data-confidence="86.34146341463416" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#42</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is actively hiring for 481 roles as of June 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The company is actively hiring 481 roles"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, June</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="43" data-confidence="86.34146341463416" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#43</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">There were no layoffs at Stripe in 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "No layoffs at Stripe in 2026."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="connections" data-index="44" data-confidence="86.34146341463416" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#44</span>
+                <span class="fact-category" style="background:#06b6d422;color:#06b6d4;border:1px solid #06b6d444">CONNECTIONS</span>
+                <span class="risk-badge" style="background:#059669" title="Co-founders Patrick and John Collison are founding donors of the Arc Institute, ">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe co-founders Patrick Collison and John Collison are founding donors of the Arc Institute.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Founding donors include Ethereum creator Vitalik Buterin, Stripe co-founders Patrick Collison and John Collison"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Patrick Collison, John Collison, Arc Institute</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Co-founders Patrick and John Collison are founding donors of the Arc Institute, </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="45" data-confidence="86.16" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#45</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides services for both online and in-person payment processing.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "offering online and in-person payment processing solutions for businesses of all sizes."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="46" data-confidence="86.16" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#46</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">BDT &amp; MSD Partners are investors in Stripe.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Specializing in long-term capital, BDT &amp; MSD Partners joined as key investors in Stripe’s largest funding rounds"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Partners, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="47" data-confidence="86.16" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#47</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Goldman Sachs Asset Management has provided financial resources to Stripe.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Goldman Sachs Asset Management helped Stripe access significant financial resources, notably for later-stage expansion and operational flexibility."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Goldman Sachs Asset Management, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="48" data-confidence="86.16" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#48</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Temasek, the Singaporean sovereign wealth fund, has backed Stripe&#39;s funding rounds.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Temasek, the Singaporean sovereign wealth fund, has supported Stripe’s international aspirations by backing strategic funding rounds."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Temasek, Singaporean, Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s investor base includes Temasek (Singaporean sovereign wealth fund),</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="49" data-confidence="86.14" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#49</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides liquidity to current and former employees through tender offers.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe, a financial infrastructure platform for businesses, has signed agreements with investors to provide liquidity to current and former Stripe employees through a tender offer"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="50" data-confidence="86.14" data-risk="0" data-trend="geopolitical" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#50</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#8b5cf615;color:#8b5cf6;border:1px solid #8b5cf633">🌐 Geopolitical</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides reporting tools that allow users to export historical transactions, payments, and payouts information.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe Reports allows users to export historical transactions, payments, and payouts information from their Dashboard."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-trend">📊 Trend signals: Geopolitical</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="51" data-confidence="86.14" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#51</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe provides activity logs for security-related activities including API key management, user invitations, and role changes.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Use it to retrieve detailed logs of security-related activities across your Stripe account, including API key management, user invitations, and role changes."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="52" data-confidence="86.14" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#52</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s Issuing program restricts marketing activities internationally or to persons outside of the United States.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "you must not market the Issuing program internationally or to persons outside of the United States."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Issuing, United States</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="53" data-confidence="85.94000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#53</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe was originally founded under the name /dev/payments.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Patrick and John Collison founded the company as /dev/payments in Palo Alto, later rebranding to Stripe"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="54" data-confidence="85.94000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#54</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe participated in the Summer 2010 Y Combinator batch.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Summer 2010 Y Combinator batch participation — key moment in Stripe history"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Summer, Combinator</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="55" data-confidence="85.94000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#55</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe launched a beta version in 2011.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2011, Stripe launched a beta version"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="56" data-confidence="85.94000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#56</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe officially launched its payment platform in the US in September 2011.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Public launch in the US in September 2011."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, September</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="57" data-confidence="85.94000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#57</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Co-founders Patrick and John Collison are founding donors of the Arc Institute, ">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">In 2011, Stripe received a $2 million investment from Elon Musk, Peter Thiel, and Andreessen Horowitz.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "received a $2 million investment from Elon Musk, Peter Theil, and Andreessen Horowitz."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: In, Stripe, Elon Musk, Peter Thiel, Andreessen Horowitz</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Co-founders Patrick and John Collison are founding donors of the Arc Institute, </div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="58" data-confidence="85.94000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#58</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe received a $35 billion valuation in September 2019.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe received a $35 billion valuation as part of a September 2019 fundraising round."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, September</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="59" data-confidence="85.94000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#59</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#059669" title="Contradictory funding-round data: one fact states Stripe raised $150M from Capit">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe has raised approximately $800 million from investors since 2010.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "It has raised about $800 million from investors since 2010, according to Bloomberg News."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Contradictory funding-round data: one fact states Stripe raised $150M from Capit</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="60" data-confidence="85.94000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#60</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe processed transactions for 5 million businesses in 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "processing transactions for 5 million businesses in that year [2025]."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="61" data-confidence="85.94000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#61</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">The first transaction facilitated by Stripe was with a Y Combinator company named 280 North.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The first transaction was facilitated with a Y Combinator company, 280 North"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Combinator, North</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="62" data-confidence="85.85714285714286" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#62</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe maintains dual U.S./Irish structure (Irish and American multinational, du">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is incorporated in Delaware.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is privately held as of 2026, incorporated in Delaware."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Delaware</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe maintains dual U.S./Irish structure (Irish and American multinational, du</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="63" data-confidence="85.85714285714286" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#63</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Governance concentration risk: both founders (Patrick as CEO, John as President)">⚠ LOW</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe is a privately held company as of 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is privately held as of 2026, incorporated in Delaware."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Governance concentration risk: both founders (Patrick as CEO, John as President)</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="64" data-confidence="85.85714285714286" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#64</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe conducted a share buyback tender sale for employees at a $65 billion valuation in March 2024.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2024 March, Stripe conducted a share buyback tender sale for employees at $65 billion valuation"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, March</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="65" data-confidence="85.85714285714286" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#65</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="3 similar facts consolidated">🔗 3 merged</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 86% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe conducted a tender offer in February 2025 that valued the company at $91.5 billion.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In February 2025, Stripe announced a tender offer agreement with investors to provide liquidity for current and former employees, valuing the company at $91.5 billion"</div>
+<div class="detail-evidence">📝 "Feb 2024 $65B"</div>
+<div class="detail-evidence">📝 "Feb 2025 $91.5B"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: February, Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-merged">🔗 Consolidated from 3 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="professional" data-index="66" data-confidence="85.85714285714286" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#66</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe has not filed for an IPO as of 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The company has conducted multiple tender offers to provide employee liquidity, but it has not filed for an IPO."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="67" data-confidence="85.85714285714286" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#67</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s founders have stated the company remains robustly profitable.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Co-founders John and Patrick Collison noted the company &#34;remained robustly profitable, allowing us to continue investing heavily in product development as well as acquisitions,&#34;"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="behavioral" data-index="68" data-confidence="85.85714285714286" data-risk="1" data-trend="leadership" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#68</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe remains private and provides liquidity to employees/shareholders primaril">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#3b82f615;color:#3b82f6;border:1px solid #3b82f633">🎯 Strategy</span> 
+                <span class="confidence">Confidence: 86%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe uses tender offers as a strategy to provide partial liquidity to employees while remaining private.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "It&#39;s running it because staying private longer while giving employees access to partial liquidity is now a deliberate strategy for many high-growth companies."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe remains private and provides liquidity to employees/shareholders primaril</div>
+<div class="detail-trend">📊 Trend signals: Strategy</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="legal" data-index="69" data-confidence="84.4" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#69</span>
+                <span class="fact-category" style="background:#ef444422;color:#ef4444;border:1px solid #ef444444">LEGAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Stripe has accumulated over 1,426 BBB complaints over a three-year period, with ">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Stripe has accumulated over 1,426 BBB complaints over a three-year period, with ">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 84% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe received 540 complaints on the Better Business Bureau (BBB) platform in the 12 months preceding the report.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Over 1,426 BBB complaints in 3 years"</div>
+<div class="detail-evidence">📝 "540 in the last 12 months alone."</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Better Business Bureau</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe has accumulated over 1,426 BBB complaints over a three-year period, with </div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe has accumulated over 1,426 BBB complaints over a three-year period, with </div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div></div>
+        </div>
+        
+        <div class="fact fact-high" data-category="financial" data-index="70" data-confidence="83.14000000000001" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#70</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 83% <span class="verified-badge">✓ Verified</span></span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe was valued at $50 billion in March 2023.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Mar 2023 $50B"</div>
+<div class="detail-evidence">📝 "Jul 2025 $70B"</div>
+<div class="detail-verified">✅ Cross-verified across 2 sources</div>
+<div class="detail-entities">🏷️ Entities: March, Stripe, July</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="71" data-confidence="79.96000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#71</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="merged-badge" title="2 similar facts consolidated">🔗 2 merged</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe handled $1.4 trillion in total payment volume in 2024.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "$1.9T Payment Volume"</div>
+<div class="detail-evidence">📝 "handled $1.4 trillion in total payment volume in 2024."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-merged">🔗 Consolidated from 2 similar facts — highest confidence and all evidence retained</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="72" data-confidence="79.96000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#72</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% ">⚠ MEDIUM</span> <span class="risk-badge" style="background:#059669" title="Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe had 7,000 employees remaining after the November 2022 layoffs.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The company will lay off around 1,100 employees and after the job cuts, it will have 7,000 employees."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, November</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe conducted multiple rounds of layoffs: approximately 1,100 employees (14% </div>
+<div class="detail-risk">⚠️ Links to LOW risk: Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="73" data-confidence="79.96000000000001" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#73</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 80%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe has set a goal to increase its employee count to 10,000 by 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "The payments services giant Stripe insists that it is still on pace to increase its employee count to 10,000 in 2025"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Conflicting hiring/headcount narratives: Stripe set a goal of 10,000 employees b</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="74" data-confidence="79.4" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#74</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe typically holds unsettled funds for up to 90 days following account closure or suspension.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe typically keeps unsettled funds up to 90 days"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="75" data-confidence="79.4" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#75</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr">⚠ MEDIUM</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe may extend the hold on funds to 180 days when chargebacks are possible, per legal and scheme rules.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "legal and scheme rules let them extend the hold to 180 days when chargebacks are still possible."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="76" data-confidence="79.3" data-risk="1" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#76</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Contradictory valuation data points appear across facts for overlapping periods:">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s valuation was approximately $159 billion as of February 2026.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe at $159 billion in February 2026."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, February</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Contradictory valuation data points appear across facts for overlapping periods:</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="77" data-confidence="79.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#77</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">As of August 2025, Stripe processes over 50,000 transactions every minute.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "As of August 2025, Stripe processes over 50K transactions every minute"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: As, August, Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="78" data-confidence="79.3" data-risk="1" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#78</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="risk-badge" style="background:#059669" title="Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b">⚠ LOW</span> 
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe acquired the usage-based billing platform Metronome in 2025.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "In 2025, it made multiple large acquisitions, including... usage-based billing platform Metronome."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Metronome</div>
+<div class="detail-risk">⚠️ Links to LOW risk: Stripe&#39;s 2025 acquisitions of crypto wallet provider Privy and usage-based b</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="79" data-confidence="79.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#79</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe enables payment settlement across more than 200 countries.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "seamless settlement across more than 200 countries."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="80" data-confidence="79.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#80</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe powers payment processing for companies including Midjourney, Cursor, and OpenAI.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe powers companies, including the AI-native businesses Midjourney, Cursor, and OpenAI"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Midjourney, Cursor</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="81" data-confidence="79.3" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#81</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 79%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe received seed funding from Y Combinator.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "They launched Stripe in San Francisco with seed funding from Y Combinator"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Combinator</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="82" data-confidence="78.41860465116281" data-risk="1" data-trend="geopolitical" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#82</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                <span class="risk-badge" style="background:#d97706" title="Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr">⚠ MEDIUM</span> <span class="trend-badge-fact" style="background:#8b5cf615;color:#8b5cf6;border:1px solid #8b5cf633">🌐 Geopolitical</span> 
+                <span class="confidence">Confidence: 78%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe maintains a policy of withholding a percentage of payouts in reserve for potential disputes.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Gateways like Stripe withhold a percentage of payouts “in reserve” for potential disputes — sometimes up to 10% indefinitely."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-risk">⚠️ Links to MEDIUM risk: Stripe&#39;s Terms of Service mandate binding arbitration before a single arbitr</div>
+<div class="detail-trend">📊 Trend signals: Geopolitical</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="83" data-confidence="78.34146341463415" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#83</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 78%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe relies on cloud infrastructure providers such as AWS and Google Cloud for operational reliability and scalability.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Reliance on cloud infrastructure providers (e.g., AWS, Google Cloud) for operational reliability and scalability"</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe, Google Cloud</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="84" data-confidence="78.16000000000001" data-risk="0" data-trend="expansion" data-has-trend="1" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#84</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                <span class="trend-badge-fact" style="background:#10b98115;color:#10b981;border:1px solid #10b98133">📈 Growth</span> 
+                <span class="confidence">Confidence: 78%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s current focus is on building new products rather than completing an IPO.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe&#39;s current focus is on building new products, not completing an IPO."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div>
+<div class="detail-trend">📊 Trend signals: Growth</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="85" data-confidence="78.16000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#85</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 78%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe serves millions of global businesses.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "reaching a $159B valuation while serving millions of global businesses."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="86" data-confidence="70.34146341463416" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#86</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 70%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe has not publicly confirmed plans for an initial public offering (IPO).</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe has shown signs that it is considering an initial public offering... although its executives have not publicly confirmed such a plan."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="professional" data-index="87" data-confidence="70.14000000000001" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#87</span>
+                <span class="fact-category" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644">PROFESSIONAL</span>
+                
+                <span class="confidence">Confidence: 70%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe processes payments for social media platforms, including potential creator reward systems.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "Stripe is expected to process payments for the Coins... for the payments sector, the story demonstrates how social media platforms are continuing to provide revenue opportunities for processors, particularly Stripe."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="financial" data-index="88" data-confidence="62.41860465116279" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#88</span>
+                <span class="fact-category" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">FINANCIAL</span>
+                
+                <span class="confidence">Confidence: 62%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Stripe&#39;s standard payout schedule for future payouts is cited by users as 2 business days after the initial 14-day hold.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "They did however confirm that supposedly only the first payout takes 14 days, and all future payouts would take only 2 business days."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Stripe</div></div>
+        </div>
+        
+        <div class="fact fact-med" data-category="behavioral" data-index="89" data-confidence="62.13999999999999" data-risk="0" data-trend="" data-has-trend="0" style="display:none;" onclick="toggleFactDetail(this, event)">
+            <div class="fact-header">
+                <span class="fact-number">#89</span>
+                <span class="fact-category" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44">BEHAVIORAL</span>
+                
+                <span class="confidence">Confidence: 62%</span>
+                <span class="expand-icon">▸</span>
+            </div>
+            <div class="fact-content">Analysts and consultants have suggested that Stripe&#39;s employee tender offers signal that the company is not in a hurry to go public.</div>
+            <div class="fact-details"><div class="detail-evidence">📝 "However, analysts and consultants who follow the company think the tender offer to employees signals that Stripe isn&#39;t in a hurry to go public."</div>
+<div class="detail-unverified">📄 Single source (not yet cross-verified)</div>
+<div class="detail-entities">🏷️ Entities: Analysts, Stripe</div></div>
+        </div>
+        </div>
+        <div class="pagination">
+            <button class="page-btn" onclick="changePage(-1)" id="prevBtn" disabled>← Previous</button>
+            <span class="page-info">Page <span id="currentPage">1</span> of 4 (89 facts)</span>
+            <button class="page-btn" onclick="changePage(1)" id="nextBtn">Next →</button>
+        </div>
+        
+            </div>
+        </div>
+        
+        <!-- ═══ CONNECTIONS ═══ -->
+        <div class="section" id="connectionsSection">
+            <div class="section-header open" onclick="toggleSection(this)">
+                🕸️ Connections & Relationships (19)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Patrick Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">co-founder</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Stripe was founded by brothers Patrick and John Collison.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ John Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed44">co-founder</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Stripe was founded by brothers Patrick and John Collison.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Patrick Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#2563eb22;color:#2563eb;border:1px solid #2563eb44">leadership</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['Patrick Collison is the CEO of Stripe.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ John Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#2563eb22;color:#2563eb;border:1px solid #2563eb44">leadership</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:100%;background:#10b981"></div>
+                    <span class="strength-label">100%</span>
+                </div>
+                <div class="conn-evidence">['John Collison serves as the president of Stripe.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Patrick Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#0891b222;color:#0891b2;border:1px solid #0891b244">board_member</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:90%;background:#10b981"></div>
+                    <span class="strength-label">90%</span>
+                </div>
+                <div class="conn-evidence">['Patrick and John Collison serve on Stripe&#39;s board of directors.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ John Collison</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#0891b222;color:#0891b2;border:1px solid #0891b244">board_member</span>
+                    <span class="conn-period">2010-present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:90%;background:#10b981"></div>
+                    <span class="strength-label">90%</span>
+                </div>
+                <div class="conn-evidence">['Patrick and John Collison serve on Stripe&#39;s board of directors.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Privy</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2025</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['Stripe acquired the embedded crypto wallet company Privy in 2025.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Metronome</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2025</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['Stripe acquired the usage-based billing platform Metronome in 2025.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ FTC</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#ea580c22;color:#ea580c;border:1px solid #ea580c44">regulatory</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['The FTC warned Stripe that denying customers access to services based on political or religious views may violate the FTC Act.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Arc Institute</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#10b98122;color:#10b981;border:1px solid #10b98144">philanthropy</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:60%;background:#f59e0b"></div>
+                    <span class="strength-label">60%</span>
+                </div>
+                <div class="conn-evidence">['Stripe co-founders Patrick Collison and John Collison are founding donors of the Arc Institute.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ BDT &amp; MSD Partners</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['BDT &amp; MSD Partners are investors in Stripe.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Temasek</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['Temasek, the Singaporean sovereign wealth fund, has backed Stripe&#39;s funding rounds.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Y Combinator</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2010</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:70%;background:#f59e0b"></div>
+                    <span class="strength-label">70%</span>
+                </div>
+                <div class="conn-evidence">['Stripe participated in the Summer 2010 Y Combinator batch.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ 280 North</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">2010-2011</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['The first transaction facilitated by Stripe was with a Y Combinator company named 280 North.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Midjourney</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['Stripe powers payment processing for companies including Midjourney, Cursor, and OpenAI.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Cursor</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['Stripe powers payment processing for companies including Midjourney, Cursor, and OpenAI.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ OpenAI</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['Stripe powers payment processing for companies including Midjourney, Cursor, and OpenAI.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ AWS</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['Stripe relies on cloud infrastructure providers such as AWS and Google Cloud for operational reliability and scalability.']</div>
+            </div>
+            
+            <div class="connection">
+                <div class="conn-entities">Stripe ↔ Google Cloud</div>
+                <div class="conn-meta">
+                    <span class="conn-type" style="background:#d9770622;color:#d97706;border:1px solid #d9770644">investor/partner</span>
+                    <span class="conn-period">present</span>
+                </div>
+                <div class="strength-bar-container">
+                    <div class="strength-bar" style="width:50%;background:#f59e0b"></div>
+                    <span class="strength-label">50%</span>
+                </div>
+                <div class="conn-evidence">['Stripe relies on cloud infrastructure providers such as AWS and Google Cloud for operational reliability and scalability.']</div>
+            </div>
+            
+            </div>
+        </div>
+        
+        <!-- ═══ TREND ANALYSIS ═══ -->
+        <div class="section" id="trendsSection">
+            <div class="section-header open" onclick="toggleSection(this)">
+                📊 Trend Analysis (30 signals)
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content open">
+                <div class="trend-group"><div class="trend-header" style="color:#10b981">📈 Growth & Expansion (22 signals)</div><div class="trend-item">• As of June 2026, Stripe has a valuation of $159 billion. <span class="trend-recent">RECENT</span></div><div class="trend-item">• Stripe processed $1.9 trillion in payments as of June 2026. <span class="trend-recent">RECENT</span></div><div class="trend-item">• Stripe conducted a share buyback tender sale for employees at a $65 billion valuation in March 2024. <span class="trend-recent">RECENT</span></div></div><div class="trend-group"><div class="trend-header" style="color:#ef4444">⚠️ Risk Trajectory (2 signals)</div><div class="trend-item">• Stripe has been the subject of BBB complaints concerning the release of funds and account suspension or termination.</div><div class="trend-item">• Stripe received a warning letter from the Federal Trade Commission (FTC) regarding the &#39;debanking&#39; of consumers.</div></div><div class="trend-group"><div class="trend-header" style="color:#3b82f6">🎯 Strategic Direction (2 signals)</div><div class="trend-item">• Stripe laid off 300 employees, primarily in product, engineering, and operations divisions.</div><div class="trend-item">• Stripe uses tender offers as a strategy to provide partial liquidity to employees while remaining private.</div></div><div class="trend-group"><div class="trend-header" style="color:#8b5cf6">🌐 Geopolitical Dynamics (4 signals)</div><div class="trend-item">• Stripe requires users to comply with Anti-Money Laundering (AML) and Know-Your-Customer (KYC) regulations.</div><div class="trend-item">• Stripe received a warning letter from the Federal Trade Commission (FTC) regarding the &#39;debanking&#39; of consumers.</div><div class="trend-item">• Stripe provides reporting tools that allow users to export historical transactions, payments, and payouts information.</div></div>
+            </div>
+        </div>
+        
+        <!-- ═══ FOOTER ═══ -->
+        <div class="footer">
+            Generated by Deep Research AI Agent · 89 facts (108 raw) · 19 connections · 15 risk flags · Quality Score 90.6/100
+        </div>
+    </div>
+    
+    <script>
+        // ── Section Toggle ──
+        function toggleSection(header) {
+            header.classList.toggle('open');
+            const content = header.nextElementSibling;
+            content.classList.toggle('open');
+        }
+        
+        // ── Expandable Fact Details (click anywhere on card) ──
+        function toggleFactDetail(factEl, event) {
+            // Don't toggle if user clicked a link or button inside the card
+            if (event && (event.target.tagName === 'A' || event.target.tagName === 'BUTTON')) return;
+            factEl.classList.toggle('expanded');
+        }
+        
+        // ── Fact Sorting (includes trend sort) ──
+        function sortFacts(mode) {
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            
+            const container = document.getElementById('factsContainer');
+            const facts = Array.from(container.querySelectorAll('.fact'));
+            
+            facts.sort((a, b) => {
+                if (mode === 'confidence-desc') {
+                    return parseFloat(b.dataset.confidence) - parseFloat(a.dataset.confidence);
+                } else if (mode === 'confidence-asc') {
+                    return parseFloat(a.dataset.confidence) - parseFloat(b.dataset.confidence);
+                } else if (mode === 'risk') {
+                    return parseInt(b.dataset.risk) - parseInt(a.dataset.risk);
+                } else if (mode === 'trend') {
+                    return parseInt(b.dataset.hasTrend || 0) - parseInt(a.dataset.hasTrend || 0);
+                } else {
+                    return parseInt(a.dataset.index) - parseInt(b.dataset.index);
+                }
+            });
+            
+            facts.forEach(f => container.appendChild(f));
+            currentPage = 1;
+            showPage(1);
+        }
+        
+        // ── Search ──
+        function searchContent() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const items = document.querySelectorAll('.fact, .connection, .risk');
+            items.forEach(item => {
+                const match = item.textContent.toLowerCase().includes(input);
+                item.style.display = match ? '' : 'none';
+            });
+            if (!input) {
+                currentPage = 1;
+                showPage(1);
+            }
+        }
+        
+        // ── Multi-Select Category Filter ──
+        let activeCategories = new Set(['all']);
+        
+        function toggleCategory(btn, cat) {
+            if (cat === 'all') {
+                // "All" resets — deselect everything else, select All
+                activeCategories.clear();
+                activeCategories.add('all');
+                document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+            } else {
+                // Toggle specific category
+                // First, deselect "All" if it was active
+                const allBtn = document.querySelector('.cat-tab[data-cat="all"]');
+                if (activeCategories.has('all')) {
+                    activeCategories.delete('all');
+                    if (allBtn) allBtn.classList.remove('active');
+                }
+                
+                if (activeCategories.has(cat)) {
+                    // Deselect this category
+                    activeCategories.delete(cat);
+                    btn.classList.remove('active');
+                    // If nothing selected, revert to All
+                    if (activeCategories.size === 0) {
+                        activeCategories.add('all');
+                        if (allBtn) allBtn.classList.add('active');
+                    }
+                } else {
+                    // Select this category (additive)
+                    activeCategories.add(cat);
+                    btn.classList.add('active');
+                }
+            }
+            
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            const facts = document.querySelectorAll('.fact');
+            let visibleIndex = 0;
+            facts.forEach(f => {
+                const factCat = f.getAttribute('data-category');
+                const matches = activeCategories.has('all') || activeCategories.has(factCat);
+                if (matches) {
+                    visibleIndex++;
+                    f.style.display = visibleIndex <= factsPerPage ? '' : 'none';
+                } else {
+                    f.style.display = 'none';
+                }
+            });
+            currentPage = 1;
+            updatePaginationForCategory();
+        }
+        
+        // ── Pagination ──
+        let currentPage = 1;
+        const factsPerPage = 25;
+        const totalFacts = 89;
+        const totalPages = 4;
+        
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            const maxPages = getMaxPages();
+            if (newPage < 1 || newPage > maxPages) return;
+            currentPage = newPage;
+            showPage(currentPage);
+        }
+        
+        function getVisibleFacts() {
+            const facts = document.querySelectorAll('.fact');
+            let visible = [];
+            facts.forEach(f => {
+                const cat = f.getAttribute('data-category');
+                if (activeCategories.has('all') || activeCategories.has(cat)) {
+                    visible.push(f);
+                }
+            });
+            return visible;
+        }
+        
+        function getMaxPages() {
+            return Math.ceil(getVisibleFacts().length / factsPerPage);
+        }
+        
+        function showPage(page) {
+            const visibleFacts = getVisibleFacts();
+            const start = (page - 1) * factsPerPage;
+            const end = start + factsPerPage;
+            
+            // Hide all facts first
+            document.querySelectorAll('.fact').forEach(f => f.style.display = 'none');
+            
+            // Show only visible facts in page range
+            visibleFacts.forEach((f, i) => {
+                f.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+            
+            const pageSpan = document.getElementById('currentPage');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const maxPages = Math.ceil(visibleFacts.length / factsPerPage);
+            
+            if (pageSpan) pageSpan.textContent = page;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= maxPages;
+            
+            // Scroll to top of facts section on page change
+            const factsSection = document.getElementById('factsSection');
+            if (factsSection) {
+                factsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function updatePaginationForCategory() {
+            const count = getVisibleFacts().length;
+            const maxPages = Math.ceil(count / factsPerPage);
+            const pageInfo = document.querySelector('.page-info');
+            if (pageInfo) pageInfo.textContent = 'Page 1 of ' + maxPages + ' (' + count + ' facts)';
+            const pageSpan = document.getElementById('currentPage');
+            if (pageSpan) pageSpan.textContent = '1';
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = maxPages <= 1;
+        }
+    </script>
+</body>
+</html>

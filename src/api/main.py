@@ -8,9 +8,11 @@ multi-worker.
 
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -26,6 +28,21 @@ DEV_SECRET_DEFAULT = "dev-secret-key-change-in-production"
 
 # Turnstile default = Cloudflare's always-pass TEST key; real deploys override it.
 _TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA"
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+class HashedStaticFiles(StaticFiles):
+    """Every file in STATIC_DIR embeds a content hash in its name (PLAN.md D2),
+    so hits may be cached forever; misses must not be (a 404 cached as
+    immutable would never heal). Enforced by tests/test_static_assets.py."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
 
 
 def _log_config_presence() -> None:
@@ -101,6 +118,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+    app.mount("/static", HashedStaticFiles(directory=STATIC_DIR), name="static")
     return app
 
 

@@ -1252,14 +1252,27 @@ def render_html_report(
     <style>
         /* ── Reset & Base ── */
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #f1f5f9; 
-            padding: 20px; 
-            line-height: 1.6; 
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            padding: 20px;
+            line-height: 1.6;
             color: #1e293b;
         }}
-        
+
+        /* ── Home link (back to the search page; plain navigation — allowed
+              under the report CSP) ── */
+        .home-link {{
+            display: block;
+            max-width: 1100px;
+            margin: 0 auto 10px;
+            color: #64748b;
+            font-size: 0.88em;
+            text-decoration: none;
+        }}
+        .home-link:hover {{ color: #1e293b; text-decoration: underline; }}
+        @media print {{ .home-link {{ display: none; }} }}
+
         /* ── Container ── */
         .container {{ 
             max-width: 1100px; 
@@ -1607,7 +1620,8 @@ def render_html_report(
     </style>
 </head>
 <body>
-    <div class="container">
+    <a class="home-link" href="/">← Run another report</a>
+    <div class="container" id="report-top">
         <!-- ═══ HEADER ═══ -->
         <div class="header">
             <h1>🔍 Deep Research — Due Diligence Report</h1>
@@ -1655,7 +1669,7 @@ def render_html_report(
         </div>
         
         <!-- ═══ RISK FLAGS ═══ -->
-        <div class="section">
+        <div class="section" id="risksSection">
             <div class="section-header open" onclick="toggleSection(this)">
                 ⚠️ Risk Flags ({len(risks)})
                 <span class="arrow">▼</span>
@@ -1677,7 +1691,7 @@ def render_html_report(
         </div>
         
         <!-- ═══ CONNECTIONS ═══ -->
-        <div class="section">
+        <div class="section" id="connectionsSection">
             <div class="section-header open" onclick="toggleSection(this)">
                 🕸️ Connections & Relationships ({len(connections)})
                 <span class="arrow">▼</span>
@@ -1688,7 +1702,7 @@ def render_html_report(
         </div>
         
         <!-- ═══ TREND ANALYSIS ═══ -->
-        <div class="section">
+        <div class="section" id="trendsSection">
             <div class="section-header open" onclick="toggleSection(this)">
                 📊 Trend Analysis ({total_trends} signals)
                 <span class="arrow">▼</span>
