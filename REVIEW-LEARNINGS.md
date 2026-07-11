@@ -37,6 +37,21 @@ plan or a diff, and address every applicable item so it never reaches review.
   *Origin: 2026-07-10 Phase D review — `/sample-report` had no header spec and the
   Feb sample predated the escaping chokepoint (144 unescaped handler occurrences).*
 
+## Escaping chokepoints vs. features that need the raw value
+- **When a render pipeline escapes ALL data at one chokepoint, any feature that
+  needs the raw value (URL/percent-encoding, `#:~:text=` text-fragment anchors,
+  hashing, signature checks) MUST read from a raw copy captured BEFORE the
+  chokepoint — never re-derive from the escaped copy.** Concretely here:
+  `html_report.py:550 result = _escape_deep(result)` HTML-escapes every string;
+  building a citation `href` or a text-fragment from the post-escape value
+  double-encodes (`&`→`&amp;`→`%26amp%3B`) and silently breaks the link. Two
+  corollaries: (a) HTML-escaping is NOT scheme validation — a `javascript:` URL
+  survives it as a live XSS `href`, so allowlist http/https separately; (b)
+  percent-encode ONLY the fragment/query part that needs it (`quote(text,
+  safe='')`), never the whole URL (that encodes `://?&` and breaks every link) —
+  HTML-escape the base URL for attribute context instead.
+  *Origin: 2026-07-10 Phase B citations review (M1/M2/N1) — `_escape_deep` chokepoint.*
+
 ## Hostnames / origins
 - **When a plan changes an origin/hostname, grep for ALL server-side exact-match
   host/origin checks — not just the client-facing one.** A hostname change (custom
