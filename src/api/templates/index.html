@@ -4,15 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deep Research Agent</title>
+    <meta name="description" content="Deep due-diligence research on any person or company. Searches dozens of sources, cross-checks and confidence-scores every fact, and delivers a complete scored report in minutes.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tryvettr.com/">
+    <meta property="og:title" content="Deep Research Agent — a full, scored diligence report in minutes">
+    <meta property="og:description" content="Not a chat answer: dozens of sources searched, every fact cross-checked and confidence-scored, risks flagged, connections mapped.">
+    <meta property="og:image" content="https://tryvettr.com/static/report_header.8d899720.webp">
+    <meta name="twitter:card" content="summary_large_image">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                background: #f1f5f9; color: #1e293b; line-height: 1.6;
                display: flex; flex-direction: column; min-height: 100vh; }
-        main { flex: 1; max-width: 680px; width: 100%; margin: 0 auto; padding: 48px 20px; }
+        main { flex: 1; max-width: 1080px; width: 100%; margin: 0 auto; padding: 40px 20px; }
         h1 { font-size: 1.6em; margin-bottom: 4px; }
         .sub { color: #64748b; margin-bottom: 28px; }
+
+        /* ---- D3: two-column hero (stacks on mobile); LCP = headline text ---- */
+        #hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 36px; align-items: start; }
+        @media (max-width: 900px) { #hero { grid-template-columns: 1fr; gap: 20px; } }
+        #quote { min-height: 1.5em; font-size: 0.85em; color: #64748b;
+                font-style: italic; margin-bottom: 10px; transition: opacity 0.4s; }
+        #quote.swap { opacity: 0; }
+        /* The A.2 live experience keeps its designed narrow measure */
+        #status { max-width: 680px; margin-left: auto; margin-right: auto; }
         form { background: white; border-radius: 12px; padding: 24px;
                box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
         label { font-weight: 600; display: block; margin-bottom: 8px; }
@@ -115,9 +132,139 @@
         @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
         @media (prefers-reduced-motion: reduce) {
             .enter { animation: none; }
-            #bar, .cat-fill, #phase { transition: none; }
-            .skel-card { animation: none; }
+            #bar, .cat-fill, #phase, #rot-name, #quote { transition: none; }
+            .skel-card, .demo-caret { animation: none; }
+            .shots-scroll a img { transition: none; }
         }
+
+        /* ---- D1: rotating name in the headline (fixed slot — no layout shift;
+                same swap-fade vocabulary as #phase) ---- */
+        #rot-name { display: block; min-height: 1.35em; color: #2d5a8e;
+                transition: opacity 0.25s; }
+        #rot-name.swap { opacity: 0; }
+
+        /* ---- D1: entity card carousel (drifts via JS scrollLeft so native
+                swipe keeps working; fixed heights — CLS 0) ---- */
+        #entity-strip { margin-top: 28px; }
+        #entity-strip h2 { font-size: 0.85em; color: #64748b; font-weight: 600;
+                margin-bottom: 8px; }
+        #entity-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch;
+                height: 152px; scrollbar-width: none; }
+        #entity-scroll::-webkit-scrollbar { display: none; }
+        #entity-track { display: flex; gap: 12px; width: max-content;
+                padding: 2px; }
+        .ent-card { flex: 0 0 200px; height: 140px; background: white;
+                text-align: left; border: 1px solid #e2e8f0; border-radius: 12px;
+                padding: 12px; cursor: pointer; display: flex;
+                flex-direction: column; gap: 6px; font: inherit; color: inherit;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .ent-card:hover { border-color: #94a3b8; }
+        .ent-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .ent-avatar { width: 38px; height: 38px; border-radius: 50%; color: white;
+                font-weight: 700; font-size: 0.82em; display: flex; flex: none;
+                align-items: center; justify-content: center; }
+        .ent-id { min-width: 0; }
+        .ent-name { display: block; font-weight: 600; font-size: 0.9em;
+                line-height: 1.25; white-space: nowrap; overflow: hidden;
+                text-overflow: ellipsis; }
+        .ent-cat { display: block; font-size: 0.72em; color: #64748b;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ent-chips { margin-top: auto; }
+        .ent-fallback { font-size: 0.85em; color: #64748b; }
+        /* Monogram gradients — fixed whitelist; classes never derive from data */
+        .g0 { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+        .g1 { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
+        .g2 { background: linear-gradient(135deg, #047857, #059669); }
+        .g3 { background: linear-gradient(135deg, #b45309, #d97706); }
+        .g4 { background: linear-gradient(135deg, #be123c, #e11d48); }
+        .g5 { background: linear-gradient(135deg, #0e7490, #0891b2); }
+        .g6 { background: linear-gradient(135deg, #4338ca, #6366f1); }
+        .g7 { background: linear-gradient(135deg, #475569, #64748b); }
+
+        /* ---- D4: hero demo panel — the page's ONE star motion zone.
+                Fixed height (CLS 0); same feed/enter/chip vocabulary as the
+                real A.2 experience; hardcoded script, zero network. ---- */
+        #demo { background: white; border-radius: 12px; padding: 16px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.06); height: 380px;
+                display: flex; flex-direction: column; gap: 10px; }
+        .demo-search { border: 1px solid #cbd5e1; border-radius: 8px;
+                padding: 8px 12px; font-size: 0.9em; min-height: 2.5em;
+                display: flex; align-items: center; color: #1e293b; }
+        .demo-caret { display: inline-block; width: 2px; height: 1.1em;
+                background: #2d5a8e; margin-left: 2px;
+                animation: caret-blink 1s steps(1) infinite; }
+        @keyframes caret-blink { 50% { opacity: 0; } }
+        #demo-feed { list-style: none; flex: 1; overflow: hidden; }
+        #demo-feed li { font-size: 0.82em; color: #64748b; padding: 3px 0 3px 14px;
+                border-bottom: 1px solid #f1f5f9; position: relative; }
+        #demo-feed li::before { content: ''; position: absolute; left: 0; top: 0.75em;
+                width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
+        #demo-feed li.k-search::before { background: #3b82f6; }
+        #demo-feed li.k-extract::before { background: #7c3aed; }
+        #demo-feed li.k-llm::before { background: #059669; }
+        #demo-facts { display: flex; flex-wrap: wrap; gap: 6px; min-height: 52px;
+                align-content: flex-start; }
+        #demo-report { background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
+                color: white; border-radius: 10px; padding: 10px 14px;
+                display: flex; align-items: center; gap: 12px; min-height: 58px; }
+        #demo-report[hidden] { display: none; }
+        .demo-score { font-size: 1.5em; font-weight: 700;
+                font-variant-numeric: tabular-nums; }
+        .demo-report-text { font-size: 0.82em; line-height: 1.35; }
+        .demo-tag { font-size: 0.72em; color: #94a3b8; text-align: right; }
+
+        /* ---- D3: report screenshot carousel (manual swipe, snap; lazy) ---- */
+        #shots, #steps { margin-top: 44px; }
+        #shots h2, #steps h2 { font-size: 1.1em; margin-bottom: 12px; }
+        .shots-scroll { display: flex; gap: 16px; overflow-x: auto;
+                scroll-snap-type: x mandatory; padding-bottom: 8px; }
+        .shots-scroll[hidden] { display: none; }  /* display:flex beats the
+                hidden attr's UA display:none without this */
+        .shots-scroll figure { flex: 0 0 min(520px, 88%); scroll-snap-align: center;
+                margin: 0; }
+        .shots-scroll img { width: 100%; height: auto; border: 1px solid #e2e8f0;
+                border-radius: 12px; display: block; background: #f8fafc; }
+        .shots-scroll figcaption { font-size: 0.8em; color: #2d5a8e;
+                font-weight: 600; margin-top: 6px; text-align: center; }
+        #shots-hint { font-size: 0.85em; color: #64748b; margin: -6px 0 12px; }
+        /* Person/company segmented toggle (same tab semantics as #tabs) */
+        #shots-toggle { display: inline-flex; background: #e2e8f0;
+                border-radius: 999px; padding: 3px; gap: 2px; margin-bottom: 14px; }
+        #shots-toggle [role=tab] { border: 0; background: none; color: #475569;
+                padding: 6px 16px; border-radius: 999px; font-size: 0.85em;
+                cursor: pointer; }
+        #shots-toggle [role=tab][aria-selected=true] { background: white;
+                color: #1e293b; font-weight: 600;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        /* Click affordance: lift on hover + an "open live" pill; the caption
+           arrow carries the hint on touch devices where hover doesn't exist */
+        .shots-scroll a { display: block; position: relative; color: inherit;
+                text-decoration: none; border-radius: 12px; }
+        .shots-scroll a img { transition: transform 0.25s, box-shadow 0.25s; }
+        .shots-scroll a:hover img, .shots-scroll a:focus-visible img {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+        .shots-scroll a::after { content: 'Open the live report →';
+                position: absolute; top: 12px; right: 12px;
+                background: rgba(30,58,95,0.92); color: white; font-size: 0.75em;
+                padding: 4px 10px; border-radius: 999px; opacity: 0;
+                transition: opacity 0.25s; pointer-events: none; }
+        .shots-scroll a:hover::after, .shots-scroll a:focus-visible::after {
+                opacity: 1; }
+        .shots-scroll a:focus-visible { outline: 2px solid #2d5a8e;
+                outline-offset: 2px; }
+
+        /* ---- D3: 3-step strip ---- */
+        #steps-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        @media (max-width: 700px) { #steps-row { grid-template-columns: 1fr; } }
+        .step { background: white; border-radius: 12px; padding: 16px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .step-ico { font-size: 1.4em; display: block; margin-bottom: 6px; }
+        .step h3 { font-size: 0.95em; margin-bottom: 4px; }
+        .step p { font-size: 0.85em; color: #64748b; }
+        #sample-cta { text-align: center; margin-top: 32px; font-weight: 600; }
+        #sample-cta a { color: #2d5a8e; }
+        .will-enter { opacity: 0; }   /* JS-applied pre-state for animate-once */
 
         #error { color: #b91c1c; margin-top: 12px; display: none; }
         #report-link { display: none; margin-top: 12px; font-weight: 600; }
@@ -128,19 +275,35 @@
 </head>
 <body>
 <main>
-    <h1>Deep Research Agent</h1>
-    <p class="sub">Autonomous due-diligence research on a person or company — facts, risks, connections, scored report.</p>
+    <div id="hero">
+        <div id="hero-left">
+            <p id="quote">“Knowledge is power.” — Francis Bacon</p>
+            <h1>Run deep diligence on<span id="rot-name">Jensen Huang</span></h1>
+            <p class="sub">Autonomous due-diligence research on a person or company — facts, risks, connections, scored report.</p>
 
-    <form id="research-form">
-        <label for="query">Person or company name</label>
-        <input type="text" id="query" name="query" maxlength="200"
-               placeholder="e.g. Jensen Huang, Berkshire Hathaway Inc." required>
-        <div class="turnstile-box">
-            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+            <form id="research-form">
+                <label for="query">Person or company name</label>
+                <input type="text" id="query" name="query" maxlength="200"
+                       placeholder="e.g. Jensen Huang, Berkshire Hathaway Inc." required>
+                <div class="turnstile-box">
+                    <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+                </div>
+                <button type="submit" id="submit-btn">Start research</button>
+                <div id="error"></div>
+            </form>
         </div>
-        <button type="submit" id="submit-btn">Start research</button>
-        <div id="error"></div>
-    </form>
+
+        <div id="demo" aria-label="Simulated preview of a research run">
+            <div class="demo-search"><span id="demo-query"></span><span class="demo-caret" aria-hidden="true"></span></div>
+            <ul id="demo-feed" aria-hidden="true"></ul>
+            <div id="demo-facts" aria-hidden="true"></div>
+            <div id="demo-report" hidden>
+                <span class="demo-score">97.3</span>
+                <span class="demo-report-text">Grade A+ report ready — 97 facts · 9 risk flags · 24 connections</span>
+            </div>
+            <p class="demo-tag">Simulated replay of a real run</p>
+        </div>
+    </div>
 
     <div id="status">
         <div id="status-head">
@@ -199,8 +362,121 @@
             </div>
             <div id="log-scroll"><ul id="activity-feed"></ul></div>
         </div>
-        <a id="report-link" href="#">View the report →</a>
+        <!-- New tab: the homepage keeps its completed-run state, so starting
+             another report is just switching back (3-runs/hour flow). -->
+        <a id="report-link" href="#" target="_blank" rel="noopener">View the report →</a>
     </div>
+
+    <section id="entity-strip" aria-label="Example research subjects">
+        <h2>Names people actually run</h2>
+        <div id="entity-scroll"><div id="entity-track"></div></div>
+        <noscript>
+            <style>#entity-scroll, #demo { display: none; } #rot-name { color: #2d5a8e; }</style>
+            <p class="ent-fallback">Try: Jensen Huang · Tim Cook · Stripe ·
+               Satya Nadella · Lisa Su · Warren Buffett · Apple · NVIDIA</p>
+        </noscript>
+    </section>
+
+    <section id="shots" aria-label="Inside a report">
+        <h2>What's inside every report</h2>
+        <p id="shots-hint">These are real sections of a live report — click any of
+           them to open the full interactive report at that exact section.</p>
+        <div id="shots-toggle" role="tablist" aria-label="Sample report subject">
+            <button role="tab" id="shots-tab-person" aria-selected="true"
+                    aria-controls="shots-person" type="button">Person — Jensen Huang</button>
+            <button role="tab" id="shots-tab-company" aria-selected="false"
+                    aria-controls="shots-company" type="button">Company — Stripe</button>
+        </div>
+        <div class="shots-scroll" id="shots-person" role="tabpanel" aria-labelledby="shots-tab-person">
+            <figure>
+                <a href="/sample-report/person#report-top" target="_blank" rel="noopener">
+                    <img src="/static/report_header.8d899720.webp" width="1000" height="920" loading="lazy"
+                         alt="Report header with overall quality score and grade, score-breakdown bars, and research-coverage percentages"></a>
+                <figcaption>The scored report ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/person#factsSection" target="_blank" rel="noopener">
+                    <img src="/static/fact_cards.4ca2f559.webp" width="1000" height="910" loading="lazy"
+                         alt="Fact cards grouped by category, each with a confidence score"></a>
+                <figcaption>Every fact confidence-scored ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/person#risksSection" target="_blank" rel="noopener">
+                    <img src="/static/risk_flags.e0718333.webp" width="1000" height="729" loading="lazy"
+                         alt="Risk flags listed with severity ratings"></a>
+                <figcaption>Risks flagged with severity ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/person#connectionsSection" target="_blank" rel="noopener">
+                    <img src="/static/connections.00f5c27c.webp" width="1000" height="820" loading="lazy"
+                         alt="Relationship map of the subject's connections by type"></a>
+                <figcaption>Connections mapped ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/person#trendsSection" target="_blank" rel="noopener">
+                    <img src="/static/trend_analysis.53b8c1b2.webp" width="1000" height="540" loading="lazy"
+                         alt="Trend-analysis section of the report"></a>
+                <figcaption>Trends over time ↗</figcaption>
+            </figure>
+        </div>
+        <div class="shots-scroll" id="shots-company" role="tabpanel" aria-labelledby="shots-tab-company" hidden>
+            <figure>
+                <a href="/sample-report/company#report-top" target="_blank" rel="noopener">
+                    <img src="/static/co_report_header.4a788f02.webp" width="1000" height="920" loading="lazy"
+                         alt="Company report header with overall quality score and grade, score-breakdown bars, and research-coverage percentages"></a>
+                <figcaption>The scored report ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/company#factsSection" target="_blank" rel="noopener">
+                    <img src="/static/co_fact_cards.fe664c81.webp" width="1000" height="910" loading="lazy"
+                         alt="Company fact cards grouped by category, each with a confidence score"></a>
+                <figcaption>Every fact confidence-scored ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/company#risksSection" target="_blank" rel="noopener">
+                    <img src="/static/co_risk_flags.b594eb98.webp" width="1000" height="729" loading="lazy"
+                         alt="Company risk flags listed with severity ratings"></a>
+                <figcaption>Risks flagged with severity ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/company#connectionsSection" target="_blank" rel="noopener">
+                    <img src="/static/co_connections.82af39ca.webp" width="1000" height="820" loading="lazy"
+                         alt="Relationship map of the company's connections by type"></a>
+                <figcaption>Connections mapped ↗</figcaption>
+            </figure>
+            <figure>
+                <a href="/sample-report/company#trendsSection" target="_blank" rel="noopener">
+                    <img src="/static/co_trend_analysis.57eeefd2.webp" width="1000" height="666" loading="lazy"
+                         alt="Trend-analysis section of the company report"></a>
+                <figcaption>Trends over time ↗</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <section id="steps" aria-label="How it works">
+        <h2>How it works</h2>
+        <div id="steps-row">
+            <div class="step">
+                <span class="step-ico" aria-hidden="true">🔎</span>
+                <h3>Searches dozens of sources</h3>
+                <p>Plans research angles, then sweeps the public web — news, filings, profiles.</p>
+            </div>
+            <div class="step">
+                <span class="step-ico" aria-hidden="true">⇄</span>
+                <h3>Cross-checks &amp; scores every fact</h3>
+                <p>Facts are corroborated across sources and confidence-scored; risks get severities.</p>
+            </div>
+            <div class="step">
+                <span class="step-ico" aria-hidden="true">📄</span>
+                <h3>Delivers a full scored report</h3>
+                <p>Minutes, not seconds — a complete cross-checked report, not a chat answer.</p>
+            </div>
+        </div>
+    </section>
+
+    <p id="sample-cta">View a full sample report:
+        <a href="/sample-report/person" target="_blank" rel="noopener">person (Jensen Huang) →</a> ·
+        <a href="/sample-report/company" target="_blank" rel="noopener">company (Stripe) →</a></p>
 </main>
 
 <footer>
@@ -728,6 +1004,276 @@ function watch(eventsUrl, reportUrl) {
         btn.disabled = false;
         if (window.turnstile) turnstile.reset();
     });
+}
+
+// ---- D1: entity cards + rotating headline name (PLAN.md Phase D) ----
+// First-party constants, but rendered via textContent/createElement anyway —
+// same discipline as the untrusted paths above (habit, not need). Chips
+// marked real:true are measured numbers from PROGRESS.md runs; the rest are
+// deliberate approximations — never invent precise stats.
+const ENTITIES = [
+    {name: 'Jensen Huang',       initials: 'JH', category: 'CEO · Semiconductors',           chips: ['97 facts', '9 risk flags', 'Grade A+'],       real: true,  g: 0},
+    {name: 'Tim Cook',           initials: 'TC', category: 'CEO · Consumer Tech',            chips: ['47 facts', '10 risk flags', 'Grade A'],        real: true,  g: 1},
+    {name: 'Stripe',             initials: 'S',  category: 'Private company · Payments',     chips: ['108 facts', '15 risk flags', 'Grade A-'],                  real: true,  g: 2},
+    {name: 'Satya Nadella',      initials: 'SN', category: 'CEO · Software & Cloud',         chips: ['40 facts', '14 risk flags', 'Grade A'],        real: true,  g: 3},
+    {name: 'Lisa Su',            initials: 'LS', category: 'CEO · Semiconductors',           chips: ['Grade A', '96.5 / 100 quality'],               real: true,  g: 4},
+    {name: 'Elon Musk',          initials: 'EM', category: 'CEO · Automotive & Space',       chips: ['40+ facts', 'full risk profile'],              real: false, g: 5},
+    {name: 'Sam Altman',         initials: 'SA', category: 'CEO · Artificial Intelligence',  chips: ['40+ facts', 'connection map'],                 real: false, g: 6},
+    {name: 'Warren Buffett',     initials: 'WB', category: 'Investor · Conglomerates',       chips: ['40+ facts', 'full risk profile'],              real: false, g: 7},
+    {name: 'Apple',              initials: 'A',  category: 'Public company · Consumer Tech', chips: ['40+ facts', 'risk flags'],                     real: false, g: 0},
+    {name: 'NVIDIA',             initials: 'NV', category: 'Public company · Semiconductors', chips: ['40+ facts', 'connection map'],                real: false, g: 1},
+    {name: 'OpenAI',             initials: 'OA', category: 'Private company · AI',           chips: ['40+ facts', 'full risk profile'],              real: false, g: 2},
+    {name: 'Berkshire Hathaway', initials: 'BH', category: 'Public company · Conglomerate',  chips: ['40+ facts', 'connection map'],                 real: false, g: 3},
+    {name: 'Google',             initials: 'G',  category: 'Public company · Internet',      chips: ['40+ facts', 'risk flags'],                     real: false, g: 4},
+    {name: 'SpaceX',             initials: 'SX', category: 'Private company · Aerospace',    chips: ['40+ facts', 'risk flags'],                     real: false, g: 5},
+];
+const GRADIENT_CLASS = ['g0', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7'];
+
+const queryInput = document.getElementById('query');
+const rotName = document.getElementById('rot-name');
+const entityScroll = document.getElementById('entity-scroll');
+const entityTrack = document.getElementById('entity-track');
+
+function buildEntityCard(ent, isClone) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'ent-card';
+    if (isClone) {           // loop clones: visible, but inert for a11y
+        card.tabIndex = -1;
+        card.setAttribute('aria-hidden', 'true');
+    }
+    const head = document.createElement('div');
+    head.className = 'ent-head';
+    const avatar = document.createElement('span');
+    avatar.className = 'ent-avatar ' + (GRADIENT_CLASS[ent.g] || 'g0');
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = ent.initials;
+    const id = document.createElement('span');
+    id.className = 'ent-id';
+    const name = document.createElement('span');
+    name.className = 'ent-name';
+    name.textContent = ent.name;
+    const cat = document.createElement('span');
+    cat.className = 'ent-cat';
+    cat.textContent = ent.category;
+    id.append(name, cat);
+    head.append(avatar, id);
+    const chips = document.createElement('div');
+    chips.className = 'ent-chips';
+    for (const c of ent.chips) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = c;
+        chips.appendChild(chip);
+    }
+    card.append(head, chips);
+    card.addEventListener('click', () => {
+        queryInput.value = ent.name;
+        queryInput.scrollIntoView({behavior: REDUCED_MOTION ? 'auto' : 'smooth',
+                                   block: 'center'});
+        queryInput.focus({preventScroll: true});
+    });
+    return card;
+}
+
+// Two copies of the set → the drift can wrap at the halfway point seamlessly.
+for (const isClone of [false, true]) {
+    for (const ent of ENTITIES) entityTrack.appendChild(buildEntityCard(ent, isClone));
+}
+
+// Slow drift (~22 px/s) via scrollLeft so native swipe/scroll still works.
+// Pauses on hover/touch/keyboard focus (WCAG 2.2.2) and under reduced motion.
+let driftPaused = false;
+let driftLastT = null;
+let driftPos = null;   // float accumulator — scrollLeft rounds to ints, so
+                       // sub-pixel per-frame increments would truncate to 0
+function driftStep(t) {
+    if (driftLastT != null && !driftPaused && !document.hidden) {
+        if (driftPos == null || Math.abs(entityScroll.scrollLeft - driftPos) > 2) {
+            driftPos = entityScroll.scrollLeft;   // resume from a user swipe
+        }
+        driftPos += (t - driftLastT) * 0.022;
+        const half = entityTrack.scrollWidth / 2;
+        if (half > 0 && driftPos >= half) driftPos -= half;
+        entityScroll.scrollLeft = driftPos;
+    } else {
+        driftPos = null;
+    }
+    driftLastT = t;
+    requestAnimationFrame(driftStep);
+}
+for (const [ev, paused] of [['mouseenter', true], ['mouseleave', false],
+                            ['touchstart', true], ['touchend', false],
+                            ['pointerdown', true], ['focusin', true],
+                            ['focusout', false]]) {
+    entityScroll.addEventListener(ev, () => { driftPaused = paused; },
+                                  {passive: true});
+}
+if (!REDUCED_MOTION) requestAnimationFrame(driftStep);
+
+// Rotating headline name (~2.5 s), mirrored into the input placeholder.
+// Same swap-fade vocabulary as setPhaseText; pauses on hover; static under
+// reduced motion and without JS.
+let rotIdx = 0;
+let rotPaused = false;
+rotName.addEventListener('mouseenter', () => { rotPaused = true; });
+rotName.addEventListener('mouseleave', () => { rotPaused = false; });
+function rotateName() {
+    if (rotPaused || document.hidden) return;
+    rotIdx = (rotIdx + 1) % ENTITIES.length;
+    const nextName = ENTITIES[rotIdx].name;
+    queryInput.placeholder = 'e.g. ' + nextName;
+    rotName.classList.add('swap');
+    setTimeout(() => {
+        rotName.textContent = nextName;
+        rotName.classList.remove('swap');
+    }, 250);
+}
+if (!REDUCED_MOTION) setInterval(rotateName, 2500);
+
+// ---- D3: rotating quote line (~7 s; quiet by design — motion budget) ----
+const QUOTES = [
+    {text: '“Knowledge is power.”', who: 'Francis Bacon'},
+    {text: '“An investment in knowledge pays the best interest.”', who: 'Benjamin Franklin'},
+    {text: '“Chance favors the prepared mind.”', who: 'Louis Pasteur'},
+    {text: '“Real knowledge is to know the extent of one\'s ignorance.”', who: 'Confucius'},
+    {text: '“Trust, but verify.”', who: 'Russian proverb'},
+    {text: '“If you know the enemy and know yourself, you need not fear the result of a hundred battles.”', who: 'Sun Tzu'},
+];
+const quoteEl = document.getElementById('quote');
+let quoteIdx = 0;
+let quotePaused = false;
+quoteEl.addEventListener('mouseenter', () => { quotePaused = true; });
+quoteEl.addEventListener('mouseleave', () => { quotePaused = false; });
+function rotateQuote() {
+    if (quotePaused || document.hidden) return;
+    quoteIdx = (quoteIdx + 1) % QUOTES.length;
+    quoteEl.classList.add('swap');
+    setTimeout(() => {
+        quoteEl.textContent = QUOTES[quoteIdx].text + ' — ' + QUOTES[quoteIdx].who;
+        quoteEl.classList.remove('swap');
+    }, 400);
+}
+if (!REDUCED_MOTION) setInterval(rotateQuote, 7000);
+
+// ---- D4: scripted hero demo — a choreographed replay of the real A.2
+// experience (same feed dots, .enter entrances, chip styling). Hardcoded
+// first-party script, zero network. Numbers are the REAL Jensen Huang
+// Phase-1 run (95.8/A, 40 facts, 9 risks, 25 connections). ----
+const demoQuery = document.getElementById('demo-query');
+const demoFeed = document.getElementById('demo-feed');
+const demoFacts = document.getElementById('demo-facts');
+const demoReport = document.getElementById('demo-report');
+const demoPanel = document.getElementById('demo');
+const DEMO_NAME = 'Jensen Huang';
+
+function demoFeedLine(cls, text) {
+    const li = document.createElement('li');
+    li.className = cls;
+    li.textContent = text;
+    li.classList.add('enter');
+    demoFeed.appendChild(li);
+    while (demoFeed.children.length > 6) demoFeed.removeChild(demoFeed.firstChild);
+}
+function demoFactChip(text) {
+    const chip = document.createElement('span');
+    chip.className = 'chip enter';
+    chip.textContent = text;
+    demoFacts.appendChild(chip);
+}
+
+const DEMO_STEPS = [];
+for (let i = 0; i < DEMO_NAME.length; i++) {
+    DEMO_STEPS.push({t: 300 + i * 70,
+                     fn: () => { demoQuery.textContent = DEMO_NAME.slice(0, i + 1); }});
+}
+DEMO_STEPS.push(
+    {t: 1500,  fn: () => demoFeedLine('k-llm', 'Planned 5 research angles')},
+    {t: 2600,  fn: () => demoFeedLine('k-search', 'Investigating background · career & roles — 9 searches')},
+    {t: 3900,  fn: () => { demoFeedLine('k-extract', 'Read 41 sources — 14 new facts');
+                           demoFactChip('Co-founded NVIDIA in 1993');
+                           demoFactChip('CEO since founding'); }},
+    {t: 5300,  fn: () => demoFeedLine('k-search', 'Investigating financial records · legal history')},
+    {t: 6600,  fn: () => { demoFeedLine('k-extract', 'Read 32 sources — 26 more facts');
+                           demoFactChip('Leads AI-chip market');
+                           demoFactChip('30+ years as CEO'); }},
+    {t: 7900,  fn: () => demoFeedLine('k-llm', 'Cross-checking facts across sources…')},
+    {t: 9100,  fn: () => demoFeedLine('k-llm', 'Flagged 9 risks · mapped 24 connections')},
+    {t: 10300, fn: () => { demoReport.hidden = false; demoReport.classList.add('enter'); }},
+);
+const DEMO_LOOP_MS = 13500;
+
+function demoReset() {
+    demoQuery.textContent = '';
+    demoFeed.replaceChildren();
+    demoFacts.replaceChildren();
+    demoReport.hidden = true;
+    demoReport.classList.remove('enter');
+}
+let demoElapsed = 0;
+let demoNext = 0;
+let demoPaused = false;
+demoPanel.addEventListener('mouseenter', () => { demoPaused = true; });
+demoPanel.addEventListener('mouseleave', () => { demoPaused = false; });
+
+if (REDUCED_MOTION) {
+    // Static final frame: the whole story, no motion, no loop.
+    demoQuery.textContent = DEMO_NAME;
+    for (const s of DEMO_STEPS) if (s.t >= 1500) s.fn();
+} else {
+    setInterval(() => {
+        if (demoPaused || document.hidden) return;
+        demoElapsed += 100;
+        while (demoNext < DEMO_STEPS.length && DEMO_STEPS[demoNext].t <= demoElapsed) {
+            DEMO_STEPS[demoNext].fn();
+            demoNext++;
+        }
+        if (demoElapsed >= DEMO_LOOP_MS) { demoElapsed = 0; demoNext = 0; demoReset(); }
+    }, 100);
+}
+
+// ---- Person/company sample toggle. Both figure sets are static markup —
+// report URLs and section anchors are baked in, so no toggle sequence can
+// ever desync image, href, or section. Entrance re-triggers per switch. ----
+const SHOT_KINDS = ['person', 'company'];
+function showShots(kind) {
+    for (const k of SHOT_KINDS) {
+        document.getElementById('shots-tab-' + k)
+            .setAttribute('aria-selected', String(k === kind));
+        document.getElementById('shots-' + k).hidden = k !== kind;
+    }
+    const panel = document.getElementById('shots-' + kind);
+    panel.scrollLeft = 0;                    // always start at the first card
+    if (!REDUCED_MOTION) {
+        panel.querySelectorAll('figure').forEach((fig, i) => {
+            fig.classList.remove('enter');
+            void fig.offsetWidth;            // reflow: restart the animation
+            fig.style.setProperty('--i', String(i));
+            fig.classList.add('enter');
+        });
+    }
+}
+for (const k of SHOT_KINDS) {
+    document.getElementById('shots-tab-' + k)
+        .addEventListener('click', () => showShots(k));
+}
+
+// ---- D3: below-fold sections animate ONCE on entry, then rest ----
+// (.step only: the shots toggle above owns figure entrances, so repeated
+// person/company switches re-animate instead of one-shot IO reveals)
+if (!REDUCED_MOTION && 'IntersectionObserver' in window) {
+    const toReveal = document.querySelectorAll('.step');
+    for (const el of toReveal) el.classList.add('will-enter');
+    const io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                entry.target.classList.remove('will-enter');
+                entry.target.classList.add('enter');
+                io.unobserve(entry.target);
+            }
+        }
+    }, {threshold: 0.15});
+    for (const el of toReveal) io.observe(el);
 }
 </script>
 </body>

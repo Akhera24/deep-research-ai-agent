@@ -5,7 +5,7 @@ import json
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from slowapi import Limiter
@@ -38,6 +38,41 @@ REPORT_CSP = (
 )
 
 SSE_POLL_SECONDS = 1.5
+
+# Phase D4: regenerated reports served as public samples (person + company —
+# human decision 2026-07-10, person justified per review R2 option (b): ultra-
+# public figure, noindex header, takedown contact in ToS). MUST be
+# post-escaping-chokepoint artifacts (never the Feb example_report.html) and
+# MUST NOT live under src/api/static/ — the static mount doesn't send the
+# report header contract below.
+SAMPLE_REPORTS = {
+    "person": Path(__file__).parent / "sample_report_person.html",
+    "company": Path(__file__).parent / "sample_report_company.html",
+}
+
+
+@router.get("/sample-report")
+async def sample_report_default():
+    return RedirectResponse(url="/sample-report/person", status_code=307)
+
+
+@router.get("/sample-report/{kind}")
+async def sample_report(kind: str):
+    path = SAMPLE_REPORTS.get(kind)
+    if path is None:
+        raise HTTPException(status_code=404, detail="unknown sample report")
+    try:
+        html = path.read_text(encoding="utf-8")
+    except OSError:
+        raise HTTPException(status_code=404, detail="sample report unavailable")
+    # job_report contract + noindex: the report HTML has no robots meta, so
+    # this header is the only thing keeping a marketing asset out of Google.
+    return HTMLResponse(
+        content=html,
+        headers={"Content-Security-Policy": REPORT_CSP,
+                 "X-Content-Type-Options": "nosniff",
+                 "X-Robots-Tag": "noindex"},
+    )
 
 
 @router.get("/", response_class=HTMLResponse)
