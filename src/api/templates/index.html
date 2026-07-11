@@ -25,7 +25,10 @@
         #hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
                 gap: 36px; align-items: start; }
         @media (max-width: 900px) { #hero { grid-template-columns: 1fr; gap: 20px; } }
-        #quote { min-height: 1.5em; font-size: 0.85em; color: #64748b;
+        /* Two-line slot: the long quotes (Confucius, Sun Tzu) wrap in the hero
+           column; a 1-to-2-line swap mid-rotation would shift the headline
+           below it on every cycle (CLS) */
+        #quote { min-height: 3.2em; font-size: 0.85em; color: #64748b;
                 font-style: italic; margin-bottom: 10px; transition: opacity 0.4s; }
         #quote.swap { opacity: 0; }
         /* The A.2 live experience keeps its designed narrow measure */
@@ -1132,12 +1135,18 @@ function rotateName() {
 if (!REDUCED_MOTION) setInterval(rotateName, 2500);
 
 // ---- D3: rotating quote line (~7 s; quiet by design — motion budget) ----
+// All public domain: Bacon 1597 · Cervantes 1615 (Don Quixote II.43) ·
+// Franklin (Poor Richard-era) · Doyle 1891 (A Scandal in Bohemia) ·
+// Confucius, Analects 2.10 (Legge translation, 1861) · proverb ·
+// Wilde 1895 (The Importance of Being Earnest) · Sun Tzu (Giles, 1910).
 const QUOTES = [
     {text: '“Knowledge is power.”', who: 'Francis Bacon'},
+    {text: '“Diligence is the mother of good fortune.”', who: 'Miguel de Cervantes'},
     {text: '“An investment in knowledge pays the best interest.”', who: 'Benjamin Franklin'},
-    {text: '“Chance favors the prepared mind.”', who: 'Louis Pasteur'},
-    {text: '“Real knowledge is to know the extent of one\'s ignorance.”', who: 'Confucius'},
+    {text: '“It is a capital mistake to theorize before one has data.”', who: 'Arthur Conan Doyle'},
+    {text: '“See what a man does. Mark his motives. Examine in what things he rests. How can a man conceal his character?”', who: 'Confucius'},
     {text: '“Trust, but verify.”', who: 'Russian proverb'},
+    {text: '“The truth is rarely pure and never simple.”', who: 'Oscar Wilde'},
     {text: '“If you know the enemy and know yourself, you need not fear the result of a hundred battles.”', who: 'Sun Tzu'},
 ];
 const quoteEl = document.getElementById('quote');
