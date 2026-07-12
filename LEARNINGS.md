@@ -12,6 +12,16 @@ starting work; obey every rule (per the global harness contract).
   *Origin: bit twice on 2026-07-10 — a stray job ran on pre-A.2 code, and the
   A.3 manual test would have run on pre-A.3 code.*
 
+- **Every LLM JSON-array response WILL eventually hit max_tokens and truncate
+  mid-array — a parser without truncation repair silently returns `[]`, and the
+  miss cascades (0 connections → −20 quality points).** Repair by cutting back
+  to the last complete object and closing the array (the extractor already did
+  this; the risks/connections parser didn't until 2026-07-11). Symptom: a
+  "call successful" log with valid-looking JSON content followed by
+  "Mapped 0 …" / "No JSON array found".
+  *Origin: 2026-07-11 Phase B gate runs — the connections call (max_tokens=4000)
+  truncated on 3 of 3 runs; fix in `workflow.py::_repair_truncated_json_array`.*
+
 - **Phase labels lag reality by one node.** `state["stage"]` is set inside each
   node but only streamed at node boundaries (`astream(stream_mode="values")`
   yields AFTER a node returns), so during a long node the UI's phase label still

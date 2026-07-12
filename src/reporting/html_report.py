@@ -13,6 +13,7 @@ edge case #10).
 import os
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+from urllib.parse import quote as _pct_quote, urlsplit as _urlsplit
 
 from markupsafe import escape as _html_escape
 
@@ -34,6 +35,261 @@ def _escape_deep(value):
     if isinstance(value, list):
         return [_escape_deep(v) for v in value]
     return value
+
+
+# ============================================================================
+# CITATION CHIPS (Phase B1/B3/B4)
+# ============================================================================
+# This helper owns ALL citation encoding, fed from RAW (pre-_escape_deep)
+# values — building a href or #:~:text= fragment from the escaped copy
+# double-encodes and breaks the link, and HTML-escaping is NOT scheme
+# validation (a javascript: URL survives it as a live XSS href). See
+# REVIEW-LEARNINGS "Escaping chokepoints vs. features that need the raw value".
+
+_CITATION_SCHEMES = ('http', 'https')
+
+# A #:~:text= fragment built from a very long quote makes an unwieldy URL;
+# past this length degrade to a plain link (browsers ignore missing
+# fragments, so shorter-but-wrong would be strictly worse than none).
+_MAX_FRAGMENT_QUOTE_CHARS = 300
+
+# DOM cap per chip strip. Post-B0 facts cite 1-3 sources; only legacy
+# batch-stamped data (one fact "citing" the whole result batch — the exact
+# non-provenance B0 fixes) can exceed this, and rendering hundreds of
+# anchors per fact triples the page weight for links that aren't real
+# per-fact attribution anyway.
+_MAX_CHIPS_PER_ITEM = 12
+
+
+def _source_tier(reliability):
+    """Map a source_reliability score to a (css_class, label) display tier.
+
+    Deliberately a domain-based SOURCE-TIER heuristic — never rendered as a
+    "% true" / fact-accuracy claim (PLAN.md B4 trust/liability rule).
+    Missing/invalid reliability falls back to the default tier.
+    """
+    try:
+        r = float(reliability)
+    except (TypeError, ValueError):
+        return ('standard', 'Standard source')
+    if r >= 0.8:
+        return ('high', 'High-credibility source')
+    if r >= 0.6:
+        return ('established', 'Established source')
+    return ('standard', 'Standard source')
+
+
+def _citation_href(raw_url, raw_quote=''):
+    """Build an attribute-safe citation href from RAW url + quote.
+
+    - Allowlists http/https (drop javascript:/data:/anything else).
+    - Appends a #:~:text= fragment for the verbatim quote, percent-encoding
+      ONLY the fragment text (quote(text, safe='')); the whole URL is never
+      percent-encoded (that would break :// ? &).
+    - HTML-escapes the final URL for the href attribute context.
+
+    Returns None when the URL is not linkable (caller drops the chip).
+    """
+    if not isinstance(raw_url, str):
+        return None
+    url = raw_url.strip()
+    try:
+        parts = _urlsplit(url)
+    except ValueError:
+        return None
+    if parts.scheme.lower() not in _CITATION_SCHEMES or not parts.hostname:
+        return None
+
+    quote_text = raw_quote.strip() if isinstance(raw_quote, str) else ''
+    fragment = None
+    if quote_text:
+        # '-' is meaningful in text-fragment syntax (prefix-/suffix-
+        # separators), so encode it beyond what quote() does.
+        def _enc(t):
+            return _pct_quote(t, safe='').replace('-', '%2D')
+
+        if len(quote_text) <= _MAX_FRAGMENT_QUOTE_CHARS:
+            fragment = _enc(quote_text)
+        else:
+            # Long quote: textStart,textEnd range instead of degrading —
+            # the browser highlights everything between the two matches.
+            words = quote_text.split()
+            if len(words) >= 16:
+                fragment = _enc(' '.join(words[:8])) + ',' + _enc(' '.join(words[-8:]))
+    if fragment:
+        url += (':~:text=' if '#' in url else '#:~:text=') + fragment
+
+    return str(_html_escape(url))
+
+
+def _citation_chip(raw_url, raw_quote='', reliability=None):
+    """One citation chip <a> from RAW values; '' when not linkable.
+
+    The native title tooltip previews what the source says (hover = see
+    the snippet, click = land on it highlighted) — deliberately not a
+    custom hover card: title needs no JS, adds no DOM injection surface,
+    and degrades silently on touch.
+    """
+    href = _citation_href(raw_url, raw_quote)
+    if not href:
+        return ''
+    domain = _urlsplit(raw_url.strip()).hostname or ''
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    tier_class, tier_label = _source_tier(reliability)
+    domain_esc = str(_html_escape(domain))
+    title = f'{tier_label} — source-tier heuristic (by domain), not a fact-accuracy score'
+    quote_text = raw_quote.strip() if isinstance(raw_quote, str) else ''
+    if quote_text:
+        snippet = quote_text[:140] + ('…' if len(quote_text) > 140 else '')
+        title = f'“{snippet}”\n{title}'
+    title_esc = str(_html_escape(title))
+    return (
+        f'<a class="cite-chip tier-{tier_class}" href="{href}" target="_blank" '
+        f'rel="noopener noreferrer nofollow" title="{title_esc}">'
+        f'<span class="cite-tier-dot"></span>{domain_esc}</a>'
+    )
+
+
+def _render_citation_chips(citations, visible=3):
+    """Chip strip for one fact/risk/trend item.
+
+    citations: list of {'url', 'quote', 'reliability', 'anchored'} dicts
+    holding RAW (pre-escape) values. Chips beyond `visible` are hidden
+    behind a class-based "+N more sources" toggle (OQ-B3 pattern).
+
+    Order: best source first — page-verified anchor (click provably lands
+    on the highlighted sentence), then source tier; stable within ties so
+    the LLM's attribution order still breaks them. Sorting happens BEFORE
+    the DOM cap so the cap keeps the best chips, not the first-listed.
+    """
+    ranked = sorted(
+        citations or [],
+        key=lambda c: (
+            not c.get('anchored'),
+            -(c['reliability'] if isinstance(c.get('reliability'), (int, float))
+              else 0.5),
+        ),
+    )
+    chips = []
+    for c in ranked:
+        chip = _citation_chip(
+            c.get('url'), c.get('quote', ''), c.get('reliability')
+        )
+        if chip:
+            chips.append(chip)
+        if len(chips) >= _MAX_CHIPS_PER_ITEM:
+            break
+    if not chips:
+        return ''
+
+    parts = []
+    for i, chip in enumerate(chips):
+        if i >= visible:
+            chip = chip.replace('class="cite-chip', 'class="cite-chip cite-extra', 1)
+        parts.append(chip)
+
+    toggle = ''
+    hidden_count = len(chips) - visible
+    if hidden_count > 0:
+        toggle = (
+            f'<button type="button" class="cite-more-btn" '
+            f'data-more="+{hidden_count} more sources" data-less="Show fewer" '
+            f'onclick="toggleCiteChips(this)">+{hidden_count} more sources</button>'
+        )
+    return f'<div class="citation-chips">{"".join(parts)}{toggle}</div>'
+
+
+def _first_evidence_quote(evidence):
+    """First non-empty verbatim quote from a fact's raw evidence field."""
+    if isinstance(evidence, str):
+        return evidence.strip()
+    if isinstance(evidence, list):
+        for ev in evidence:
+            if isinstance(ev, str) and ev.strip():
+                return ev.strip()
+    return ''
+
+
+def _render_quote_source_links(citations, limit=3):
+    """Small trailing source links for ONE evidence-quote row.
+
+    citations hold RAW values; hrefs go through the same allowlist +
+    anchored-fragment helper as chips, so clicking the link opens the
+    source with this quote's sentence highlighted.
+    """
+    links = []
+    for c in citations or []:
+        if len(links) >= limit:
+            break
+        href = _citation_href(c.get('url'), c.get('quote', ''))
+        if not href:
+            continue
+        domain = _urlsplit(c['url'].strip()).hostname or ''
+        if domain.startswith('www.'):
+            domain = domain[4:]
+        links.append(
+            f'<a class="ev-source" href="{href}" target="_blank" '
+            f'rel="noopener noreferrer nofollow">{_html_escape(domain)} ↗</a>'
+        )
+    return ' '.join(links)
+
+
+def _raw_fact_citations(raw_facts):
+    """Per-fact RAW citation triples, captured BEFORE _escape_deep (M2/N1).
+
+    Returns a list parallel to result['facts']: element i is the citation
+    list for fact i — [{'url', 'quote', 'reliability'}, ...] with the
+    fact's own first verbatim evidence quote attached to each of its URLs.
+    """
+    per_fact = []
+    for rf in raw_facts:
+        if not isinstance(rf, dict):
+            per_fact.append([])
+            continue
+        urls = rf.get('source_urls', [])
+        if not isinstance(urls, list):
+            urls = []
+        rels = rf.get('source_reliabilities', {})
+        if not isinstance(rels, dict):
+            rels = {}
+        anchors = rf.get('anchor_texts', {})
+        if not isinstance(anchors, dict):
+            anchors = {}
+        quote = _first_evidence_quote(rf.get('evidence', []))
+        citations = []
+        seen = set()
+        for url in urls:
+            if not isinstance(url, str) or url in seen:
+                continue
+            seen.add(url)
+            # B3.1: prefer the page-VERIFIED anchor for this URL; the
+            # fact-level quote is the legacy fallback (matches at most one
+            # of a multi-source fact's pages)
+            anchor = anchors.get(url)
+            has_anchor = isinstance(anchor, str) and bool(anchor)
+            citations.append({
+                'url': url,
+                'quote': anchor if has_anchor else quote,
+                'reliability': rels.get(url),
+                'anchored': has_anchor,
+            })
+        per_fact.append(citations)
+    return per_fact
+
+
+def _union_citations(citation_lists):
+    """Dedupe-by-URL union across grouped facts (C3), preserving order and
+    each URL's own quote/tier (first occurrence wins)."""
+    union = []
+    seen = set()
+    for citations in citation_lists:
+        for c in citations:
+            if c['url'] in seen:
+                continue
+            seen.add(c['url'])
+            union.append(c)
+    return union
 
 
 # ============================================================================
@@ -541,6 +797,19 @@ def render_html_report(
         Absolute path to generated HTML file
     """
     
+    # ── Raw citation seam (Phase B — capture BEFORE the escape chokepoint) ──
+    # Citation hrefs / #:~:text= fragments must be built from RAW values;
+    # every downstream union (consolidation C3, risk/trend resolution) reads
+    # from THIS list, never from the escaped facts (M2). Parallel to
+    # result['facts'] by index — the escaped copy preserves list order.
+    raw_citations = _raw_fact_citations(result.get('facts', []) or [])
+    # Each fact's own raw quote, parallel to raw_citations — pairs every
+    # evidence row with the sources of the group member it came from
+    raw_quotes = [
+        _first_evidence_quote(rf.get('evidence', [])) if isinstance(rf, dict) else ''
+        for rf in (result.get('facts', []) or [])
+    ]
+
     # ── XSS guard (PHASE3_DESIGN §3/§11.R6, edge case #10) ──────────────────
     # Everything below interpolates scraped-web text into HTML f-strings.
     # Escape ALL strings at this single chokepoint, on a deep copy, before
@@ -608,7 +877,9 @@ def render_html_report(
     for risk in risks:
         evidence_refs = risk.get('evidence', [])
         severity = risk.get('severity', 'low')
-        risk_desc = risk.get('description', '')[:80]
+        # Full description — truncating here cut every risk row/tooltip to
+        # 80 chars mid-sentence ("…Huang is variously des")
+        risk_desc = risk.get('description', '')
         for ref in evidence_refs:
             try:
                 idx = int(''.join(c for c in str(ref) if c.isdigit()))
@@ -685,6 +956,7 @@ def render_html_report(
     # Group by category first, then consolidate within each group
     consolidated_facts = []
     seen_indices = set()
+    raw_pos_to_display = {}
     
     # Build word sets once for all facts
     fact_words = [_word_set(f.get('content', '')) for f in facts]
@@ -707,6 +979,31 @@ def render_html_report(
         # Pick the longest (most detailed) fact as the primary representative
         best_idx = max(group, key=lambda idx: len(facts[idx].get('content', '')))
         best_fact = dict(facts[best_idx])  # Copy to avoid mutating original
+
+        # C3: union RAW citations across the whole group — the representative
+        # alone would silently drop the other grouped facts' sources. Kept
+        # independent of the evidence[:5] cap below, and read from the raw
+        # seam (M2), not the escaped facts this loop iterates.
+        best_fact['_citations'] = _union_citations(
+            [raw_citations[idx] for idx in group if idx < len(raw_citations)]
+        )
+
+        # Quote → its OWN member's sources: the merged evidence list loses
+        # which grouped fact each quote came from; key by the ESCAPED quote
+        # (what the evidence rows render) so each row can link its source.
+        quote_sources = {}
+        for idx in group:
+            rq = raw_quotes[idx] if idx < len(raw_quotes) else ''
+            if not rq:
+                continue
+            key = str(_html_escape(rq))
+            bucket = quote_sources.setdefault(key, [])
+            seen_urls = {c['url'] for c in bucket}
+            bucket.extend(
+                c for c in (raw_citations[idx] if idx < len(raw_citations) else [])
+                if c['url'] not in seen_urls
+            )
+        best_fact['_quote_sources'] = quote_sources
         
         # Merge metadata from all grouped facts
         if len(group) > 1:
@@ -742,16 +1039,29 @@ def render_html_report(
             best_fact['_merged_count'] = 1
             best_fact['_original_index'] = i + 1
         
-        # Carry over risk mapping from any original indices in the group
+        # Carry over risk mapping from any original indices in the group.
+        # Dedupe: ONE risk often cites several facts that consolidation
+        # merges into one card — without this it renders N identical
+        # badges + "Links to risk" rows on that card.
         merged_risks = []
+        seen_risk_keys = set()
         for idx in group:
             orig_i = idx + 1  # 1-based index for risk_fact_map lookup
-            if orig_i in risk_fact_map:
-                merged_risks.extend(risk_fact_map[orig_i])
+            for rm in risk_fact_map.get(orig_i, []):
+                key = (rm['severity'], rm['desc'])
+                if key not in seen_risk_keys:
+                    seen_risk_keys.add(key)
+                    merged_risks.append(rm)
         if merged_risks:
             best_fact['_risk_links'] = merged_risks
         
         consolidated_facts.append(best_fact)
+        # Raw 1-based position -> consolidated display number (#N as shown).
+        # Risk evidence refs point at RAW positions; rendering those numbers
+        # verbatim mislabels facts once consolidation renumbers them.
+        display_no = len(consolidated_facts)
+        for idx in group:
+            raw_pos_to_display[idx + 1] = display_no
     
     # Use consolidated facts for display
     display_facts = consolidated_facts
@@ -864,12 +1174,31 @@ def render_html_report(
             trend_badge_html += f'<span class="trend-badge-fact" style="background:{t_color}15;color:{t_color};border:1px solid {t_color}33">{t_icon} {t_label}</span> '
             has_trend = 1
         
+        # Per-fact citation chips (B1) — from the raw seam via the C3 union
+        citations_html = _render_citation_chips(fact.get('_citations', []))
+
         # Build expandable details
         details_parts = []
         if evidence_list:
             ev_items = evidence_list if isinstance(evidence_list, list) else [str(evidence_list)]
-            for ev in ev_items[:3]:
-                details_parts.append(f'<div class="detail-evidence">📝 "{ev}"</div>')
+            quote_sources = fact.get('_quote_sources', {})
+            # Show 3 by default (OQ-B3), rest behind a class-based toggle —
+            # never silently discarded
+            for ev_i, ev in enumerate(ev_items):
+                extra_cls = ' ev-extra' if ev_i >= 3 else ''
+                # Quote → source connection: link the row to the source(s)
+                # of the group member this quote came from, anchored so the
+                # click lands on the highlighted sentence
+                ev_key = ev.strip() if isinstance(ev, str) else ev
+                src_links = _render_quote_source_links(quote_sources.get(ev_key))
+                src_html = f' <span class="ev-sources">— {src_links}</span>' if src_links else ''
+                details_parts.append(f'<div class="detail-evidence{extra_cls}">📝 "{ev}"{src_html}</div>')
+            if len(ev_items) > 3:
+                details_parts.append(
+                    f'<button type="button" class="show-all-btn" '
+                    f'data-more="Show all {len(ev_items)} quotes" data-less="Show fewer" '
+                    f'onclick="toggleShowAll(this)">Show all {len(ev_items)} quotes</button>'
+                )
         if verified:
             s_suffix = "s" if verification_count > 1 else ""
             details_parts.append(f'<div class="detail-verified">✅ Cross-verified across {verification_count} source{s_suffix}</div>')
@@ -900,6 +1229,7 @@ def render_html_report(
                 <span class="expand-icon">▸</span>
             </div>
             <div class="fact-content">{content}</div>
+            {citations_html}
             <div class="fact-details">{details_html}</div>
         </div>
         """
@@ -981,6 +1311,49 @@ def render_html_report(
         # Sort risks by severity (critical > high > medium > low)
         severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
         sorted_risks = sorted(risks, key=lambda r: severity_order.get(r.get('severity', 'low'), 3))
+
+        # ── Filter pills (severity = the triage lens, then category) +
+        #    condensed/detailed toggle. Same pattern the Facts section
+        #    teaches; values live in data attrs (never inline JS args — an
+        #    escaped quote inside an onclick string would still break it).
+        sev_counts = {}
+        rcat_counts = {}
+        for r in sorted_risks:
+            s = r.get('severity', 'low').lower()
+            sev_counts[s] = sev_counts.get(s, 0) + 1
+            c = r.get('category', 'unknown').lower()
+            rcat_counts[c] = rcat_counts.get(c, 0) + 1
+
+        sev_badge_colors = {'critical': '#dc2626', 'high': '#ea580c',
+                            'medium': '#d97706', 'low': '#059669'}
+        pills = [f'<button type="button" class="risk-pill active" data-kind="sev" '
+                 f'data-val="all" data-label="All" '
+                 f'onclick="filterRisks(this)">All ({len(sorted_risks)})</button>']
+        for s in ('critical', 'high', 'medium', 'low'):
+            if s in sev_counts:
+                color = sev_badge_colors.get(s, '#6b7280')
+                pills.append(
+                    f'<button type="button" class="risk-pill" data-kind="sev" data-val="{s}" '
+                    f'data-label="{s.upper()}" style="color:{color};border-color:{color}66" '
+                    f'onclick="filterRisks(this)">{s.upper()} ({sev_counts[s]})</button>'
+                )
+        pills.append('<span class="risk-pill-divider"></span>')
+        for c, count in sorted(rcat_counts.items(), key=lambda kv: -kv[1]):
+            pills.append(
+                f'<button type="button" class="risk-pill" data-kind="cat" data-val="{c}" '
+                f'data-label="{c.upper()}" '
+                f'onclick="filterRisks(this)">{c.upper()} ({count})</button>'
+            )
+        pills.append(
+            '<span class="risk-view-controls">'
+            '<button type="button" class="risk-pill risk-view-toggle" '
+            'onclick="toggleAllRiskFacts(this)">Expand all facts</button>'
+            '<button type="button" class="risk-pill risk-view-toggle" '
+            'onclick="toggleRiskView(this)">Condensed view</button>'
+            '</span>'
+        )
+        risks_html += f'<div class="risk-filters">{"".join(pills)}</div>'
+        risks_html += '<div id="risksContainer">'
         
         # Risk category colors for styled labels
         risk_cat_colors = {
@@ -1001,24 +1374,82 @@ def render_html_report(
             evidence = risk.get('evidence', [])
             
             colors = severity_colors.get(severity, severity_colors['low'])
-            evidence_str = ', '.join(evidence) if evidence else ''
             cat_color = risk_cat_colors.get(category.lower(), '#6b7280')
-            
+
+            # Risk citations (B2): resolve this risk's OWN "Fact N" evidence
+            # refs positionally (same digit-strip as risk_fact_map — which is
+            # a reverse fact→risk index and can NOT do this lookup, M3) and
+            # union the referenced facts' RAW citations. A ref to an absent
+            # position simply contributes nothing — card renders chip-less.
+            risk_citation_lists = []
+            support_positions = []
+            for ref in evidence:
+                try:
+                    pos = int(''.join(c for c in str(ref) if c.isdigit()))
+                except (ValueError, IndexError):
+                    continue
+                if 1 <= pos <= len(raw_citations):
+                    risk_citation_lists.append(raw_citations[pos - 1])
+                    support_positions.append(pos)
+            risk_chips_html = _render_citation_chips(
+                _union_citations(risk_citation_lists)
+            )
+
+            # Supporting facts: the raw "Evidence: Fact 32" labels were
+            # positions in the PRE-consolidation list and mislabeled facts
+            # once consolidation renumbered them. Show the actual facts
+            # instead — display number (#N as shown in the Facts section),
+            # consolidated text, and anchored source links — behind the
+            # standard class-based expand.
+            support_rows = []
+            seen_display_nos = set()
+            for pos in support_positions:
+                display_no = raw_pos_to_display.get(pos)
+                if not display_no or display_no in seen_display_nos:
+                    continue
+                seen_display_nos.add(display_no)
+                display_fact = display_facts[display_no - 1]
+                links = _render_quote_source_links(display_fact.get('_citations'))
+                links_html = f' <span class="ev-sources">— {links}</span>' if links else ''
+                support_rows.append(
+                    f'<div class="risk-support-row">'
+                    f'<button type="button" class="risk-fact-link" data-fact="{display_no}" '
+                    f'onclick="jumpToFact(this)" title="Jump to this fact">#{display_no}</button> '
+                    f'{display_fact.get("content", "")}{links_html}</div>'
+                )
+            risk_support_html = ''
+            if support_rows:
+                n = len(support_rows)
+                s_suffix = 's' if n != 1 else ''
+                risk_support_html = (
+                    f'<div class="risk-support">'
+                    f'<button type="button" class="show-all-btn" '
+                    f'data-more="Show supporting fact{s_suffix} ({n})" '
+                    f'data-less="Hide supporting fact{s_suffix}" '
+                    f'onclick="toggleShowAll(this)">Show supporting fact{s_suffix} ({n})</button>'
+                    f'<div class="risk-support-rows">{"".join(support_rows)}</div>'
+                    f'</div>'
+                )
+
             risks_html += f"""
-            <div class="risk" style="background:{colors['bg']};border-left:4px solid {colors['border']}">
+            <div class="risk" data-severity="{severity}" data-rcat="{category.lower()}" style="background:{colors['bg']};border-left:4px solid {colors['border']}" onclick="toggleRiskDetail(this, event)">
                 <div class="risk-header">
                     <span class="risk-category-label" style="background:{cat_color}18;color:{cat_color};border:1px solid {cat_color}40">{category_upper}</span>
-                    <span class="severity" style="background:{colors['badge']}">{severity.upper()}</span>
+                    <span class="risk-header-right"><span class="severity" style="background:{colors['badge']}">{severity.upper()}</span><span class="risk-expand-icon">▸</span></span>
                 </div>
                 <div class="risk-desc">{desc}</div>
+                {risk_chips_html}
                 <div class="risk-meta">
                     <span>Confidence: {confidence:.0f}%</span>
                     <span>Impact: {impact:.0f}/10</span>
                     <span>Trend: {trend}</span>
-                    {f'<span>Evidence: {evidence_str}</span>' if evidence_str else ''}
                 </div>
+                {risk_support_html}
             </div>
             """
+        risks_html += '</div>'
+        risks_html += ('<div id="riskEmptyState" class="no-data" '
+                       'style="display:none">No risks match the selected filters.</div>')
     else:
         risks_html = "<p class='no-data'>✅ No significant risks identified</p>"
     
@@ -1197,7 +1628,7 @@ def render_html_report(
         'geopolitical': ['china', 'export', 'trade', 'trump', 'government', 'policy', 'regulation', 'national security'],
     }
     
-    for fact in facts:
+    for fact_idx, fact in enumerate(facts):
         content_lower = fact.get('content', '').lower()
         category = fact.get('category', '')
         if category not in ('behavioral', 'professional', 'legal', 'financial'):
@@ -1208,7 +1639,10 @@ def render_html_report(
                 trend_signals[signal_type].append({
                     'content': fact.get('content', ''),
                     'recent': has_recent_year,
-                    'category': category
+                    'category': category,
+                    # B2: the originating fact's RAW citations (chips render
+                    # through the helper, never interpolated directly)
+                    'citations': raw_citations[fact_idx] if fact_idx < len(raw_citations) else [],
                 })
     
     trend_html = ""
@@ -1225,12 +1659,23 @@ def render_html_report(
         if not items:
             continue
         icon, label, color = trend_icons[signal_type]
-        sorted_items = sorted(items, key=lambda x: x['recent'], reverse=True)[:3]
+        # Visibility (B2/OQ-B3): top-3 by recency visible, the REST hidden
+        # behind a class toggle — the old [:3] slice hid e.g. 14 of 17
+        # signals with no way to see them.
+        sorted_items = sorted(items, key=lambda x: x['recent'], reverse=True)
         trend_html += f'<div class="trend-group">'
         trend_html += f'<div class="trend-header" style="color:{color}">{icon} {label} ({len(items)} signals)</div>'
-        for item in sorted_items:
+        for item_i, item in enumerate(sorted_items):
             recent_tag = ' <span class="trend-recent">RECENT</span>' if item['recent'] else ''
-            trend_html += f'<div class="trend-item">• {item["content"][:150]}{recent_tag}</div>'
+            chips = _render_citation_chips(item.get('citations', []))
+            extra_cls = ' trend-extra' if item_i >= 3 else ''
+            trend_html += f'<div class="trend-item{extra_cls}">• {item["content"][:150]}{recent_tag}{chips}</div>'
+        if len(sorted_items) > 3:
+            trend_html += (
+                f'<button type="button" class="show-all-btn" '
+                f'data-more="Show all {len(sorted_items)} signals" data-less="Show fewer" '
+                f'onclick="toggleShowAll(this)">Show all {len(sorted_items)} signals</button>'
+            )
         trend_html += '</div>'
     
     if not trend_html:
@@ -1458,6 +1903,12 @@ def render_html_report(
             padding: 6px 12px; margin: 4px 0; background: #f8fafc; 
             border-left: 3px solid #cbd5e1; border-radius: 0 6px 6px 0;
         }}
+        .ev-sources {{ font-style: normal; white-space: nowrap; }}
+        .ev-source {{
+            font-weight: 600; font-size: 0.92em; color: #3b82f6;
+            text-decoration: none;
+        }}
+        .ev-source:hover {{ text-decoration: underline; }}
         .detail-verified {{ font-size: 0.85em; color: #059669; padding: 4px 0; }}
         .detail-unverified {{ font-size: 0.85em; color: #94a3b8; padding: 4px 0; }}
         .detail-entities {{ font-size: 0.85em; color: #6366f1; padding: 4px 0; }}
@@ -1472,6 +1923,110 @@ def render_html_report(
             font-weight: 700; color: white; text-transform: uppercase;
             letter-spacing: 0.3px; vertical-align: middle;
         }}
+
+        /* ── Citation Chips (Phase B) ── */
+        .citation-chips {{
+            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+            margin-top: 8px;
+        }}
+        .cite-chip {{
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 2px 10px; border-radius: 12px; font-size: 0.75em;
+            font-weight: 600; text-decoration: none; color: #334155;
+            background: #f1f5f9; border: 1px solid #e2e8f0;
+            transition: all 0.15s;
+        }}
+        .cite-chip:hover {{ border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; }}
+        .cite-tier-dot {{
+            width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+            background: #94a3b8;
+        }}
+        .cite-chip.tier-high .cite-tier-dot {{ background: #059669; }}
+        .cite-chip.tier-established .cite-tier-dot {{ background: #3b82f6; }}
+        .citation-chips .cite-extra {{ display: none; }}
+        .citation-chips.cites-expanded .cite-extra {{ display: inline-flex; }}
+        .cite-more-btn, .show-all-btn {{
+            padding: 2px 10px; border-radius: 12px; font-size: 0.75em;
+            font-weight: 600; cursor: pointer; color: #64748b;
+            background: white; border: 1px dashed #cbd5e1;
+        }}
+        .cite-more-btn:hover, .show-all-btn:hover {{ border-color: #3b82f6; color: #3b82f6; }}
+        .show-all-btn {{ display: block; margin-top: 8px; }}
+        .ev-extra, .trend-extra {{ display: none; }}
+        .expanded-all .ev-extra, .expanded-all .trend-extra {{ display: block; }}
+
+        /* ── Risk filters + condensed view ── */
+        .risk-filters {{
+            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+            margin-bottom: 14px;
+        }}
+        .risk-pill {{
+            padding: 3px 12px; border: 1px solid #e2e8f0; border-radius: 14px;
+            background: white; font-size: 0.78em; font-weight: 600;
+            color: #64748b; cursor: pointer; transition: all 0.15s;
+        }}
+        .risk-pill:hover:not(:disabled) {{ border-color: #94a3b8; }}
+        .risk-pill.active {{ background: #1e293b; color: white !important; border-color: #1e293b; }}
+        .risk-pill:disabled {{ opacity: 0.35; cursor: default; }}
+        .risk-pill-divider {{
+            width: 1px; height: 18px; background: #e2e8f0; margin: 0 4px;
+        }}
+        .risk-view-controls {{ margin-left: auto; display: flex; gap: 6px; }}
+        .risk-view-toggle {{ border-style: dashed; }}
+        /* Condensed = 2-line scan; clicking a card expands JUST that card
+           (same click-to-expand the fact cards teach) */
+        .risks-condensed .risk:not(.risk-expanded) .citation-chips,
+        .risks-condensed .risk:not(.risk-expanded) .risk-meta,
+        .risks-condensed .risk:not(.risk-expanded) .risk-support:not(.expanded-all) {{ display: none; }}
+        .risks-condensed .risk:not(.risk-expanded) .risk-desc {{
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }}
+        .risks-condensed .risk {{ padding: 10px 16px; margin-bottom: 8px; cursor: pointer; }}
+        .risk-header-right {{ display: flex; align-items: center; gap: 8px; }}
+        .risk-expand-icon {{
+            display: none; font-size: 0.85em; color: #94a3b8;
+            transition: transform 0.25s;
+        }}
+        .risks-condensed .risk-expand-icon {{ display: inline; }}
+        .risks-condensed .risk.risk-expanded .risk-expand-icon {{ transform: rotate(90deg); }}
+
+        /* ── Jump-to-fact from risk cards ── */
+        .risk-fact-link {{
+            font-weight: 700; color: #1d4ed8; background: #eff6ff;
+            border: 1px solid #bfdbfe; border-radius: 10px;
+            padding: 1px 8px; cursor: pointer; font-size: 0.95em;
+        }}
+        .risk-fact-link:hover {{ background: #dbeafe; }}
+        .fact-flash {{ animation: factFlash 1.8s ease-out; }}
+        @keyframes factFlash {{
+            0% {{ box-shadow: 0 0 0 3px #3b82f6aa; }}
+            100% {{ box-shadow: 0 0 0 3px transparent; }}
+        }}
+        /* Lives INSIDE the fact card the user jumped to (jumpToFact moves
+           the one static node there) — right where their eye already is */
+        .back-to-risks {{
+            display: none; margin-top: 10px;
+            padding: 5px 14px; border-radius: 16px; border: none;
+            background: #1e293b; color: white; font-weight: 600;
+            font-size: 0.8em; cursor: pointer;
+        }}
+        .back-to-risks.visible {{ display: inline-block; }}
+        .back-to-risks:hover {{ background: #334155; }}
+        @media print {{ .back-to-risks {{ display: none !important; }} }}
+
+        /* ── Supporting facts on risk cards ── */
+        .risk-support {{ margin-top: 10px; }}
+        .risk-support .show-all-btn {{ margin-top: 0; }}
+        .risk-support-rows {{ display: none; }}
+        .risk-support.expanded-all .risk-support-rows {{ display: block; }}
+        .risk-support-row {{
+            font-size: 0.88em; color: #334155; padding: 6px 10px;
+            margin: 6px 0; background: rgba(255,255,255,0.65);
+            border-left: 3px solid #cbd5e1; border-radius: 0 6px 6px 0;
+            line-height: 1.5;
+        }}
+        .risk-support-no {{ font-weight: 700; color: #64748b; margin-right: 4px; }}
         
         /* ── Sort Controls ── */
         .sort-controls {{
@@ -1718,7 +2273,124 @@ def render_html_report(
         </div>
     </div>
     
+    <button type="button" id="backToRisks" class="back-to-risks"
+            onclick="backToRisks(event)">↑ Back to Risk Flags</button>
+
     <script>
+        // ── Risk section: multi-select severity/category filters with live
+        //    cross-dimension counts (a pill must never promise results the
+        //    other dimension's selection has filtered away) ──
+        const riskSevSel = new Set(), riskCatSel = new Set();
+        function filterRisks(btn) {{
+            const kind = btn.dataset.kind, val = btn.dataset.val;
+            if (kind === 'sev' && val === 'all') {{
+                riskSevSel.clear(); riskCatSel.clear();
+            }} else {{
+                const sel = (kind === 'sev') ? riskSevSel : riskCatSel;
+                if (sel.has(val)) sel.delete(val); else sel.add(val);
+            }}
+            applyRiskFilters();
+        }}
+        function applyRiskFilters() {{
+            const cards = [...document.querySelectorAll('#risksContainer .risk')];
+            let shown = 0;
+            cards.forEach(r => {{
+                const ok = (riskSevSel.size === 0 || riskSevSel.has(r.dataset.severity))
+                        && (riskCatSel.size === 0 || riskCatSel.has(r.dataset.rcat));
+                r.style.display = ok ? '' : 'none';
+                if (ok) shown++;
+            }});
+            document.querySelectorAll('.risk-pill[data-kind]').forEach(p => {{
+                const kind = p.dataset.kind, val = p.dataset.val;
+                let n, selected;
+                if (kind === 'sev' && val === 'all') {{
+                    n = cards.length;
+                    selected = riskSevSel.size === 0 && riskCatSel.size === 0;
+                }} else if (kind === 'sev') {{
+                    n = cards.filter(r => r.dataset.severity === val
+                        && (riskCatSel.size === 0 || riskCatSel.has(r.dataset.rcat))).length;
+                    selected = riskSevSel.has(val);
+                }} else {{
+                    n = cards.filter(r => r.dataset.rcat === val
+                        && (riskSevSel.size === 0 || riskSevSel.has(r.dataset.severity))).length;
+                    selected = riskCatSel.has(val);
+                }}
+                p.textContent = p.dataset.label + ' (' + n + ')';
+                p.classList.toggle('active', selected);
+                // zero-result pills are unclickable UNLESS selected (so a
+                // selection whose count collapsed can still be cleared)
+                p.disabled = (n === 0 && !selected);
+            }});
+            const empty = document.getElementById('riskEmptyState');
+            if (empty) empty.style.display = shown === 0 ? '' : 'none';
+        }}
+        function toggleRiskView(btn) {{
+            const c = document.getElementById('risksContainer');
+            if (!c) return;
+            const condensed = c.classList.toggle('risks-condensed');
+            btn.textContent = condensed ? 'Detailed view' : 'Condensed view';
+            // fresh scan state on every view switch
+            c.querySelectorAll('.risk.risk-expanded')
+                .forEach(r => r.classList.remove('risk-expanded'));
+        }}
+
+        // Condensed view: click a card to expand JUST that card (links and
+        // buttons inside keep their own behavior — same guard as facts)
+        function toggleRiskDetail(riskEl, event) {{
+            const c = document.getElementById('risksContainer');
+            if (!c || !c.classList.contains('risks-condensed')) return;
+            if (event && (event.target.tagName === 'A' || event.target.tagName === 'BUTTON')) return;
+            riskEl.classList.toggle('risk-expanded');
+        }}
+
+        // Master toggle for every risk's supporting facts (deep-dive/print)
+        function toggleAllRiskFacts(btn) {{
+            const expand = btn.dataset.state !== 'open';
+            document.querySelectorAll('#risksContainer .risk-support').forEach(w => {{
+                w.classList.toggle('expanded-all', expand);
+                const b = w.querySelector('.show-all-btn');
+                if (b) b.textContent = expand ? b.dataset.less : b.dataset.more;
+            }});
+            btn.dataset.state = expand ? 'open' : '';
+            btn.textContent = expand ? 'Collapse all facts' : 'Expand all facts';
+        }}
+
+        // ── Jump from a risk's supporting fact to the fact card ──
+        let riskReturnEl = null;
+        function jumpToFact(btn) {{
+            const n = btn.dataset.fact;
+            const target = document.querySelector('.fact[data-index="' + n + '"]');
+            if (!target) return;
+            riskReturnEl = btn.closest('.risk');
+            // Clear any category filter so the fact can't be filter-hidden
+            const allBtn = document.querySelector('.cat-tab[data-cat="all"]');
+            if (allBtn && !activeCategories.has('all')) toggleCategory(allBtn, 'all');
+            // Page to wherever the fact sits under the CURRENT sort order
+            const pos = getVisibleFacts().indexOf(target);
+            if (pos >= 0) {{
+                currentPage = Math.floor(pos / factsPerPage) + 1;
+                showPage(currentPage);
+            }}
+            target.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            target.classList.remove('fact-flash');
+            void target.offsetWidth;  // restart the flash animation
+            target.classList.add('fact-flash');
+            // Park the return button INSIDE the landed-on fact card (moving
+            // the one static node — no markup is ever built from strings)
+            const back = document.getElementById('backToRisks');
+            if (back) {{
+                target.appendChild(back);
+                back.classList.add('visible');
+            }}
+        }}
+        function backToRisks(event) {{
+            if (event) event.stopPropagation();  // don't toggle the fact card
+            const back = document.getElementById('backToRisks');
+            if (back) back.classList.remove('visible');
+            const dest = riskReturnEl || document.getElementById('risksSection');
+            if (dest) dest.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        }}
+
         // ── Section Toggle ──
         function toggleSection(header) {{
             header.classList.toggle('open');
@@ -1731,6 +2403,23 @@ def render_html_report(
             // Don't toggle if user clicked a link or button inside the card
             if (event && (event.target.tagName === 'A' || event.target.tagName === 'BUTTON')) return;
             factEl.classList.toggle('expanded');
+        }}
+
+        // ── Citation chips: "+N more sources" (class/textContent only — no
+        //    innerHTML; chip hrefs are built server-side) ──
+        function toggleCiteChips(btn) {{
+            const wrap = btn.closest('.citation-chips');
+            if (!wrap) return;
+            const on = wrap.classList.toggle('cites-expanded');
+            btn.textContent = on ? btn.dataset.less : btn.dataset.more;
+        }}
+
+        // ── "Show all N" for evidence quotes / trend signals ──
+        function toggleShowAll(btn) {{
+            const wrap = btn.parentElement;
+            if (!wrap) return;
+            const on = wrap.classList.toggle('expanded-all');
+            btn.textContent = on ? btn.dataset.less : btn.dataset.more;
         }}
         
         // ── Fact Sorting (includes trend sort) ──

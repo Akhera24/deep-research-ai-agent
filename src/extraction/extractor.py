@@ -18,7 +18,7 @@ Features:
 
 import json
 import re
-from typing import Awaitable, Callable, List, Dict, Any, Set, Optional
+from typing import Awaitable, Callable, List, Dict, Any, Set, Optional, Tuple
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from collections import Counter
@@ -27,6 +27,32 @@ from config.logging_config import get_logger
 from src.models.router import ModelRouter, TaskType
 
 logger = get_logger(__name__)
+
+# Extraction-feed limits. The prompt hard-truncates its text to
+# EXTRACTION_TEXT_BUDGET chars, so source numbering ([Source N]) must stop at
+# the same boundary — number a source the model never saw and every
+# source_id past the cut misattributes. Both _prepare_text_for_extraction
+# and _build_extraction_prompt read these; do not re-hardcode either value.
+MAX_EXTRACTION_SOURCES = 20
+EXTRACTION_TEXT_BUDGET = 8000
+SOURCE_SEPARATOR = "\n\n---\n\n"
+
+# Anchor resolution (B3.1): fold typographic punctuation so an LLM quote with
+# straight quotes/dashes still matches page text using curly ones. The anchor
+# we RETURN is the page's own text (original punctuation), so the browser's
+# #:~:text= match succeeds against the live page.
+_PUNCT_FOLD = str.maketrans({
+    '‘': "'", '’': "'",   # curly single quotes
+    '“': '"', '”': '"',   # curly double quotes
+    '–': '-', '—': '-',   # en/em dash
+    ' ': ' ',                  # non-breaking space
+})
+
+# Sentence-fallback guardrails: a wrong highlight misleads more than none,
+# so require most target tokens to appear before anchoring a paraphrase.
+_ANCHOR_SENTENCE_MIN_SCORE = 0.55
+_ANCHOR_SENTENCE_MIN_SHARED = 3
+_ANCHOR_MIN_PIECE_CHARS = 20
 
 
 async def _emit_activity(
@@ -67,6 +93,13 @@ class Fact:
         category: Fact category (biographical, professional, etc.)
         confidence: AI confidence score (0.0-1.0)
         source_urls: URLs supporting this fact
+        source_ids: 1-based indices into the numbered sources fed to the
+            extraction prompt (empty when provenance fell back to the batch)
+        source_reliabilities: url -> source_reliability (0.0-1.0) for each
+            supporting URL; used render-side for source-tier badges
+        anchor_texts: url -> page-VERIFIED verbatim text for that source's
+            #:~:text= highlight (B3.1); absent when no anchor could be
+            verified against the source's fetched text
         extracted_at: When fact was extracted
         evidence: Supporting quotes/text
         verified: Whether fact has been cross-referenced
@@ -88,6 +121,9 @@ class Fact:
     category: str = ""
     confidence: float = 0.5
     source_urls: List[str] = field(default_factory=list)
+    source_ids: List[int] = field(default_factory=list)
+    source_reliabilities: Dict[str, float] = field(default_factory=dict)
+    anchor_texts: Dict[str, str] = field(default_factory=dict)
     extracted_at: datetime = field(default_factory=datetime.now)
     evidence: List[str] = field(default_factory=list)
     verified: bool = False
@@ -240,14 +276,18 @@ class FactExtractor:
                 activity_callback, {"kind": "extract", "status": "start"}
             )
 
-            # Prepare text for extraction
-            combined_text = self._prepare_text_for_extraction(search_results)
-            
+            # Prepare text for extraction (numbered blocks + the fed slice
+            # that the id->url provenance map must be built against)
+            combined_text, fed_results = self._prepare_text_for_extraction(
+                search_results
+            )
+
             # Extract facts using AI
             raw_facts = await self._extract_facts_with_ai(
                 combined_text,
                 target_name,
-                search_results
+                search_results,
+                fed_results
             )
             
             # Post-process facts
@@ -321,7 +361,8 @@ class FactExtractor:
         self,
         text: str,
         target_name: str,
-        search_results: List[Any]
+        search_results: List[Any],
+        fed_results: List[Any]
     ) -> List[Fact]:
         """
         Extract facts using AI model.
@@ -346,7 +387,8 @@ class FactExtractor:
             facts = self._convert_to_fact_objects(
                 facts_data,
                 search_results,
-                target_name
+                target_name,
+                fed_results
             )
             
             logger.debug(f"AI extracted {len(facts)} raw facts")
@@ -371,8 +413,8 @@ class FactExtractor:
         """
         return f"""Extract factual information about: {target_name}
 
-From this text:
-{text[:8000]}  # Truncate to fit context
+From this text (each block is numbered [Source 1], [Source 2], ...):
+{text[:EXTRACTION_TEXT_BUDGET]}  # Truncate to fit context
 
 TASK: Extract specific, verifiable facts. For each fact:
 
@@ -394,12 +436,16 @@ TASK: Extract specific, verifiable facts. For each fact:
 
 4. **Evidence**: Direct quote or statement supporting fact
 
+5. **Source IDs**: The [Source N] numbers of the block(s) the fact came from
+   (e.g. [1, 3]). Only use numbers that appear in the text above.
+
 RULES:
 - Only extract facts DIRECTLY about {target_name}
 - Be specific (include dates, numbers, names when available)
 - One fact = one piece of information
 - Do NOT infer or speculate
 - Quote evidence exactly
+- source_ids must list ONLY the numbered sources that support the fact
 
 IMPORTANT: Return ONLY valid JSON, no markdown formatting.
 
@@ -409,13 +455,15 @@ Return JSON array:
     "content": "Sarah Chen graduated from Stanford with an MBA in 2010",
     "category": "biographical",
     "confidence": 0.9,
-    "evidence": "According to LinkedIn profile, MBA Stanford University 2010"
+    "evidence": "According to LinkedIn profile, MBA Stanford University 2010",
+    "source_ids": [2]
   }},
   {{
     "content": "Chen is CEO of TechCorp Inc since 2018",
     "category": "professional",
     "confidence": 0.95,
-    "evidence": "TechCorp website states: Sarah Chen, CEO (2018-present)"
+    "evidence": "TechCorp website states: Sarah Chen, CEO (2018-present)",
+    "source_ids": [1, 3]
   }}
 ]
 
@@ -601,41 +649,220 @@ Extract maximum 30 facts. Start extraction:"""
         
         return facts
     
+    @staticmethod
+    def _normalize_for_match(text: str) -> Tuple[str, List[int]]:
+        """Lowercase, fold typographic punctuation, collapse whitespace.
+
+        Returns (normalized, index_map) where index_map[i] is the original
+        index of normalized[i] — so a match in normalized space can be
+        mapped back to the source's exact original text.
+        """
+        folded = text.translate(_PUNCT_FOLD)
+        out: List[str] = []
+        idx_map: List[int] = []
+        prev_space = True  # also strips leading whitespace
+        for i, ch in enumerate(folded):
+            if ch.isspace():
+                if prev_space:
+                    continue
+                out.append(' ')
+                idx_map.append(i)
+                prev_space = True
+            else:
+                out.append(ch.lower())
+                idx_map.append(i)
+                prev_space = False
+        return ''.join(out), idx_map
+
+    @staticmethod
+    def _find_verbatim_span(needle: str, haystack: str) -> Optional[str]:
+        """Locate needle in haystack ignoring case/whitespace/quote-style.
+
+        Returns the matching span AS IT APPEARS in the haystack (original
+        punctuation, whitespace collapsed) — the form a browser's
+        #:~:text= matcher needs — or None.
+        """
+        if not needle or not haystack:
+            return None
+        n_norm, _ = FactExtractor._normalize_for_match(needle)
+        n_norm = n_norm.strip()
+        if not n_norm:
+            return None
+        h_norm, h_map = FactExtractor._normalize_for_match(haystack)
+        pos = h_norm.find(n_norm)
+        if pos == -1:
+            return None
+        start = h_map[pos]
+        end = h_map[pos + len(n_norm) - 1] + 1
+        return re.sub(r'\s+', ' ', haystack[start:end]).strip()
+
+    @staticmethod
+    def _resolve_source_anchor(quote: str, fact_content: str, result: Any) -> Optional[str]:
+        """Page-verified #:~:text= anchor for ONE cited source, or None.
+
+        The LLM's quote is only useful as a highlight anchor if it exists
+        verbatim on the cited page. Resolution order (B3.1):
+          (a) the quote itself, matched against the source's fetched
+              content, then its snippet;
+          (b) an ELIDED quote ("A ... B"): the longest piece that matches
+              (one piece only — the browser scrolls to the first directive,
+              so a second highlight adds URL length, not user value);
+          (c) a PARAPHRASED quote: the page sentence with the highest
+              token overlap with quote+fact, page content only and gated
+              by a conservative threshold (a wrong highlight misleads
+              more than none).
+        Returns None when nothing verifies — render degrades to a plain link.
+        """
+        content = getattr(result, 'content', None) or ''
+        snippet = getattr(result, 'snippet', None) or ''
+        quote = (quote or '').strip()
+
+        for text in (content, snippet):
+            if not text or not quote:
+                continue
+            span = FactExtractor._find_verbatim_span(quote, text)
+            if span:
+                return span
+            pieces = [p.strip() for p in re.split(r'\.\.\.|…', quote)
+                      if len(p.strip()) >= _ANCHOR_MIN_PIECE_CHARS]
+            if len(pieces) > 1 or (pieces and pieces[0] != quote):
+                for piece in sorted(pieces, key=len, reverse=True):
+                    span = FactExtractor._find_verbatim_span(piece, text)
+                    if span:
+                        return span
+
+        if not content:
+            return None
+        target_tokens = {
+            t for t in re.findall(r'[a-z0-9]+', f"{quote} {fact_content}".lower())
+            if len(t) >= 4
+        }
+        if len(target_tokens) < _ANCHOR_SENTENCE_MIN_SHARED:
+            return None
+        best, best_score = None, 0.0
+        for sentence in re.split(r'(?<=[.!?])\s+', content):
+            sentence = re.sub(r'\s+', ' ', sentence).strip()
+            if not 30 <= len(sentence) <= 300:
+                continue
+            sent_tokens = {t for t in re.findall(r'[a-z0-9]+', sentence.lower())
+                           if len(t) >= 4}
+            shared = len(target_tokens & sent_tokens)
+            score = shared / len(target_tokens)
+            if (shared >= _ANCHOR_SENTENCE_MIN_SHARED
+                    and score >= _ANCHOR_SENTENCE_MIN_SCORE
+                    and score > best_score):
+                best, best_score = sentence, score
+        return best
+
+    @staticmethod
+    def _validate_source_ids(raw_ids: Any, num_fed: int) -> List[int]:
+        """Per-id validation of an LLM-returned source_ids value (M4).
+
+        Drops individual invalid / non-int / out-of-range ids and dedupes,
+        KEEPING the valid subset — never discard a good id because a sibling
+        was bad. Returns [] when nothing valid remains (caller falls back to
+        the batch stamp). Never raises.
+        """
+        if not isinstance(raw_ids, list):
+            return []
+        valid = []
+        for raw in raw_ids:
+            # bool is an int subclass; True would silently mean [Source 1]
+            if isinstance(raw, bool):
+                continue
+            if isinstance(raw, int):
+                sid = raw
+            elif isinstance(raw, str) and raw.strip().isdigit():
+                sid = int(raw.strip())
+            else:
+                continue
+            if 1 <= sid <= num_fed and sid not in valid:
+                valid.append(sid)
+        return valid
+
     def _convert_to_fact_objects(
         self,
         facts_data: List[Dict[str, Any]],
         search_results: List[Any],
-        target_name: str
+        target_name: str,
+        fed_results: List[Any]
     ) -> List[Fact]:
-        """Convert parsed JSON to Fact objects with validation"""
+        """Convert parsed JSON to Fact objects with validation.
+
+        Provenance: fed_results[N-1] is the block the prompt numbered
+        [Source N], so valid source_ids resolve to per-fact URLs; a fact
+        with no valid id keeps today's whole-batch stamp.
+        """
         facts = []
-        
+
         for data in facts_data:
             try:
                 # Validate required fields
                 if not all(key in data for key in ["content", "category", "confidence"]):
                     logger.warning(f"Skipping fact with missing fields: {data}")
                     continue
-                
+
+                # Resolve per-fact provenance from the fed slice (B0)
+                source_ids = self._validate_source_ids(
+                    data.get("source_ids"), len(fed_results)
+                )
+                if source_ids:
+                    cited = [fed_results[sid - 1] for sid in source_ids]
+                else:
+                    # Batch fallback — preserves pre-B0 coverage exactly.
+                    # Log ids/counts only, never scraped content.
+                    logger.debug(
+                        "source_ids fallback to batch stamp",
+                        extra={
+                            "raw_ids": str(data.get("source_ids"))[:80],
+                            "num_fed": len(fed_results),
+                        },
+                    )
+                    cited = list(search_results)
+                source_urls = list(dict.fromkeys(r.url for r in cited))
+                source_reliabilities = {
+                    r.url: getattr(r, 'source_reliability', 0.5) for r in cited
+                }
+
+                # B3.1: page-verified highlight anchors — only for real
+                # per-fact citations (batch fallback isn't provenance; no
+                # anchor is honest there and render degrades to plain links)
+                anchor_texts = {}
+                if source_ids:
+                    raw_quote = data.get("evidence", "")
+                    if not isinstance(raw_quote, str):
+                        raw_quote = ""
+                    for r in cited:
+                        if r.url in anchor_texts:
+                            continue
+                        anchor = self._resolve_source_anchor(
+                            raw_quote, data["content"], r
+                        )
+                        if anchor:
+                            anchor_texts[r.url] = anchor
+
                 # Create Fact object
                 fact = Fact(
                     content=data["content"].strip(),
                     category=data["category"].lower(),
                     confidence=float(data["confidence"]),
                     evidence=[data.get("evidence", "")],
-                    source_urls=[r.url for r in search_results],
+                    source_urls=source_urls,
+                    source_ids=source_ids,
+                    source_reliabilities=source_reliabilities,
+                    anchor_texts=anchor_texts,
                     extracted_at=datetime.now()
                 )
-                
+
                 # Extract entities mentioned
                 fact.entities_mentioned = self._extract_entities_from_fact(fact.content)
-                
+
                 facts.append(fact)
-                
+
             except Exception as e:
                 logger.warning(f"Error converting fact: {e}")
                 continue
-        
+
         return facts
     
     # ========================================================================
@@ -660,12 +887,17 @@ Extract maximum 30 facts. Start extraction:"""
         # Pattern: "Name is/was [role] at/of [company]"
         role_pattern = rf"{re.escape(target_name)}\s+(?:is|was)\s+(\w+(?:\s+\w+)*)\s+(?:at|of)\s+([\w\s]+)"
         
+        batch_reliabilities = {
+            r.url: getattr(r, 'source_reliability', 0.5) for r in search_results
+        }
+
         for match in re.finditer(role_pattern, text, re.IGNORECASE):
             fact = Fact(
                 content=f"{target_name} is {match.group(1)} at {match.group(2)}",
                 category="professional",
                 confidence=0.6,  # Lower confidence for regex
                 source_urls=[r.url for r in search_results],
+                source_reliabilities=dict(batch_reliabilities),
                 evidence=[match.group(0)]
             )
             facts.append(fact)
@@ -679,6 +911,7 @@ Extract maximum 30 facts. Start extraction:"""
                 category="biographical",
                 confidence=0.7,
                 source_urls=[r.url for r in search_results],
+                source_reliabilities=dict(batch_reliabilities),
                 evidence=[match.group(0)]
             )
             facts.append(fact)
@@ -845,8 +1078,16 @@ Extract maximum 30 facts. Start extraction:"""
             for existing in unique:
                 similarity = self._fact_similarity(fact.content, existing.content)
                 if similarity > 0.85:  # 85% similar
-                    # Merge evidence
+                    # Merge evidence + provenance (dropping the duplicate's
+                    # source_urls would silently shrink citation coverage)
                     existing.evidence.extend(fact.evidence)
+                    for url in fact.source_urls:
+                        if url not in existing.source_urls:
+                            existing.source_urls.append(url)
+                    for url, rel in fact.source_reliabilities.items():
+                        existing.source_reliabilities.setdefault(url, rel)
+                    for url, anchor in fact.anchor_texts.items():
+                        existing.anchor_texts.setdefault(url, anchor)
                     existing.verification_count += 1
                     existing.confidence = max(existing.confidence, fact.confidence)
                     is_duplicate = True
@@ -879,28 +1120,46 @@ Extract maximum 30 facts. Start extraction:"""
     def _prepare_text_for_extraction(
         self,
         search_results: List[Any]
-    ) -> str:
+    ) -> Tuple[str, List[Any]]:
         """
-        Combine search results into text for extraction.
-        
-        Prioritizes:
-        - High-rank results
-        - High-reliability sources
-        - Unique content
+        Combine search results into numbered text for extraction.
+
+        Each fed result becomes a "[Source N] title\\nsnippet[\\ncontent]"
+        block. Numbering must match what the model actually sees, so blocks
+        stop at EXTRACTION_TEXT_BUDGET (the prompt's hard truncation) on a
+        block boundary — a source the budget cuts off is never numbered.
+
+        Returns:
+            (combined_text, fed_results) — fed_results[N-1] is [Source N];
+            this list is the single source of truth for the id->url/tier
+            map in _convert_to_fact_objects.
         """
         combined_parts = []
-        
-        for result in search_results[:20]:  # Top 20 results
-            # Combine title and snippet
-            text = f"{result.title}\n{result.snippet}"
-            
+        fed_results = []
+        total_len = 0
+
+        for result in search_results[:MAX_EXTRACTION_SOURCES]:
+            # Combine title and snippet under a stable source number
+            text = f"[Source {len(fed_results) + 1}] {result.title}\n{result.snippet}"
+
             # Add full content if available
             if hasattr(result, 'content') and result.content:
                 text += f"\n{result.content[:500]}"  # First 500 chars
-            
+
+            added_len = len(text) if not combined_parts else len(SOURCE_SEPARATOR) + len(text)
+            if total_len + added_len > EXTRACTION_TEXT_BUDGET:
+                if not combined_parts:
+                    # A single oversized first block: truncate it rather than
+                    # feeding the model nothing (matches old [:8000] behavior).
+                    combined_parts.append(text[:EXTRACTION_TEXT_BUDGET])
+                    fed_results.append(result)
+                break
+
             combined_parts.append(text)
-        
-        return "\n\n---\n\n".join(combined_parts)
+            fed_results.append(result)
+            total_len += added_len
+
+        return SOURCE_SEPARATOR.join(combined_parts), fed_results
     
     def _extract_entities_from_fact(self, fact_content: str) -> List[str]:
         """

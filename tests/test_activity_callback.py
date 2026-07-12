@@ -79,7 +79,7 @@ def _extractor(contents):
     """Extractor whose AI step returns Facts with the given contents."""
     fx = FactExtractor(MagicMock(), enable_verification=False)
 
-    async def fake_ai(text, target_name, search_results):
+    async def fake_ai(text, target_name, search_results, fed_results):
         return [
             Fact(content=c, category="professional", confidence=0.9)
             for c in contents
