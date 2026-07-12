@@ -789,6 +789,15 @@ class ResearchOrchestrator:
                         for url in new_urls:
                             if url not in existing_urls:
                                 accepted.source_urls.append(url)
+                        # Merge per-source reliability (Phase B4 tier badges);
+                        # keep the accepted fact's value on collision
+                        new_rels = getattr(fact, 'source_reliabilities', {}) or {}
+                        for url, rel in new_rels.items():
+                            accepted.source_reliabilities.setdefault(url, rel)
+                        # Merge page-verified highlight anchors (B3.1)
+                        new_anchors = getattr(fact, 'anchor_texts', {}) or {}
+                        for url, anchor in new_anchors.items():
+                            accepted.anchor_texts.setdefault(url, anchor)
                         is_duplicate = True
                         break
             
@@ -1332,30 +1341,46 @@ class ResearchOrchestrator:
         try:
             # Clean up response content
             cleaned = content.strip()
-            
-            # Remove markdown code blocks
-            if "```json" in cleaned:
-                match = re.search(r'```json\s*(\[.*?\])\s*```', cleaned, re.DOTALL)
-                if match:
-                    cleaned = match.group(1)
-            elif "```" in cleaned:
-                match = re.search(r'```\s*(\[.*?\])\s*```', cleaned, re.DOTALL)
-                if match:
-                    cleaned = match.group(1)
-            
-            # Try to find JSON array in text
+
+            # Remove markdown code blocks. A token-limit-truncated response
+            # has an OPENING fence but no closing one — handle both, or a
+            # long connections/risks array silently parses to [] (observed
+            # live 2026-07-11: truncated connections response -> 0
+            # connections -> 20-point quality drop).
+            match = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', cleaned, re.DOTALL)
+            if match:
+                cleaned = match.group(1)
+            elif cleaned.startswith("```"):
+                first_newline = cleaned.find("\n")
+                cleaned = (cleaned[first_newline + 1:] if first_newline != -1
+                           else cleaned[3:]).strip()
+                if cleaned.rstrip().endswith("```"):
+                    cleaned = cleaned.rstrip()[:-3]
+
+            # Slice from the first '[' (tolerates prose before the array and
+            # a missing closing bracket, unlike a [.*?] regex)
             if not cleaned.startswith('['):
-                match = re.search(r'\[.*?\]', cleaned, re.DOTALL)
-                if match:
-                    cleaned = match.group(0)
-                else:
-                    # No array found
+                start = cleaned.find('[')
+                if start == -1:
                     logger.warning(f"No JSON array found in {response_type} response")
                     return []
-            
-            # Parse JSON
-            result = json.loads(cleaned)
-            
+                cleaned = cleaned[start:]
+
+            # Parse JSON; on failure, repair a truncated array by cutting
+            # back to the last complete object (same strategy as the
+            # extractor's _parse_ai_response repair)
+            try:
+                result = json.loads(cleaned)
+            except json.JSONDecodeError:
+                result = self._repair_truncated_json_array(cleaned)
+                if result is None:
+                    logger.warning(f"JSON parsing failed for {response_type} (unrepairable)")
+                    return []
+                logger.warning(
+                    f"Repaired truncated {response_type} JSON response",
+                    extra={"recovered_items": len(result)}
+                )
+
             if not isinstance(result, list):
                 logger.warning(f"{response_type} response is not a list: {type(result)}")
                 return []
@@ -1375,6 +1400,25 @@ class ResearchOrchestrator:
         except Exception as e:
             logger.error(f"Unexpected error parsing {response_type}: {e}")
             return []
+
+    @staticmethod
+    def _repair_truncated_json_array(text: str) -> Optional[List]:
+        """Recover the complete leading objects of a truncated JSON array.
+
+        Walks back from the end, cutting at each '}' and closing the array,
+        until a prefix parses. Returns None when nothing parseable remains.
+        """
+        last = text.rfind('}')
+        while last != -1:
+            candidate = text[:last + 1].rstrip().rstrip(',') + ']'
+            try:
+                result = json.loads(candidate)
+                if isinstance(result, list):
+                    return result
+            except json.JSONDecodeError:
+                pass
+            last = text.rfind('}', 0, last)
+        return None
 
 
     def _fallback_pattern_risk_detection(self, facts: List, target_name: str) -> List[Dict]:
