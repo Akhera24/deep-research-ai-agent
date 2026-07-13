@@ -202,7 +202,12 @@ class TestLiveReport:
         _submit(page, server)
 
         # Instant, client-only: brief + tabs + zeroed counters + all 6 bars.
-        expect(page.locator("#brief")).to_contain_text("Subject: Test Subject")
+        # C1.6b (deliberate revision): on a scoped run the brief's Subject
+        # line shows the RESOLVED entity descriptor (here the harness's
+        # default auto candidate), not the raw query — brief agrees with
+        # the assumption banner. Instant-render intent unchanged.
+        expect(page.locator("#brief")).to_contain_text(
+            "Subject: Scripted Test Entity")
         expect(page.locator("#brief")).to_contain_text("Coverage:")
         expect(page.locator("#live-report")).to_be_visible()
         expect(page.locator("#cat-bars .cat-row")).to_have_count(6)

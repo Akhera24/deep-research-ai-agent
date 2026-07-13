@@ -22,6 +22,20 @@ import uvicorn
 from src.api import db as api_db
 from src.api import jobs as jobs_mod
 from src.api import routes as routes_mod
+from src.api import security as security_mod
+from src.core import preflight as preflight_mod
+from src.core.preflight import PreflightCandidate, PreflightResult
+
+
+def _default_result():
+    # C1.7a: sidelined_facts present-but-empty by default — the scripted
+    # harness has no graph/extractor, so tests that need the report's
+    # sideline section assign a result whose sidelined_facts is populated
+    # (attribution mechanics stay unit-tested; Rev 3.9 R5 lesson).
+    return {
+        "facts": [], "sidelined_facts": [], "risk_flags": [], "connections": [],
+        "metadata": {"coverage": {}, "iterations": 1, "duration_seconds": 0.1},
+    }
 
 
 class ScriptedOrchestrator:
@@ -37,10 +51,7 @@ class ScriptedOrchestrator:
 
     script = []
     total_cost = 0.01           # >= PER_JOB_BUDGET_USD triggers the budget abort
-    result = {
-        "facts": [], "risk_flags": [], "connections": [],
-        "metadata": {"coverage": {}, "iterations": 1, "duration_seconds": 0.1},
-    }
+    result = _default_result()
 
     def __init__(self, max_iterations=10, enable_checkpoints=False):
         class _Cfg:
@@ -55,7 +66,7 @@ class ScriptedOrchestrator:
         self.router = _Router()
 
     async def research(self, query, context=None, progress_callback=None,
-                       activity_callback=None):
+                       activity_callback=None, rejected_entities=None):
         for step, arg in type(self).script:
             if step == "progress" and progress_callback is not None:
                 await progress_callback(arg)
@@ -69,6 +80,39 @@ class ScriptedOrchestrator:
             elif step == "fail":
                 raise RuntimeError(arg)
         return type(self).result
+
+
+class ScriptedPreflight:
+    """Stands in for preflight.discover_candidates (C1 e2e): the
+    /api/disambiguate endpoint runs for REAL (gates, ticket mint/consume,
+    ledger) — only the search+LLM candidate pass is scripted.
+
+    Default (result=None) → decision "auto" on a scripted entity: since D6
+    (Rev 3.9) only auto auto-submits, this keeps every pre-C test's
+    submit→run flow working unchanged. Set `hold` (threading.Event) to make
+    the pre-flight wait — for pending-state tests."""
+
+    result = None
+    last = None      # records query/hints/ALL kwargs of the most recent
+                     # call (R8: a stub that swallows kwargs makes threading
+                     # assertions pass silently)
+    hold = None      # threading.Event: pre-flight waits until set
+
+    @staticmethod
+    async def discover(query, hints=None, **kwargs):
+        ScriptedPreflight.last = {"query": query, "hints": hints, **kwargs}
+        if ScriptedPreflight.hold is not None:
+            while not ScriptedPreflight.hold.is_set():
+                await asyncio.sleep(0.02)
+        if ScriptedPreflight.result is not None:
+            return ScriptedPreflight.result
+        return PreflightResult(decision="auto", note="single", candidates=[
+            PreflightCandidate(
+                canonical_name="Scripted Test Entity",
+                descriptor="Scripted Test Entity — default auto candidate",
+                disambiguators=["scripted"], domain_mass=3,
+                domains=["a.example", "b.example", "c.example"]),
+        ])
 
 
 async def _turnstile_ok(token, ip):
@@ -96,8 +140,15 @@ def server(tmp_path, monkeypatch):
     monkeypatch.setattr(routes_mod, "verify_turnstile", _turnstile_ok)
     monkeypatch.setattr(routes_mod, "SSE_POLL_SECONDS", 0.1)
     monkeypatch.setattr(jobs_mod, "ResearchOrchestrator", ScriptedOrchestrator)
+    monkeypatch.setattr(preflight_mod, "discover_candidates",
+                        ScriptedPreflight.discover)
     ScriptedOrchestrator.script = []
     ScriptedOrchestrator.total_cost = 0.01
+    ScriptedOrchestrator.result = _default_result()
+    ScriptedPreflight.result = None
+    ScriptedPreflight.last = None
+    ScriptedPreflight.hold = None
+    security_mod.reset_ticket_state()
     jobs_mod.reset_state()
     try:
         routes_mod.limiter.reset()

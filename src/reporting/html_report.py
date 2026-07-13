@@ -653,11 +653,14 @@ def calculate_quality_score(
     elif final_score >= 70:
         grade, quality, indicator = "C-", "Below Average", "\U0001f44d"
     elif final_score >= 67:
-        grade, quality, indicator = "D+", "Needs Improvement", "\u26a0\ufe0f"
+        # Low-tier words describe the REPORT's depth, never the person \u2014
+        # "Failing/Poor" next to a name reads as a judgment of the subject
+        # (human-directed 2026-07-13; letter grades + math untouched, P1).
+        grade, quality, indicator = "D+", "Shallow Coverage", "\u26a0\ufe0f"
     elif final_score >= 65:
-        grade, quality, indicator = "D", "Poor", "\u26a0\ufe0f"
+        grade, quality, indicator = "D", "Thin Findings", "\u26a0\ufe0f"
     else:
-        grade, quality, indicator = "F", "Failing", "\u274c"
+        grade, quality, indicator = "F", "Minimal Public Data", "\u274c"
 
         
     # ---- RECOMMENDATIONS & STRENGTHS ----
@@ -809,6 +812,11 @@ def render_html_report(
         _first_evidence_quote(rf.get('evidence', [])) if isinstance(rf, dict) else ''
         for rf in (result.get('facts', []) or [])
     ]
+    # C1.7a (R6): the sideline section captures its OWN raw seam — the seam
+    # is per-list, not inherited; chips built from the escaped copy would
+    # double-encode every href (&→&amp;→%26amp%3B).
+    raw_sidelined_citations = _raw_fact_citations(
+        result.get('sidelined_facts', []) or [])
 
     # ── XSS guard (PHASE3_DESIGN §3/§11.R6, edge case #10) ──────────────────
     # Everything below interpolates scraped-web text into HTML f-strings.
@@ -1681,9 +1689,97 @@ def render_html_report(
     if not trend_html:
         trend_html = "<p class='no-data'>Insufficient data for trend analysis</p>"
     
+    # ── Sidelined facts (C1.7a D10): collapsed, visible, never deleted ──
+    # Text renders from the ESCAPED copy (result already passed the
+    # chokepoint); hrefs come from the section's OWN raw seam (R6).
+    # DOM-bounded: the sideline pool is NOT counted by the target-only
+    # hard cap and can be large on exactly the contaminated runs this
+    # section exists to display.
+    SIDELINE_RENDER_CAP = 30
+    sidelined_facts = result.get('sidelined_facts', []) or []
+    sideline_section_html = ''
+    if sidelined_facts:
+        sideline_cards = []
+        for sf_i, sf in enumerate(sidelined_facts[:SIDELINE_RENDER_CAP]):
+            if not isinstance(sf, dict):
+                continue
+            sf_chips = _render_citation_chips(
+                raw_sidelined_citations[sf_i]
+                if sf_i < len(raw_sidelined_citations) else []
+            )
+            sf_conf = sf.get('confidence', 0)
+            sf_conf_txt = (f' · confidence {sf_conf * 100:.0f}%'
+                           if isinstance(sf_conf, (int, float)) else '')
+            sideline_cards.append(
+                f'<div class="sideline-fact">'
+                f'<div class="sideline-fact-text">{sf.get("content", "")}</div>'
+                f'<div class="sideline-fact-meta">'
+                f'{str(sf.get("category", "")).upper()}{sf_conf_txt}</div>'
+                f'{sf_chips}</div>'
+            )
+        sideline_more_html = ''
+        overflow = len(sidelined_facts) - SIDELINE_RENDER_CAP
+        if overflow > 0:
+            sideline_more_html = (
+                f'<div class="sideline-more">and {overflow} more set aside '
+                f'— the full list is kept in the report data</div>'
+            )
+        sideline_section_html = f'''
+        <!-- ═══ SIDELINED FACTS (C1.7a — other people sharing the name) ═══ -->
+        <div class="section" id="sidelineSection">
+            <div class="section-header" onclick="toggleSection(this)">
+                🧍 Facts about other people named {query} ({len(sidelined_facts)}) — not included in the analysis or score
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <p class="sideline-note">Set aside during extraction because the
+                source’s subject conflicted with the research target
+                (different person, employer, era, or role). Kept visible so
+                nothing is silently discarded — if one of these is actually
+                your subject, refine the details and run again.</p>
+                {''.join(sideline_cards)}
+                {sideline_more_html}
+            </div>
+        </div>'''
+
     # ── Metadata ──
     iterations = metadata.get('iterations', 0)
     queries_executed = metadata.get('queries_executed', 0)
+    # C1.5 honesty marker: present ONLY when the continue/verify branch
+    # actually short-circuited on a user request (workflow stamps it — R3).
+    finished_early_html = ""
+    if metadata.get('finished_early'):
+        max_iterations = metadata.get('max_iterations', 0)
+        of_max = f" of {max_iterations}" if max_iterations else ""
+        finished_early_html = (
+            f'<div class="early-note">⏹ Generated early at the user\'s '
+            f'request after {iterations}{of_max} iterations — coverage may '
+            f'be thinner than a full run.</div>'
+        )
+
+    # ── Thin-subject honesty note (C3-minimal, 2026-07-13) ──────────────
+    # A low score on a low-footprint subject reads as "this person is
+    # risky/failing" when it actually means "little public information
+    # exists". Say so explicitly. Render-side framing only — the scoring
+    # math is untouched (grade semantics redesign lives in future P1).
+    THIN_SUBJECT_FACTS = 15
+    thin_note_html = ""
+    if len(facts) < THIN_SUBJECT_FACTS:
+        sidelined_clause = ""
+        sidelined_n = metadata.get('sidelined_count', 0)
+        if isinstance(sidelined_n, int) and sidelined_n > 0:
+            sidelined_clause = (
+                f" {sidelined_n} facts about other people sharing the name "
+                f"were set aside (see the section at the bottom)."
+            )
+        thin_note_html = (
+            f'<div class="thin-note">ℹ️ Limited public footprint — '
+            f'{queries_executed} searches over {iterations} iterations were '
+            f'exhausted and {len(facts)} verified facts were found. The '
+            f'depth score reflects how little public information exists '
+            f'about this subject — scarcity is not elevated risk.'
+            f'{sidelined_clause}</div>'
+        )
     
     # ================================================================
     # FULL HTML TEMPLATE
@@ -1737,7 +1833,13 @@ def render_html_report(
         .header h1 {{ font-size: 1.1em; font-weight: 400; opacity: 0.9; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }}
         .header h2 {{ font-size: 2.4em; font-weight: 700; margin-bottom: 16px; }}
         .header-meta {{ display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.95em; opacity: 0.85; }}
-        .score-hero {{ 
+        .thin-note {{ margin-top: 12px; padding: 8px 14px; border-radius: 8px;
+            background: rgba(255,255,255,0.14); font-size: 0.85em; }}
+        .score-caption {{ font-size: 0.72em; opacity: 0.75; margin-top: 6px;
+            max-width: 380px; line-height: 1.45; }}
+        .early-note {{ margin-top: 12px; padding: 8px 14px; border-radius: 8px;
+            background: rgba(255,255,255,0.14); font-size: 0.9em; }}
+        .score-hero {{
             display: flex; align-items: center; gap: 16px; 
             margin-top: 24px; padding: 16px 24px; 
             background: rgba(255,255,255,0.12); border-radius: 12px; 
@@ -1795,6 +1897,19 @@ def render_html_report(
         }}
         .search-box:focus {{ border-color: #3b82f6; }}
         
+        /* ── Sidelined facts (C1.7a — muted: excluded from the analysis) ── */
+        .sideline-note {{ font-size: 0.85em; color: #64748b; margin-bottom: 14px; }}
+        .sideline-fact {{
+            padding: 10px 14px; margin-bottom: 8px; border-radius: 8px;
+            background: #f8fafc; border: 1px dashed #cbd5e1;
+        }}
+        .sideline-fact-text {{ font-size: 0.9em; color: #475569; }}
+        .sideline-fact-meta {{
+            font-size: 0.7em; color: #94a3b8; margin-top: 3px;
+            letter-spacing: 0.5px;
+        }}
+        .sideline-more {{ font-size: 0.82em; color: #94a3b8; margin-top: 10px; }}
+
         /* ── Sections ── */
         .section {{ border-bottom: 1px solid #e2e8f0; }}
         .section-header {{ 
@@ -2187,11 +2302,15 @@ def render_html_report(
                 <span>🔄 {iterations} iterations</span>
                 <span>🔎 {queries_executed} searches</span>
             </div>
+            {finished_early_html}
+            {thin_note_html}
             <div class="score-hero">
                 <div class="score-number">{score}</div>
                 <div class="score-details">
                     <div class="score-grade">Grade {grade} — {quality}</div>
                     <div>out of 100 points</div>
+                    <div class="score-caption">Measures research depth —
+                    not the subject's credibility or risk.</div>
                 </div>
             </div>
         </div>
@@ -2266,7 +2385,7 @@ def render_html_report(
                 {trend_html}
             </div>
         </div>
-        
+        {sideline_section_html}
         <!-- ═══ FOOTER ═══ -->
         <div class="footer">
             Generated by Deep Research AI Agent · {total_consol} facts ({len(facts)} raw) · {len(connections)} connections · {len(risks)} risk flags · Quality Score {score}/100
