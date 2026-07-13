@@ -38,6 +38,8 @@ class FakeOrchestrator:
 
     total_cost = 0.05          # overridden per-test via class attribute
     fail_with: Exception | None = None
+    last_context = None        # records the context arg (C1.2 threading)
+    last_rejected = None       # records rejected_entities (C1.7d threading)
 
     def __init__(self, max_iterations=10, enable_checkpoints=False):
         class _Cfg:
@@ -52,7 +54,9 @@ class FakeOrchestrator:
         self.router.clients = {"fake": self._client}
 
     async def research(self, query, context=None, progress_callback=None,
-                       activity_callback=None):
+                       activity_callback=None, rejected_entities=None):
+        type(self).last_context = context
+        type(self).last_rejected = rejected_entities
         # Interleave activity around the node-boundary write, like the real
         # orchestrator does — every test therefore exercises the shared
         # progress_state merge (REVIEW-LEARNINGS clobber rule).
@@ -117,6 +121,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(jobs_mod, "ResearchOrchestrator", FakeOrchestrator)
     FakeOrchestrator.total_cost = 0.05
     FakeOrchestrator.fail_with = None
+    FakeOrchestrator.last_context = None
     jobs_mod.reset_state()
     try:
         routes_mod.limiter.reset()

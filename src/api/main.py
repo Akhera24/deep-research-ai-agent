@@ -58,6 +58,9 @@ def _log_config_presence() -> None:
         "BRAVE_API_KEY": bool(settings.BRAVE_API_KEY),
         "SERPER_API_KEY": bool(settings.SERPER_API_KEY),
         "DATABASE_URL_is_postgres": settings.DATABASE_URL.startswith("postgres"),
+        # C1.1: unset falls back to a boot-random key — works, but every
+        # restart invalidates in-flight pre-flight tickets (Human TODO #6)
+        "PREFLIGHT_TICKET_SECRET": bool(settings.PREFLIGHT_TICKET_SECRET),
     }
     present = sorted(k for k, ok in checks.items() if ok)
     missing = sorted(k for k, ok in checks.items() if not ok)

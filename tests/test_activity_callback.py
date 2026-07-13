@@ -79,7 +79,8 @@ def _extractor(contents):
     """Extractor whose AI step returns Facts with the given contents."""
     fx = FactExtractor(MagicMock(), enable_verification=False)
 
-    async def fake_ai(text, target_name, search_results, fed_results):
+    async def fake_ai(text, target_name, search_results, fed_results,
+                      target_context=None, rejected_entities=None):
         return [
             Fact(content=c, category="professional", confidence=0.9)
             for c in contents
@@ -212,8 +213,9 @@ async def test_extract_failure_emits_done_zero_no_dangling_start():
     facts = await fx.extract(_results(), "Jane Doe", activity_callback=cb)
     assert facts == []
     assert events[0] == {"kind": "extract", "status": "start"}
+    # C1.7a: the done event contract gained set_aside (R5) — 0 on failure
     assert events[1] == {"kind": "extract", "status": "done", "facts": 0,
-                         "samples": [], "facts_new": []}
+                         "samples": [], "facts_new": [], "set_aside": 0}
 
 
 @pytest.mark.asyncio
@@ -307,7 +309,8 @@ async def test_node_extract_facts_enriches_events_with_iteration():
     orch._activity_callback = cb
 
     async def fake_extract(search_results, target_name, max_facts,
-                           activity_callback):
+                           activity_callback, target_context=None,
+                           rejected_entities=None):
         await activity_callback({"kind": "extract", "status": "start"})
         return []
 

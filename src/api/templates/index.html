@@ -44,9 +44,71 @@
         button:focus-visible, [role=tab]:focus-visible { outline: 2px solid #2d5a8e; outline-offset: 2px; }
         .turnstile-box { margin-bottom: 16px; }
 
+        /* ---- Phase C: hints form + disambiguation picker + banner ---- */
+        #hints { margin: -6px 0 16px; }
+        #hints summary { cursor: pointer; color: #2d5a8e; font-size: 0.88em;
+                font-weight: 600; }
+        #hints summary:focus-visible { outline: 2px solid #2d5a8e; outline-offset: 2px; }
+        #hints-grid { display: grid; grid-template-columns: 1fr 1fr;
+                gap: 0 12px; margin-top: 10px; }
+        #hints-grid label { font-size: 0.8em; margin-bottom: 4px; color: #475569; }
+        #hints-grid input { margin-bottom: 10px; padding: 8px 10px; font-size: 0.9em; }
+        @media (max-width: 640px) { #hints-grid { grid-template-columns: 1fr; } }
+        #hints-tip { font-size: 0.78em; color: #64748b; margin-top: 8px; }
+        .chip.match-strong { background: #dcfce7; color: #166534; }
+
+        #picker { margin-top: 16px; background: white; border-radius: 12px;
+                padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        #picker h2 { font-size: 1.05em; color: #1e293b; }
+        #picker-sub { color: #64748b; font-size: 0.85em; margin: 4px 0 12px; }
+        #picker-cards { display: flex; flex-direction: column; gap: 8px; }
+        .picker-card { flex: none; width: 100%; height: auto; min-height: 0; }
+        .picker-card .ent-name, .picker-card .ent-cat { white-space: normal;
+                overflow: visible; }
+        #picker-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        #picker-actions button { background: #f1f5f9; color: #334155;
+                font-size: 0.85em; padding: 8px 14px; }
+        #picker-actions button:hover { background: #e2e8f0; }
+        #picker-warning { color: #92400e; background: #fef3c7; border-radius: 6px;
+                padding: 6px 10px; font-size: 0.85em; margin-top: 10px; }
+        #picker-note { color: #92400e; font-size: 0.85em; margin: -6px 0 10px;
+                font-weight: 600; }
+        #preflight-pending { color: #2d5a8e; font-size: 0.88em; margin-top: 10px;
+                animation: preflight-pulse 1.4s ease-in-out infinite; }
+        @keyframes preflight-pulse { 50% { opacity: 0.45; } }
+        @media (prefers-reduced-motion: reduce) {
+            #preflight-pending { animation: none; }
+        }
+
+        /* author display beats the UA [hidden] rule — restate it (D8 lesson) */
+        #assumption-banner[hidden] { display: none; }
+        #assumption-banner { display: flex; align-items: center; gap: 10px;
+                justify-content: space-between; flex-wrap: wrap;
+                background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+                padding: 8px 12px; margin-bottom: 12px; font-size: 0.88em;
+                color: #1e3a5f; overflow-wrap: anywhere; }
+        #assumption-banner.warn { background: #fef3c7; border-color: #fde68a;
+                color: #92400e; }
+        #banner-cancel, #cancel-btn, #finish-btn, #finish-no { background: none;
+                border: 1px solid #cbd5e1; color: #475569; font-size: 0.82em;
+                padding: 5px 10px; border-radius: 6px; flex: none; }
+        #banner-cancel:hover, #cancel-btn:hover, #finish-btn:hover,
+        #finish-no:hover { background: #f1f5f9; color: #334155; }
+        #finish-yes { background: #2d5a8e; color: white; font-size: 0.82em;
+                padding: 5px 10px; border-radius: 6px; border: 0; }
+        #status-controls { display: inline-flex; align-items: center; gap: 8px;
+                flex-wrap: wrap; justify-content: flex-end; }
+        /* author display beats the UA [hidden] rule — restate it (D8 lesson) */
+        #status-controls [hidden], #finish-wrap[hidden] { display: none; }
+        #finish-wrap, #finish-confirm { display: inline-flex; align-items: center;
+                gap: 6px; }
+        #finish-question { color: #475569; font-size: 0.85em; }
+        #finish-pending { color: #2d5a8e; font-size: 0.82em; }
+
         #status { margin-top: 24px; display: none; background: white; border-radius: 12px;
                padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        #status-head { display: flex; justify-content: space-between; align-items: baseline; }
+        #status-head { display: flex; justify-content: space-between;
+                align-items: baseline; gap: 16px; }
         #elapsed { color: #94a3b8; font-size: 0.85em; font-variant-numeric: tabular-nums; }
         #bar-outer { background: #e2e8f0; border-radius: 6px; height: 10px; margin: 12px 0; overflow: hidden; }
         #bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 2%;
@@ -85,6 +147,9 @@
         .fact-meta { display: block; font-size: 0.82em; color: #94a3b8; margin-top: 2px;
                text-transform: capitalize; }
         #facts-empty, .pending-note { color: #94a3b8; font-size: 0.85em; padding: 8px 0; }
+        /* no display property here — the hidden attribute must keep working
+           (UA display:none loses to author CSS; D8 lesson) */
+        #set-aside-note { color: #94a3b8; font-size: 0.8em; padding: 2px 0 6px; }
         .sig-box { background: #f8fafc; border-radius: 10px; padding: 12px; margin-top: 8px; }
         .sig-box h3 { font-size: 0.85em; color: #475569; margin-bottom: 4px; }
         .sig-line { font-size: 0.88em; color: #334155; overflow-wrap: anywhere; }
@@ -288,12 +353,62 @@
                 <label for="query">Person or company name</label>
                 <input type="text" id="query" name="query" maxlength="200"
                        placeholder="e.g. Jensen Huang, Berkshire Hathaway Inc." required>
+                <!-- C2.1: optional hints — posted to BOTH /api/disambiguate
+                     and /api/research; native <details> = collapsible +
+                     keyboard-operable without JS -->
+                <details id="hints">
+                    <summary>Add details (optional) — helps find the right person</summary>
+                    <!-- C1.7c (D11) microcopy: steer input toward what the
+                         matcher can use -->
+                    <p id="hints-tip">Short keywords work best — e.g. VP Engineering, NSSF.</p>
+                    <div id="hints-grid">
+                        <div>
+                            <label for="hint-company">Company</label>
+                            <input type="text" id="hint-company" maxlength="100"
+                                   placeholder="e.g. Stripe" autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="hint-role">Role</label>
+                            <input type="text" id="hint-role" maxlength="100"
+                                   placeholder="e.g. VP Engineering" autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="hint-location">Location</label>
+                            <input type="text" id="hint-location" maxlength="100"
+                                   placeholder="e.g. San Francisco" autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="hint-known">Known for</label>
+                            <input type="text" id="hint-known" maxlength="100"
+                                   placeholder="e.g. payments infrastructure" autocomplete="off">
+                        </div>
+                    </div>
+                </details>
                 <div class="turnstile-box">
                     <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
                 </div>
                 <button type="submit" id="submit-btn">Start research</button>
+                <!-- C1.6b: the pre-flight takes 3-8s — give it a face -->
+                <div id="preflight-pending" hidden>Identifying who you mean…</div>
                 <div id="error"></div>
             </form>
+
+            <!-- C1.3: in-page disambiguation picker. Candidate names and
+                 descriptors are SCRAPED+LLM TEXT — rendered textContent-only
+                 via buildPickerCard; classes from fixed whitelists. -->
+            <div id="picker" hidden>
+                <h2 id="picker-title">Which one did you mean?</h2>
+                <p id="picker-sub">This name matches several distinct profiles —
+                    pick one so the report doesn't mix them.</p>
+                <p id="picker-note" hidden></p>
+                <div id="picker-cards"></div>
+                <div id="picker-actions">
+                    <button type="button" id="picker-refine">None of these — refine details</button>
+                    <button type="button" id="picker-unscoped">Just search the name</button>
+                </div>
+                <p id="picker-warning" hidden>Heads up: an unscoped search may mix
+                    several people or organizations sharing this name.</p>
+            </div>
         </div>
 
         <div id="demo" aria-label="Simulated preview of a research run">
@@ -309,9 +424,30 @@
     </div>
 
     <div id="status">
+        <!-- C1.3/D2: the correctable assumption banner — auto-proceed skips
+             the CLICK, never the CHOICE. Entity text is scraped+LLM →
+             textContent-only. -->
+        <div id="assumption-banner" hidden>
+            <span id="banner-text"></span>
+            <button type="button" id="banner-cancel">Not who you meant? Cancel &amp; refine</button>
+        </div>
         <div id="status-head">
             <strong id="status-title">Researching…</strong>
-            <span id="elapsed"></span>
+            <span id="status-controls">
+                <!-- C1.5: inline two-step confirm — never window.confirm
+                     (the e2e XSS suite asserts zero dialogs) -->
+                <span id="finish-wrap" hidden>
+                    <button type="button" id="finish-btn">Generate report now</button>
+                    <span id="finish-confirm" hidden>
+                        <span id="finish-question"></span>
+                        <button type="button" id="finish-yes">✓ Generate</button>
+                        <button type="button" id="finish-no">✗ Keep researching</button>
+                    </span>
+                    <span id="finish-pending" hidden>Finishing after the current pass…</span>
+                </span>
+                <button type="button" id="cancel-btn" hidden>Cancel</button>
+                <span id="elapsed"></span>
+            </span>
         </div>
         <div id="bar-outer"><div id="bar"></div></div>
         <div id="phase">queued</div>
@@ -334,6 +470,9 @@
                 </div>
                 <div id="plan-note"></div>
                 <div id="verify-note"></div>
+                <!-- C1.7a (R5): sidelined-facts count — facts about other
+                     same-name people, excluded from the counters above -->
+                <div id="set-aside-note" hidden></div>
                 <div id="cat-bars"></div>
             </section>
             <section class="tabpanel" id="tab-facts" role="tabpanel" aria-labelledby="tab-btn-facts" hidden>
@@ -555,6 +694,7 @@ const planNote = document.getElementById('plan-note');
 const elapsed = document.getElementById('elapsed');
 const factsList = document.getElementById('facts-list');
 const factsEmpty = document.getElementById('facts-empty');
+const setAsideNote = document.getElementById('set-aside-note');
 const catBars = document.getElementById('cat-bars');
 const verifyNote = document.getElementById('verify-note');
 const countFacts = document.getElementById('count-facts');
@@ -825,6 +965,15 @@ function renderPreview(pv) {
 
     renderCatBars(pv.by_category || {});
 
+    // C1.7a: honest set-aside line — these facts exist but are about other
+    // people sharing the name, so they never enter the counters.
+    if (typeof pv.set_aside === 'number' && pv.set_aside > 0) {
+        setAsideNote.textContent = pv.set_aside +
+            (pv.set_aside === 1 ? ' fact' : ' facts') +
+            ' about other people with this name set aside';
+        setAsideNote.hidden = false;
+    }
+
     if (pv.verification) {
         verifyNote.textContent = 'Cross-checked: ' + (pv.verification.verified || 0) +
             ' corroborated · ' + (pv.verification.deduped || 0) + ' duplicates merged';
@@ -856,6 +1005,10 @@ function renderPreview(pv) {
 function render(p) {
     barPct = Math.max(barPct, phasePct(p));
     bar.style.width = Math.max(2, barPct) + '%';
+    // C1.5 (R4): the button's predicate is the SAME node-boundary "facts"
+    // key the server's 409 guard reads — never the faster preview counter.
+    lastFactCount = p.facts || 0;
+    if (!finishRequested && lastFactCount > 0) finishWrap.hidden = false;
     const iter = p.iteration || 0, max = p.max_iterations || 10;
     setPhaseText((PHASE_LABEL[p.phase] || p.phase || 'Working') +
         (iter ? ' (iteration ' + iter + '/' + max + ')' : ''));
@@ -909,6 +1062,12 @@ function resetPanel(subject) {
     barPct = 0;
     bar.style.width = '2%';
     lastPhaseText = '';
+    banner.hidden = true;                 // caller re-shows via showBanner
+    banner.classList.remove('warn');
+    bannerCancel.hidden = false;
+    bannerCancel.disabled = false;
+    cancelBtn.hidden = true;
+    resetFinishControls();
     activityLine.textContent = '';
     feed.replaceChildren();
     factsList.replaceChildren();
@@ -920,6 +1079,8 @@ function resetPanel(subject) {
     countConnections.textContent = '–';
     verifyNote.textContent = '';
     planNote.textContent = '';
+    setAsideNote.textContent = '';
+    setAsideNote.hidden = true;
     factsEmpty.hidden = false;
     noFacts.hidden = true;
     // A3.2 opening: brief + zeroed Overview render IMMEDIATELY — the report
@@ -933,23 +1094,220 @@ function fail(msg) {
     errBox.textContent = msg;
     errBox.style.display = 'block';
     btn.disabled = false;
+    const pendingLine = document.getElementById('preflight-pending');
+    if (pendingLine) pendingLine.hidden = true;
     // Turnstile tokens are single-use — re-render before any retry.
     if (window.turnstile) turnstile.reset();
 }
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errBox.style.display = 'none';
+// ---- C1.3: pre-flight submit flow (PLAN.md Rev 3.8, D1/D2) ----
+// submit → POST /api/disambiguate (Turnstile) → auto: banner + research |
+// pick: in-page picker | unscoped/error: proceed unscoped (fail-open).
+// The HMAC ticket replaces Turnstile on /api/research (single-use), and the
+// query is resent BYTE-FOR-BYTE — the ticket hashes the canonical query (R6).
+const hintsBox = document.getElementById('hints');
+const picker = document.getElementById('picker');
+const pickerCards = document.getElementById('picker-cards');
+const pickerWarning = document.getElementById('picker-warning');
+const pickerTitle = document.getElementById('picker-title');
+const pickerSub = document.getElementById('picker-sub');
+const pickerNote = document.getElementById('picker-note');
+const preflightPending = document.getElementById('preflight-pending');
+const banner = document.getElementById('assumption-banner');
+const bannerText = document.getElementById('banner-text');
+const bannerCancel = document.getElementById('banner-cancel');
+const cancelBtn = document.getElementById('cancel-btn');
+let currentJobId = null;
+let pending = null;   // {query, hints, ticket} for the in-flight submit
+
+// C1.7d (D13): descriptors the user EXPLICITLY rejected — picker "None of
+// these" stashes the displayed candidates; a banner cancel stashes the
+// entity that was being researched. Sent as rejected_entities on the next
+// submit of the SAME query (server threads them into prompts as a "NOT
+// these" line). Cleared when the typed query changes or a run completes —
+// a completed run's entity was researched, not rejected. Cap 5 most recent.
+let rejectedEntities = [];
+let rejectedForQuery = '';
+let lastSurfaceCandidates = [];
+let runningEntityDescriptor = null;
+
+function stashRejected(descriptors, query) {
+    if (query !== rejectedForQuery) {
+        rejectedEntities = [];
+        rejectedForQuery = query;
+    }
+    for (const d of descriptors) {
+        const desc = String(d || '').slice(0, 200);
+        if (!desc) continue;
+        const i = rejectedEntities.indexOf(desc);
+        if (i !== -1) rejectedEntities.splice(i, 1);
+        rejectedEntities.push(desc);
+    }
+    rejectedEntities = rejectedEntities.slice(-5);   // keep most recent 5
+}
+
+function currentRejected(query) {
+    return (query === rejectedForQuery && rejectedEntities.length)
+        ? rejectedEntities : null;
+}
+
+function clearRejected() {
+    rejectedEntities = [];
+    rejectedForQuery = '';
+}
+
+function collectHints() {
+    const hints = {};
+    for (const [id, key] of [['hint-company', 'company'], ['hint-role', 'role'],
+                             ['hint-location', 'location'], ['hint-known', 'known_for']]) {
+        const v = document.getElementById(id).value.trim();
+        if (v) hints[key] = v;
+    }
+    return Object.keys(hints).length ? hints : null;
+}
+
+function hidePicker() {
+    picker.hidden = true;
+    pickerCards.replaceChildren();
+    pickerWarning.hidden = true;
+}
+
+function pickerInitials(name) {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    const two = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
+    return two.toUpperCase() || '?';
+}
+
+// Candidate names/descriptors/domains are SCRAPED+LLM TEXT — textContent
+// only, classes from the fixed GRADIENT_CLASS whitelist (house rule).
+function buildPickerCard(cand, idx) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'ent-card picker-card';
+    const head = document.createElement('div');
+    head.className = 'ent-head';
+    const avatar = document.createElement('span');
+    avatar.className = 'ent-avatar ' + GRADIENT_CLASS[idx % GRADIENT_CLASS.length];
+    avatar.setAttribute('aria-hidden', 'true');
+    avatar.textContent = pickerInitials(cand.canonical_name);
+    const id = document.createElement('span');
+    id.className = 'ent-id';
+    const name = document.createElement('span');
+    name.className = 'ent-name';
+    name.textContent = cand.canonical_name || '';
+    const cat = document.createElement('span');
+    cat.className = 'ent-cat';
+    cat.textContent = cand.descriptor || '';
+    id.append(name, cat);
+    head.append(avatar, id);
+    const chips = document.createElement('div');
+    chips.className = 'ent-chips';
+    // C1.7c (D11): LLM-claimed fit → label on "strong" ONLY (display
+    // signal, never gates anything; constant string + fixed class)
+    if (cand.hint_match === 'strong') {
+        const match = document.createElement('span');
+        match.className = 'chip match-strong';
+        match.textContent = 'matches your details';
+        chips.appendChild(match);
+    }
+    const mass = document.createElement('span');
+    mass.className = 'chip';
+    const n = Number(cand.domain_mass) || 0;
+    mass.textContent = n + (n === 1 ? ' independent source' : ' independent sources');
+    chips.appendChild(mass);
+    for (const d of (cand.domains || []).slice(0, 3)) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = String(d);
+        chips.appendChild(chip);
+    }
+    card.append(head, chips);
+    card.addEventListener('click', () => {
+        startResearch(entityFromCandidate(cand, 'picked'));
+    });
+    return card;
+}
+
+// D6 (Rev 3.9): ONE decision surface for every non-auto outcome. Copy comes
+// from this fixed whitelist keyed by decision; the server note renders via
+// textContent (server-authored constants, but house rule applies anyway).
+const SURFACE_COPY = {
+    pick: {
+        title: 'Which one did you mean?',
+        sub: 'This name matches distinct profiles — pick one so the report doesn’t mix them.',
+    },
+    unscoped: {
+        title: 'We couldn’t confidently identify one profile',
+        sub: 'Add details to narrow it down, or search the name broadly.',
+    },
+    error: {
+        title: 'Identification didn’t complete',
+        sub: 'You can retry with more details, or search the name broadly.',
+    },
+};
+
+function renderDecisionSurface(pre) {
+    const copy = SURFACE_COPY[pre.decision] || SURFACE_COPY.pick;
+    pickerTitle.textContent = copy.title;
+    pickerSub.textContent = copy.sub;
+    if (pre.note) {                       // e.g. "none … matched your details"
+        pickerNote.textContent = pre.note;
+        pickerNote.hidden = false;
+    } else {
+        pickerNote.hidden = true;
+    }
+    pickerCards.replaceChildren();
+    lastSurfaceCandidates = pre.candidates || [];   // C1.7d: refine stash
+    appendKeyed(pickerCards, (pre.candidates || []).map((c, i) => ({c, i})),
+        x => x.i, x => buildPickerCard(x.c, x.i), new Set());
+    pickerWarning.hidden = false;   // consequence visible BEFORE the click
+    picker.hidden = false;
+    picker.scrollIntoView({behavior: REDUCED_MOTION ? 'auto' : 'smooth',
+                           block: 'nearest'});
+}
+
+function entityFromCandidate(cand, decision) {
+    return {
+        canonical_name: String(cand.canonical_name || '').slice(0, 120),
+        descriptor: String(cand.descriptor || '').slice(0, 200),
+        disambiguators: (Array.isArray(cand.disambiguators) ? cand.disambiguators : [])
+            .slice(0, 8).map(d => String(d).slice(0, 80)),
+        decision: decision,
+    };
+}
+
+function showBanner(entity) {
+    banner.hidden = false;
+    bannerCancel.disabled = false;
+    if (entity) {
+        banner.classList.remove('warn');
+        bannerText.textContent = 'Researching: ' +
+            (entity.descriptor || entity.canonical_name);
+    } else {
+        banner.classList.add('warn');
+        bannerText.textContent = 'Searching the name broadly — results may mix ' +
+            'people or organizations sharing it.';
+    }
+}
+
+async function startResearch(entity) {
+    hidePicker();
     btn.disabled = true;
-    const token = window.turnstile ? turnstile.getResponse() : '';
-    const query = document.getElementById('query').value;
+    // C1.7d: remembered for the banner-cancel → refine stash
+    runningEntityDescriptor = entity
+        ? (entity.descriptor || entity.canonical_name) : null;
+    const body = {query: pending.query, preflight_ticket: pending.ticket};
+    if (pending.hints) body.context = pending.hints;
+    if (entity) body.entity = entity;
+    const rejected = currentRejected(pending.query);
+    if (rejected) body.rejected_entities = rejected;
 
     let resp;
     try {
         resp = await fetch('/api/research', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({query: query, turnstile_token: token || ''})
+            body: JSON.stringify(body)
         });
     } catch (err) {
         return fail('Network error — please try again.');
@@ -959,16 +1317,175 @@ form.addEventListener('submit', async (e) => {
     if (resp.status === 503) return fail('Monthly research budget exhausted. Try again next month.');
     if (resp.status === 403) {
         const d = await resp.json().catch(() => ({}));
-        return fail(d.detail || 'Challenge failed — please retry.');
+        return fail((d.detail || '').indexOf('ticket') !== -1
+            ? 'That took a little while — please retry the challenge and submit again.'
+            : (d.detail || 'Challenge failed — please retry.'));
     }
     if (resp.status === 422) return fail('Invalid name — use letters, digits and & . , \' - ( ) only.');
     if (!resp.ok) return fail('Unexpected error (' + resp.status + ').');
 
     const job = await resp.json();
+    currentJobId = job.job_id;
     statusBox.style.display = 'block';
-    resetPanel(query);
+    resetPanel(pending.query);
+    if (entity) {
+        // C1.6b: the brief's Subject line agrees with the banner —
+        // entity text is scraped+LLM → textContent only.
+        document.getElementById('brief-subject').textContent =
+            'Subject: ' + (entity.descriptor || entity.canonical_name);
+    }
+    showBanner(entity);
+    cancelBtn.hidden = false;
+    cancelBtn.disabled = false;
     startTimer();
     watch(job.events_url, job.report_url);
+}
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errBox.style.display = 'none';
+    btn.disabled = true;
+    hidePicker();
+    preflightPending.hidden = false;    // the 3-8s pre-flight gets a face
+    const token = window.turnstile ? turnstile.getResponse() : '';
+    const query = document.getElementById('query').value;
+    const hints = collectHints();
+    // C1.7d: rejections belong to the query they were made for — a new
+    // name clears the stash (an unrelated "NOT these" would misfire).
+    if (query !== rejectedForQuery) clearRejected();
+    const preBody = {query: query, hints: hints, turnstile_token: token || ''};
+    const rejected = currentRejected(query);
+    if (rejected) preBody.rejected_entities = rejected;
+
+    let resp;
+    try {
+        resp = await fetch('/api/disambiguate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(preBody)
+        });
+    } catch (err) {
+        return fail('Network error — please try again.');
+    } finally {
+        preflightPending.hidden = true;
+    }
+
+    if (resp.status === 429) return fail('Rate limit reached — try again later.');
+    if (resp.status === 503) return fail('Monthly research budget exhausted. Try again next month.');
+    if (resp.status === 403) {
+        const d = await resp.json().catch(() => ({}));
+        return fail(d.detail || 'Challenge failed — please retry.');
+    }
+    if (resp.status === 422) return fail('Invalid input — use letters, digits and & . , \' - ( ) only.');
+    if (!resp.ok) return fail('Unexpected error (' + resp.status + ').');
+
+    const pre = await resp.json();
+    pending = {query: query, hints: hints, ticket: pre.ticket};
+
+    if (pre.decision === 'auto' && (pre.candidates || []).length >= 1) {
+        return startResearch(entityFromCandidate(
+            pre.candidates[0], pre.note === 'hinted' ? 'hinted' : 'auto'));
+    }
+    // D6 (Rev 3.9): auto is the ONLY auto-submit. pick (ANY candidate
+    // count — D7 can return one, review R6), unscoped, and error all land
+    // on the decision surface; "Just search the name" is the single,
+    // explicit route to a broad run.
+    renderDecisionSurface(pre);
+    // submit stays disabled while the surface is open
+});
+
+// Third escape hatch (human-reported 2026-07-13): typing a NEW name while
+// the decision surface is open abandons it — hide the picker and re-arm
+// submit for a fresh pre-flight. Scoped to the open-picker state only: a
+// RUNNING job keeps submit disabled regardless of typing.
+document.getElementById('query').addEventListener('input', () => {
+    if (!picker.hidden) {
+        hidePicker();
+        btn.disabled = false;
+        if (window.turnstile) turnstile.reset();
+    }
+});
+
+// Picker escape hatches. "Refine" reopens hints for a FRESH pre-flight —
+// the Turnstile token was consumed, so the widget resets for a new attempt.
+document.getElementById('picker-refine').addEventListener('click', () => {
+    // C1.7d: "None of these" is an explicit rejection of every displayed
+    // candidate — carry them as negative scope on the next submit.
+    if (pending) {
+        stashRejected(lastSurfaceCandidates.map(
+            c => c.descriptor || c.canonical_name), pending.query);
+    }
+    hidePicker();
+    hintsBox.open = true;
+    btn.disabled = false;
+    if (window.turnstile) turnstile.reset();
+    document.getElementById('hint-company').focus();
+});
+document.getElementById('picker-unscoped').addEventListener('click', () => {
+    startResearch(null);   // warn banner carries the may-mix warning
+});
+
+// ---- C1.4: cancel — the D2 safety valve. Terminal state arrives over SSE
+// as a `failed` event whose error string maps to a neutral Cancelled UI.
+async function cancelJob() {
+    if (!currentJobId) return;
+    cancelBtn.disabled = true;
+    bannerCancel.disabled = true;
+    try {
+        await fetch('/api/research/' + currentJobId + '/cancel', {method: 'POST'});
+    } catch (err) { /* SSE delivers the terminal state either way */ }
+}
+bannerCancel.addEventListener('click', cancelJob);
+cancelBtn.addEventListener('click', cancelJob);
+
+// ---- C1.5: "Generate report now" — stop iterating, keep the FULL
+// finalization tail (verification, risks, connections, trends). Takes
+// effect at the next loop boundary: up to one more search pass may run.
+const finishWrap = document.getElementById('finish-wrap');
+const finishBtn = document.getElementById('finish-btn');
+const finishConfirm = document.getElementById('finish-confirm');
+const finishQuestion = document.getElementById('finish-question');
+const finishYes = document.getElementById('finish-yes');
+const finishNo = document.getElementById('finish-no');
+const finishPending = document.getElementById('finish-pending');
+let finishRequested = false;
+let lastFactCount = 0;
+
+function resetFinishControls() {
+    finishRequested = false;
+    lastFactCount = 0;
+    finishWrap.hidden = true;
+    finishBtn.hidden = false;
+    finishConfirm.hidden = true;
+    finishPending.hidden = true;
+}
+
+finishBtn.addEventListener('click', () => {
+    finishQuestion.textContent = 'Generate now with ' + lastFactCount +
+        ' facts? Final checks still run.';
+    finishBtn.hidden = true;
+    finishConfirm.hidden = false;
+});
+finishNo.addEventListener('click', () => {
+    finishConfirm.hidden = true;
+    finishBtn.hidden = false;
+});
+finishYes.addEventListener('click', async () => {
+    if (!currentJobId || finishRequested) return;
+    finishYes.disabled = true;
+    let resp = null;
+    try {
+        resp = await fetch('/api/research/' + currentJobId + '/finish',
+                           {method: 'POST'});
+    } catch (err) { /* fall through to revert */ }
+    finishYes.disabled = false;
+    finishConfirm.hidden = true;
+    if (resp && resp.ok) {
+        finishRequested = true;
+        finishPending.hidden = false;   // best-effort: restart clears the flag
+    } else {
+        finishBtn.hidden = false;       // 409/network: back to the button
+    }
 });
 
 function watch(eventsUrl, reportUrl) {
@@ -983,6 +1500,9 @@ function watch(eventsUrl, reportUrl) {
         const p = JSON.parse(e.data);
         es.close();
         stopTimer();
+        cancelBtn.hidden = true;         // nothing left to cancel
+        finishWrap.hidden = true;
+        bannerCancel.hidden = true;      // banner stays: what was researched
         barPct = 100;
         bar.style.width = '100%';
         title.textContent = 'Research complete' +
@@ -993,6 +1513,8 @@ function watch(eventsUrl, reportUrl) {
         reportLink.href = p.report_url || reportUrl;
         reportLink.style.display = 'inline-block';
         btn.disabled = false;
+        clearRejected();   // C1.7d: a completed run's entity was researched,
+                           // not rejected — never carry it as "NOT this"
         if (window.turnstile) turnstile.reset();
     });
 
@@ -1000,8 +1522,27 @@ function watch(eventsUrl, reportUrl) {
         const p = JSON.parse(e.data);
         es.close();
         stopTimer();
-        title.textContent = 'Research failed';
-        setPhaseText(p.error || '');
+        cancelBtn.hidden = true;
+        finishWrap.hidden = true;
+        if (p.error === 'cancelled by user') {
+            // R7: a cancel rides the `failed` terminal event but is NOT an
+            // error — render a neutral state and hand back the refine flow.
+            // C1.7d: cancelling a run rejects the entity it was researching
+            // (cancel is NOT completion — the stash carries into the
+            // resubmit of the same name).
+            if (runningEntityDescriptor && pending) {
+                stashRejected([runningEntityDescriptor], pending.query);
+            }
+            title.textContent = 'Research cancelled';
+            setPhaseText('Cancelled — adjust the details and start again');
+            banner.hidden = true;
+            hintsBox.open = true;
+            form.scrollIntoView({behavior: REDUCED_MOTION ? 'auto' : 'smooth',
+                                 block: 'center'});
+        } else {
+            title.textContent = 'Research failed';
+            setPhaseText(p.error || '');
+        }
         activityLine.textContent = '';
         noFacts.hidden = true;
         btn.disabled = false;

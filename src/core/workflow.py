@@ -208,6 +208,16 @@ class ResearchOrchestrator:
         self._activity_callback: Optional[
             Callable[[Dict[str, Any]], Awaitable[None]]
         ] = None
+
+        # C1.5 finish-early (Rev 3.9 D8/D9): `finish_early` is SET by the
+        # API's node-boundary progress callback (jobs.py) and READ by
+        # _decide_continue_or_finish — instance attr, never LangGraph state
+        # (LEARNINGS #3). `_finished_early_applied` records that the branch
+        # ACTUALLY short-circuited — the metadata stamp reads this, not the
+        # request flag, so a finish clicked after the loop already exited
+        # naturally never produces a false "generated early" header (R3).
+        self.finish_early = False
+        self._finished_early_applied = False
         
         # Build LangGraph workflow
         self.workflow = self._build_workflow()
@@ -231,7 +241,8 @@ class ResearchOrchestrator:
         target_name: str,
         context: Optional[Dict[str, Any]] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
-        activity_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None
+        activity_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
+        rejected_entities: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Execute complete research on target.
@@ -285,6 +296,10 @@ class ResearchOrchestrator:
         initial_state = {
             "target_name": target_name,
             "context": context or {},
+            # C1.7d (D13): prompt-only negative scope — DATA in state (like
+            # context), never control flow (LEARNINGS #3); R9: never echoed
+            # into progress/banner/resolved_entity.
+            "rejected_entities": list(rejected_entities or []),
             "iteration": 0,
             "max_iterations": self.max_iterations,
             "queries": [],
@@ -423,6 +438,11 @@ class ResearchOrchestrator:
         # Reset strategy engine for new research
         self.strategy_engine.reset()
         state["facts_per_iteration"] = []
+        # C1.7a (D10): off-target facts land here — kept out of
+        # state["facts"] (which verify/risks/connections/refine/score all
+        # read) but never deleted; rendered in the report's collapsed
+        # sideline section.
+        state["sidelined_facts"] = []
 
         return state
     
@@ -444,7 +464,9 @@ class ResearchOrchestrator:
         queries = self.strategy_engine.generate_initial_queries(
             target_name=state["target_name"],
             context=state["context"],
-            max_queries=15
+            max_queries=15,
+            # C1.7d: "NOT these" line in the query-generation prompt
+            rejected_entities=state.get("rejected_entities") or None
         )
 
         state["queries"] = queries
@@ -539,42 +561,70 @@ class ResearchOrchestrator:
         recent_results = all_results[processed_idx:]
         
         if recent_results:
-            facts = await self.fact_extractor.extract(
+            extracted = await self.fact_extractor.extract(
                 search_results=recent_results,
                 target_name=state["target_name"],
                 max_facts=self.max_facts,
                 activity_callback=_enrich_activity(
                     self._activity_callback,
                     iteration=state.get("iteration", 0),
-                )
+                ),
+                # C1.2: one context line in the extraction prompt (D3)
+                target_context=state.get("context") or None,
+                # C1.7d: "NOT these" line for the attribution judgment
+                rejected_entities=state.get("rejected_entities") or None
             )
-            
+
+            # C1.7a (D10): partition on about_target. state["facts"] is what
+            # EVERY downstream stage reads (verify/risks/connections/refine
+            # findings/score), so the sideline pool is excluded from all of
+            # them by this one split; it stays visible in the report's
+            # collapsed section. Bare runs: about_target defaults True, so
+            # the sideline pool stays empty.
+            facts = [f for f in extracted if f.about_target]
+            sidelined = [f for f in extracted if not f.about_target]
+
             # Add to state
             if "facts" not in state:
                 state["facts"] = []
             state["facts"].extend(facts)
-            
-            # Update coverage based on facts
+            state.setdefault("sidelined_facts", []).extend(sidelined)
+
+            # Update coverage based on facts (R4: TARGET partition only —
+            # off-target facts must not fire is_coverage_adequate() early
+            # or inflate the score's coverage component)
             for fact in facts:
                 try:
                     category = SearchCategory(fact.category)
                     self.strategy_engine.update_coverage(category, increment=0.20)
                 except:
                     pass
-            
+
+            # R4: a mostly-off-target pass looks stagnant and stops early —
+            # correct spend behavior, but the operator should see why.
+            # Counts only (§12.S3: no query/name in API-path logs).
+            if len(sidelined) >= 3 and len(sidelined) > len(facts):
+                logger.warning(
+                    "High-sideline iteration: %d of %d new facts sidelined",
+                    len(sidelined), len(extracted),
+                    extra={"iteration": state.get("iteration", 0)},
+                )
+
             # Advance cursor past the results we just processed
             state["search_results_processed_index"] = len(all_results)
-            
+
             logger.info(
                 f"Extracted {len(facts)} new facts from {len(recent_results)} "
                 f"new results (total facts: {len(state['facts'])}, "
+                f"sidelined this pass: {len(sidelined)}, "
                 f"total results processed: {len(all_results)})"
             )
             # Track per-iteration yield for stagnation detection
+            # (R4: target facts only)
             facts_history = state.get("facts_per_iteration", [])
             facts_history.append(len(facts))
             state["facts_per_iteration"] = facts_history
-        
+
         return state
     
     async def _node_refine_queries(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -606,7 +656,11 @@ class ResearchOrchestrator:
             refined_queries = self.strategy_engine.refine_based_on_findings(
                 target_name=state["target_name"],
                 findings=findings,
-                max_follow_ups=15
+                max_follow_ups=15,
+                # C1.2: follow-ups must stay scoped to the resolved entity
+                context=state.get("context") or None,
+                # C1.7d: "NOT these" line in the AI refinement prompt
+                rejected_entities=state.get("rejected_entities") or None
             )
 
             # A3.3: drop pending-queue duplicates + degenerate self-queries
@@ -1636,7 +1690,19 @@ class ResearchOrchestrator:
         iteration = state["iteration"]
         max_iter = state["max_iterations"]
         current_facts = len(state.get("facts", []))
-        
+
+        # 0. C1.5 finish-early (D8): the user asked to stop iterating —
+        # route to the FULL finalization tail. Checked before every natural
+        # criterion so the request always wins; the applied flag (not the
+        # request flag) drives the metadata stamp (R3).
+        if getattr(self, "finish_early", False):
+            self._finished_early_applied = True
+            logger.info(
+                "Finish-early requested — moving to verification",
+                extra={"iteration": iteration, "facts": current_facts}
+            )
+            return "verify"
+
         # 1. Check iteration limit
         if iteration >= max_iter:
             logger.info(f"Max iterations ({max_iter}) reached")
@@ -1688,21 +1754,37 @@ class ResearchOrchestrator:
     
     def _format_results(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Format final results for output"""
-        
+
+        # C1.7a (D10): sidelined facts ride INSIDE the result dict →
+        # report_json — deliberately NEVER a Job column (create_all never
+        # ALTERs; REVIEW-LEARNINGS schema rule) — so they inherit the
+        # §12.S2 purge wholesale.
+        sidelined = state.get("sidelined_facts", [])
+
+        metadata = {
+            "iterations": state["iteration"],
+            # C1.5/R8: the renderer's "after N of M iterations" needs M
+            "max_iterations": self.max_iterations,
+            "queries_executed": len(self.strategy_engine.executed_queries),
+            "duration_seconds": (
+                state["completed_at"] - state["start_time"]
+            ).total_seconds(),
+            "coverage": self.strategy_engine.coverage.to_dict(),
+            "sidelined_count": len(sidelined),
+        }
+        # Stamped ONLY when the branch actually short-circuited (R3) —
+        # a natural exit stays unmarked even if a late finish was requested.
+        if self._finished_early_applied:
+            metadata["finished_early"] = True
+
         return {
             "target_name": state["target_name"],
             "facts": [f.to_dict() for f in state.get("facts", [])],
+            "sidelined_facts": [f.to_dict() for f in sidelined],
             "risk_flags": state.get("risk_flags", []),
             "connections": state.get("connections", []),
             "summary": state.get("summary", {}),
-            "metadata": {
-                "iterations": state["iteration"],
-                "queries_executed": len(self.strategy_engine.executed_queries),
-                "duration_seconds": (
-                    state["completed_at"] - state["start_time"]
-                ).total_seconds(),
-                "coverage": self.strategy_engine.coverage.to_dict()
-            }
+            "metadata": metadata
         }
 
 

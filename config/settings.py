@@ -262,6 +262,26 @@ class Settings(BaseSettings):
     ALERT_WEBHOOK_URL: Optional[str] = Field(default=None, description="Optional webhook for daily soft alerts")
 
     # ========================================================================
+    # DISAMBIGUATION PRE-FLIGHT (Phase C1 — PLAN.md Rev 3.8)
+    # ========================================================================
+    # HMAC key for the pre-flight ticket. Set a REAL value in Railway env vars
+    # (Human TODO #6); the boot-random fallback in security.py is fail-safe —
+    # a restart invalidates in-flight tickets and the client re-challenges.
+    PREFLIGHT_TICKET_SECRET: Optional[str] = Field(default=None, description="HMAC key for pre-flight tickets (boot-random fallback if unset)")
+    PREFLIGHT_TICKET_TTL_SECONDS: int = Field(default=300, ge=30, description="Pre-flight ticket lifetime")
+    # D2 dominance gate — policy knobs (research/phase-c-disambiguation §3):
+    # AUTO-PROCEED iff top.mass ≥ MIN_MASS ∧ runner_up.mass ≤ MAX_RUNNERUP
+    #                ∧ top.mass ≥ SHARE × total_mass. Mass = distinct eTLD+1
+    # domains per cluster, computed server-side.
+    PREFLIGHT_AUTO_MIN_MASS: int = Field(default=3, ge=1, description="D2: min distinct domains for auto-proceed")
+    PREFLIGHT_AUTO_MAX_RUNNERUP: int = Field(default=1, ge=0, description="D2: max runner-up domain mass for auto-proceed")
+    PREFLIGHT_AUTO_SHARE: float = Field(default=0.7, ge=0.0, le=1.0, description="D2: min share of total domain mass for auto-proceed")
+    PREFLIGHT_SINGLE_MIN_MASS: int = Field(default=2, ge=1, description="D2: single-cluster mass below this → unscoped (thin)")
+    PREFLIGHT_MAX_CANDIDATES: int = Field(default=5, ge=2, description="Cap on clusters returned by the clustering call")
+    PREFLIGHT_MAX_RESULTS: int = Field(default=15, ge=5, description="Search results fed to the clustering call")
+    PREFLIGHT_TIMEOUT_SECONDS: float = Field(default=25.0, ge=5.0, description="Whole pre-flight budget; past it → decision 'error' (fail-open)")
+
+    # ========================================================================
     # SECURITY
     # ========================================================================
     SECRET_KEY: str = Field(

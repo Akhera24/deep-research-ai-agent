@@ -17,8 +17,14 @@ from config.settings import settings
 from config.logging_config import get_logger
 from src.api import jobs, ledger
 from src.api.db import COMPLETED, EXPIRED, FAILED, get_sessionmaker
-from src.api.models import JobCreated, JobStatus, ResearchRequest
-from src.api.security import hash_ip, is_admin, verify_turnstile
+from src.api.models import (
+    DisambiguateRequest, JobCreated, JobStatus, ResearchRequest,
+)
+from src.api.security import (
+    consume_preflight_ticket, hash_ip, is_admin, mint_preflight_ticket,
+    verify_turnstile,
+)
+from src.core import preflight
 
 logger = get_logger(__name__)
 
@@ -89,6 +95,57 @@ async def healthz():
     return {"status": "ok", "db": "ok"}
 
 
+# C1.1 (PLAN.md Rev 3.8): pre-flight disambiguation. Gate order matches
+# /api/research (review R3): ratelimit (decorator, own 3× bucket) → budget →
+# Turnstile → spend. Candidates are NEVER persisted server-side — they go to
+# the client and come back as the chosen entity (stateless; zero retention
+# surface). JSON-only POST endpoint: CSP/X-Robots-Tag n/a; nosniff added for
+# defence-in-depth (no global security-header middleware exists, review R4).
+@router.post("/api/disambiguate")
+@limiter.limit(f"{settings.RATE_LIMIT_REPORTS_PER_HOUR * 3}/hour", exempt_when=is_admin)
+async def disambiguate(request: Request, body: DisambiguateRequest):
+    admin = is_admin(request)
+    client_ip = request.client.host if request.client else None
+
+    # Budget gate BEFORE any spend — pre-flight draws from the same $40 cap
+    async with get_sessionmaker()() as session:
+        if await ledger.budget_exhausted(session):
+            return JSONResponse(
+                status_code=503,
+                content={"error": "budget exhausted",
+                         "detail": "The monthly research budget is used up. Try again next month."},
+                headers={"X-Content-Type-Options": "nosniff"},
+            )
+
+    if not admin:
+        ok, reason = await verify_turnstile(body.turnstile_token, client_ip)
+        if not ok:
+            raise HTTPException(status_code=403, detail=reason)
+
+    hints = body.hints.as_dict() if body.hints else None
+    # C1.7d: rejected descriptors reach the clustering prompt as a
+    # delimited data line (a refine re-run should not re-lead with them);
+    # PROMPT-TRANSIENT per R9 — never persisted, never in search queries.
+    result = await preflight.discover_candidates(
+        body.query, hints=hints,
+        rejected_entities=body.rejected_entities or None)
+    await ledger.record(None, result.cost)   # job_id NULL (db.py: nullable)
+
+    # The ticket ships on EVERY outcome (incl. decision "error" — fail-open:
+    # the client proceeds unscoped). Bound to ip_hash + the post-validation
+    # canonical query (R6); single-use, consumed by /api/research (R2).
+    ticket = mint_preflight_ticket(hash_ip(client_ip), body.query)
+    return JSONResponse(
+        content={
+            "decision": result.decision,
+            "note": result.note,
+            "candidates": [c.to_dict() for c in result.candidates],
+            "ticket": ticket,
+        },
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+
+
 @router.post("/api/research", status_code=202, response_model=JobCreated)
 @limiter.limit(f"{settings.RATE_LIMIT_REPORTS_PER_HOUR}/hour", exempt_when=is_admin)
 async def create_research(request: Request, body: ResearchRequest):
@@ -105,13 +162,51 @@ async def create_research(request: Request, body: ResearchRequest):
             )
 
     if not admin:
-        ok, reason = await verify_turnstile(body.turnstile_token, client_ip)
+        if body.preflight_ticket:
+            # C1.1: ticket minted by /api/disambiguate replaces Turnstile
+            # (tokens are single-use — the pre-flight consumed this user's).
+            # Verifies HMAC + TTL + ip binding + canonical-query binding,
+            # then consumes the nonce (single-use, R2).
+            ok, reason = consume_preflight_ticket(
+                body.preflight_ticket, hash_ip(client_ip), body.query)
+        else:
+            ok, reason = await verify_turnstile(body.turnstile_token, client_ip)
         if not ok:
             raise HTTPException(status_code=403, detail=reason)
 
+    # C1.2 (D3/D5): merge hints ∪ entity into the orchestrator context
+    # (entity applied last = entity wins) and record the resolved entity.
+    # The context travels IN-MEMORY to the runner; a copy rides in
+    # `progress` for the banner and in report_json.metadata — all three
+    # are already §12.S2-purged at expiry.
+    context: dict = {}
+    if body.context:
+        context.update(body.context.as_dict())
+    resolved_entity: dict = {"decision": "unscoped"}
+    if body.entity:
+        ent = body.entity
+        context["research_target"] = ent.descriptor or ent.canonical_name
+        if ent.disambiguators:
+            context["disambiguators"] = "; ".join(ent.disambiguators)
+        primary = (ent.disambiguators[0] if ent.disambiguators
+                   else ent.descriptor)
+        resolved_entity = {
+            # SERVER-computed (R5) — any client-sent entity_id was dropped
+            # at model validation and is never read.
+            "entity_id": preflight.compute_entity_id(ent.canonical_name, primary),
+            "canonical_name": ent.canonical_name,
+            "descriptor": ent.descriptor,
+            "disambiguators": ent.disambiguators,
+            "decision": ent.decision,
+        }
+
     job_id = await jobs.create_job(
         query=body.query, client_ip_hash=hash_ip(client_ip) if not admin else None,
-        admin=admin,
+        admin=admin, context=context or None, resolved_entity=resolved_entity,
+        # C1.7d (R9): prompt-transient — deliberately NOT merged into
+        # `context` (the context detail-join would echo it into the
+        # orientation lines) and never into progress/resolved_entity.
+        rejected_entities=body.rejected_entities or None,
     )
     return JobCreated(
         job_id=job_id,
@@ -126,6 +221,39 @@ async def _load_job_or_404(job_id: uuid.UUID):
     if job is None:
         raise HTTPException(status_code=404, detail="unknown job")
     return job
+
+
+# C1.4: the D2 safety valve. Auth = knowledge of the unguessable job UUID —
+# the same capability model as status/report reads (documented tradeoff,
+# accepted 2026-07-11). Idempotent; cancel-after-terminal is a no-op 200.
+@router.post("/api/research/{job_id}/cancel")
+async def cancel_research(job_id: uuid.UUID):
+    job = await _load_job_or_404(job_id)
+    if job.status in (COMPLETED, FAILED, EXPIRED):
+        return {"status": job.status}      # race with completion → no-op
+    jobs.request_cancel(job_id)
+    logger.info("Cancel requested", extra={"job_id": str(job_id)})
+    return {"status": "cancelling"}
+
+
+# C1.5 (Rev 3.9): "Generate report now" — stop iterating, run the FULL
+# finalization tail (D8). Same capability model as cancel; strictly less
+# destructive. Takes effect at the next continue/verify branch — up to one
+# more full iteration may run first (R2).
+@router.post("/api/research/{job_id}/finish")
+async def finish_research(job_id: uuid.UUID):
+    job = await _load_job_or_404(job_id)
+    if job.status in (COMPLETED, FAILED, EXPIRED):
+        return {"status": job.status}      # race with completion → no-op
+    # R1: parentheses are load-bearing — `x or 0 == 0` is truthy for every
+    # input. Node-boundary count; lags mid-extraction (UX floor, not a
+    # race-free invariant).
+    if ((job.progress or {}).get("facts") or 0) == 0:
+        raise HTTPException(status_code=409,
+                            detail="nothing found yet — cancel instead")
+    jobs.request_finish_early(job_id)
+    logger.info("Finish-early requested", extra={"job_id": str(job_id)})
+    return {"status": "finishing"}
 
 
 @router.get("/api/research/{job_id}", response_model=JobStatus, response_model_exclude_none=True)

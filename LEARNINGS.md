@@ -22,6 +22,28 @@ starting work; obey every rule (per the global harness contract).
   *Origin: 2026-07-11 Phase B gate runs — the connections call (max_tokens=4000)
   truncated on 3 of 3 runs; fix in `workflow.py::_repair_truncated_json_array`.*
 
+- **Playwright treats a clipped-but-laid-out child as visible.** An element
+  inside a `max-height: 0; overflow: hidden` parent (this repo's collapsed
+  `.section-content` pattern) still has a non-empty layout box, so
+  `expect(child).not_to_be_visible()` FAILS on a correctly-collapsed section —
+  and a `to_be_visible()` would pass without the section ever being opened.
+  Assert collapse the way the report's own toggle works: the `open` class is
+  absent AND the container's `getBoundingClientRect().height` is 0; after the
+  click, both flip. Symptom: "Locator expected not to be visible / Actual:
+  visible" on an element the browser plainly clips.
+  *Origin: 2026-07-13 C1.7a — sideline-section browser test.*
+
+- **`config/logging_config.get_logger` is structlog with `PrintLoggerFactory`
+  — log lines go to STDOUT and never through stdlib logging, so pytest's
+  `caplog` captures nothing from them.** Assert log output via `capsys`, and
+  treat any negative caplog assertion (`assert X not in caplog.text`) as
+  VACUOUS: it passes even while X is being logged (proven by probe: a planted
+  secret in a warning → stdout saw it, `caplog.records == 0`, the negative
+  assertion passed). Known instance to fix when touched:
+  `tests/test_preflight.py::test_failure_logs_never_carry_the_raw_query`.
+  *Origin: 2026-07-13 C1.7a — high-sideline warning test red under caplog
+  despite the warning visibly firing.*
+
 - **Phase labels lag reality by one node.** `state["stage"]` is set inside each
   node but only streamed at node boundaries (`astream(stream_mode="values")`
   yields AFTER a node returns), so during a long node the UI's phase label still

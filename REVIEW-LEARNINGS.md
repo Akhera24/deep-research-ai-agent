@@ -52,6 +52,48 @@ plan or a diff, and address every applicable item so it never reaches review.
   HTML-escape the base URL for attribute context instead.
   *Origin: 2026-07-10 Phase B citations review (M1/M2/N1) — `_escape_deep` chokepoint.*
 
+## Schema changes / migrations
+- **A plan that adds a column/field to an existing ORM model must state the
+  migration mechanism.** This repo initializes its schema with
+  `Base.metadata.create_all` (`src/api/db.py` — "additive greenfield schema — no
+  alembic"), which creates missing TABLES but silently never ALTERs an existing
+  one: a new mapped column is absent on the already-created production table, and
+  the first ORM query on that model fails ("column does not exist") → app-wide
+  outage. Either avoid the column (in-memory state is valid under the pinned
+  `--workers 1`, `Dockerfile:22` — say so and bind it to that invariant with a
+  code comment) or write the explicit `ALTER TABLE … ADD COLUMN` step into the
+  deploy runbook.
+  *Origin: 2026-07-11 Phase C plan review R1 — `Job.cancel_requested` column had
+  no migration path; fixed as an in-memory cancel registry.*
+
+## Classification fields vs pre-split merges
+- **When a plan adds a per-item classification field (relevance, about_target,
+  spam, language) that gates downstream inclusion, check every MERGE/DEDUP/
+  CROSS-REFERENCE step that runs BEFORE the split** — a similarity merge that
+  unions provenance and drops a duplicate will silently move an item across
+  the classification boundary (absorbing a keep into the discard pool, or
+  contaminating a keep's provenance with a discard's sources). Pin the rule:
+  never merge/corroborate across the classifying field, or partition before
+  the first merge. The field is only "automatic scope" downstream of the
+  split, never upstream of it.
+  *Origin: 2026-07-12 Phase C1.7 plan review R1 — `about_target` set at
+  extraction, but the extractor's `_deduplicate_facts`/`_find_similar_facts`
+  run pre-partition and are boundary-blind.*
+
+## Transport dicts vs model schemas
+- **When a consumer reads a field from a merged/transport dict (the
+  orchestrator `context`, `progress_state`, `report_preview`), verify the
+  shape against the PRODUCER's construction site, not the request-model
+  schema** — the same field name can exist in both shapes:
+  `EntitySelection.disambiguators` is `List[str]` in the model, but routes.py
+  stores `context["disambiguators"] = "; ".join(...)` — a STRING (deliberate:
+  context values feed `"; ".join(f"{k}: {v}")` prompt lines). Indexing or
+  iterating the schema shape on the transport shape fails SILENTLY —
+  `s[0]` is a character, iteration yields characters — a wrong-but-running
+  bug (e.g. gap queries like `"John Smith" N wealth assets…`), never an error.
+  *Origin: 2026-07-12 C1.7 builder checkpoint, human catch F1 — the gap-query
+  scope term assumed the model's list shape.*
+
 ## Hostnames / origins
 - **When a plan changes an origin/hostname, grep for ALL server-side exact-match
   host/origin checks — not just the client-facing one.** A hostname change (custom

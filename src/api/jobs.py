@@ -55,6 +55,45 @@ class BudgetExceeded(Exception):
     """Raised inside the progress callback when per-job spend passes the cap."""
 
 
+class CancelledByUser(Exception):
+    """Raised inside the progress callback when the user cancelled (C1.4)."""
+
+
+# The exact terminal error string — the frontend maps it to a neutral
+# "Cancelled" state instead of an error (review R7). Do not reword casually.
+CANCEL_ERROR = "cancelled by user"
+
+# C1.4 cancel registry (review R1): NO DB column — db.py initializes the
+# schema with Base.metadata.create_all, which never ALTERs the existing prod
+# `jobs` table, so a new mapped column would 500 every Job query (app-wide
+# outage). SINGLE-WORKER INVARIANT: this set (and the ticket nonce set in
+# security.py) is in-process memory, sound ONLY under the pinned `--workers 1`
+# (Dockerfile:22) where the cancel POST and the job task share one process;
+# relaxing that pin requires a real column + explicit ALTER TABLE migration
+# (REVIEW-LEARNINGS "Schema changes / migrations"). A restart clears the set —
+# the job simply runs to completion (fail-safe). NEVER routed through
+# LangGraph state (LEARNINGS: graph state stays serializable).
+_cancel_requested: set[uuid.UUID] = set()
+
+# C1.5 finish-early registry (Rev 3.9 D9) — same pattern, same single-worker
+# invariant as _cancel_requested above. A member id makes the node-boundary
+# callback set `orchestrator.finish_early`, which the workflow's
+# continue/verify branch reads to stop ITERATING (the finalization tail —
+# verify → risks → connections → report — always runs; D8). Restart clears
+# the set → the job simply completes normally (fail-safe).
+_finish_early: set[uuid.UUID] = set()
+
+
+def request_cancel(job_id: uuid.UUID) -> None:
+    """Flag a job for cancellation at its next node boundary. Idempotent."""
+    _cancel_requested.add(job_id)
+
+
+def request_finish_early(job_id: uuid.UUID) -> None:
+    """Flag a job to stop iterating and finalize (C1.5). Idempotent."""
+    _finish_early.add(job_id)
+
+
 def _apply_activity(progress_state: dict, event) -> None:
     """Merge one executor/extractor activity event into the shared dict.
 
@@ -89,6 +128,15 @@ def _apply_report_preview(progress_state: dict, event: dict) -> None:
     kind, status = event.get("kind"), event.get("status")
 
     if kind == "extract" and status == "done":
+        # C1.7a (R5): running "N set aside" count. Handled BEFORE the
+        # facts_new early return — an ALL-sidelined batch has facts_new=[]
+        # but a real set_aside count. bool is an int subclass; reject it.
+        set_aside = event.get("set_aside")
+        if (isinstance(set_aside, int) and not isinstance(set_aside, bool)
+                and set_aside > 0):
+            preview = progress_state.setdefault("report_preview", {})
+            preview["set_aside"] = preview.get("set_aside", 0) + set_aside
+
         facts_new = [f for f in (event.get("facts_new") or [])
                      if isinstance(f, dict) and isinstance(f.get("content"), str)]
         if not facts_new:
@@ -164,6 +212,8 @@ def reset_state() -> None:
     global _semaphore
     _semaphore = None
     _tasks.clear()
+    _cancel_requested.clear()
+    _finish_early.clear()
 
 
 def _router_cost(orchestrator: ResearchOrchestrator) -> float:
@@ -173,8 +223,19 @@ def _router_cost(orchestrator: ResearchOrchestrator) -> float:
     )
 
 
-async def create_job(query: str, client_ip_hash: Optional[str], admin: bool) -> uuid.UUID:
-    """Insert the queued row and spawn the runner task. Returns the job id."""
+async def create_job(query: str, client_ip_hash: Optional[str], admin: bool,
+                     context: Optional[dict] = None,
+                     resolved_entity: Optional[dict] = None,
+                     rejected_entities: Optional[list] = None) -> uuid.UUID:
+    """Insert the queued row and spawn the runner task. Returns the job id.
+
+    context/resolved_entity (C1.2) travel IN-MEMORY to the runner — jobs run
+    in-process (no new DB column; the `progress` copy + report_json.metadata
+    are already covered by the §12.S2 expiry purge).
+    rejected_entities (C1.7d) is PROMPT-TRANSIENT (R9): threaded to the
+    orchestrator's prompts only — never written to progress, the banner, or
+    resolved_entity, so the §12.S2 purge surface is unchanged.
+    """
     job_id = uuid.uuid4()
     now = utcnow()
     async with get_sessionmaker()() as session:
@@ -190,17 +251,21 @@ async def create_job(query: str, client_ip_hash: Optional[str], admin: bool) -> 
         ))
         await session.commit()
 
-    task = asyncio.create_task(_run_job_safe(job_id, query))
+    task = asyncio.create_task(
+        _run_job_safe(job_id, query, context, resolved_entity, rejected_entities))
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)
     logger.info("Job created", extra={"job_id": str(job_id), "admin": admin})
     return job_id
 
 
-async def _run_job_safe(job_id: uuid.UUID, query: str) -> None:
+async def _run_job_safe(job_id: uuid.UUID, query: str,
+                        context: Optional[dict] = None,
+                        resolved_entity: Optional[dict] = None,
+                        rejected_entities: Optional[list] = None) -> None:
     """Wrapper so no exception is ever swallowed by fire-and-forget (§10.E)."""
     try:
-        await _run_job(job_id, query)
+        await _run_job(job_id, query, context, resolved_entity, rejected_entities)
     except Exception as e:  # noqa: BLE001 — terminal safety net
         logger.error(
             "Job crashed", extra={"job_id": str(job_id), "error": str(e)}, exc_info=True
@@ -209,9 +274,17 @@ async def _run_job_safe(job_id: uuid.UUID, query: str) -> None:
             await _finish(job_id, FAILED, error=f"internal error: {type(e).__name__}")
         except Exception:  # pragma: no cover — DB down; nothing left to do
             logger.error("Failed to record job failure", extra={"job_id": str(job_id)})
+    finally:
+        # One cleanup point for every terminal path (completed, failed,
+        # budget-aborted, cancelled, crashed) — the registries never grow.
+        _cancel_requested.discard(job_id)
+        _finish_early.discard(job_id)
 
 
-async def _run_job(job_id: uuid.UUID, query: str) -> None:
+async def _run_job(job_id: uuid.UUID, query: str,
+                   context: Optional[dict] = None,
+                   resolved_entity: Optional[dict] = None,
+                   rejected_entities: Optional[list] = None) -> None:
     async with _get_semaphore():
         # Dequeue budget gate (§11.R2) — re-checked under the semaphore,
         # BEFORE flipping queued → running.
@@ -221,12 +294,22 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
                 logger.warning("Job rejected at dequeue: budget", extra={"job_id": str(job_id)})
                 return
 
+        # C1.4: cancelled while still queued → terminal before any spend.
+        if job_id in _cancel_requested:
+            await _finish(job_id, FAILED, error=CANCEL_ERROR)
+            logger.info("Job cancelled at dequeue", extra={"job_id": str(job_id)})
+            return
+
         # ONE shared mutable progress dict, owned here (PLAN.md Step A2 /
         # REVIEW-LEARNINGS): both callbacks below mutate it and persist it
         # WHOLE. All callbacks run on this job's coroutine, so writes never
         # interleave mid-mutation.
         progress_state: dict = {"phase": "starting", "activity": [],
                                 "sample_facts": []}
+        if resolved_entity:
+            # Banner copy (C1.3) — set once by the owner of the shared dict,
+            # persisted whole by both writers; purged with progress (§12.S2).
+            progress_state["resolved_entity"] = resolved_entity
         await _update(job_id, status=RUNNING, started_at=utcnow(), heartbeat_at=utcnow(),
                       progress=_progress_snapshot(progress_state))
 
@@ -251,6 +334,18 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
                 progress=_progress_snapshot(progress_state),
                 cost_usd=cost,
             )
+            # C1.4: node-boundary cancel — exact BudgetExceeded mirror
+            # (cost recorded, terminal FAILED, ledger row). Checked here
+            # and ONLY here: the activity callback swallows exceptions by
+            # contract and must never carry control flow.
+            if job_id in _cancel_requested:
+                raise CancelledByUser(CANCEL_ERROR)
+            # C1.5: cancel beats finish (checked FIRST, above). The attr is
+            # read by _decide_continue_or_finish at the NEXT branch — per
+            # langgraph's NODE→BRANCH→YIELD super-step order, up to one
+            # more full iteration may run before the tail starts (R2).
+            if job_id in _finish_early:
+                orchestrator.finish_early = True
             if cost >= settings.PER_JOB_BUDGET_USD:
                 raise BudgetExceeded(
                     f"per-job budget ${settings.PER_JOB_BUDGET_USD:.2f} exceeded"
@@ -270,9 +365,19 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
         try:
             result = await orchestrator.research(
                 query,
+                context=context,
                 progress_callback=progress_callback,
                 activity_callback=activity_callback,
+                # C1.7d (R9): prompt-transient — reaches prompts only
+                rejected_entities=rejected_entities,
             )
+        except CancelledByUser as e:
+            cost = _router_cost(orchestrator)
+            await _finish(job_id, FAILED, error=str(e), cost_usd=cost)
+            await ledger.record(job_id, cost)
+            logger.info("Job cancelled by user",
+                        extra={"job_id": str(job_id), "cost_usd": cost})
+            return
         except BudgetExceeded as e:
             cost = _router_cost(orchestrator)
             await _finish(job_id, FAILED, error=str(e), cost_usd=cost)
@@ -287,6 +392,11 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
             return
 
         duration = (utcnow() - started).total_seconds()
+        if resolved_entity:
+            # D5: the resolved entity (or {"decision": "unscoped"}) is part
+            # of the report record — the Phase E knowledge graph joins on
+            # metadata.resolved_entity.entity_id. Purged with report_json.
+            result.setdefault("metadata", {})["resolved_entity"] = resolved_entity
         # Escaping happens inside render_html_report (edge case #10).
         html = render_html_report(result, query, duration)
         report_json = json.loads(json.dumps(result, default=str))
@@ -298,11 +408,14 @@ async def _run_job(job_id: uuid.UUID, query: str) -> None:
             coverage=result.get("metadata", {}).get("coverage", {}),
         )
 
+        final_progress = {"phase": "complete", "facts": len(result.get("facts", [])),
+                          "quality_score": score.get("score"), "grade": score.get("grade")}
+        if resolved_entity:
+            final_progress["resolved_entity"] = resolved_entity
         await _finish(
             job_id, COMPLETED,
             report_html=html, report_json=report_json, cost_usd=cost,
-            progress={"phase": "complete", "facts": len(result.get("facts", [])),
-                      "quality_score": score.get("score"), "grade": score.get("grade")},
+            progress=final_progress,
         )
         await ledger.record(job_id, cost)
         logger.info(
