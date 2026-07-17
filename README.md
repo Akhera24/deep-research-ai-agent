@@ -1,401 +1,248 @@
-# Deep Research AI Agent
+# Deep Research Agent
 
-### Autonomous Due Diligence Intelligence System
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.129+-009688.svg)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.0+-orange.svg)](https://github.com/langchain-ai/langgraph)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Autonomous research agent** that conducts comprehensive due diligence investigations on individuals and entities — uncovering facts, assessing risks, mapping connections, and generating interactive HTML intelligence reports.
+Autonomous due-diligence research on any person or company. Give it a name and it plans a research strategy, sweeps the public web, extracts and cross-checks facts, flags risks, maps connections, and delivers a cited, scored report in minutes. It runs as a public web service with live streaming progress and shareable run pages, and as a CLI.
+
+Live at [tryvettr.com](https://tryvettr.com).
 
 <p align="center">
-  <img src="docs/screenshots/report_header.png" alt="Report Header — Jensen Huang, 96.9/100" width="700"/>
+  <img src="src/api/static/report_header.8d899720.webp" alt="Report header: Jensen Huang, 97.3/100, Grade A+, score breakdown and coverage bars" width="720"/>
 </p>
 
----
+## What it does
 
-## What This Does
+A research run is a full investigation, not a chat answer:
 
-Run a single command with any person or company name. The agent autonomously researches them across the web and generates a comprehensive due diligence report giving facts, risks, connections, and trends that are scored on a 100-point scale.
+1. A pre-flight step identifies who you actually mean. Common names match many people, so the agent clusters candidates from live search evidence and asks you to pick before spending anything.
+2. Claude plans an investigation strategy: targeted queries across biographical, professional, financial, legal, behavioral, and connections categories.
+3. The agent searches iteratively through Brave and Serper, extracting structured facts with Gemini after each pass and refining the next round of queries based on what it found and what is still missing.
+4. Facts are deduplicated, cross-referenced for corroboration, and confidence-scored. Facts about other people who share the name are detected and set aside rather than mixed in.
+5. Claude assesses risk signals and maps relationships, then the system renders an interactive HTML report where every fact, risk, and trend cites its sources, and the whole report gets a 100-point quality score.
 
-```bash
-python scripts/research.py "Jensen Huang" --save --html --iterations 10
-```
+You watch all of this happen live: each run has its own page at `/research/{id}` with a streaming activity feed, fact counters filling in, and a report preview that builds as the agent works.
 
-The agent autonomously:
-1. **Plans** an investigation strategy using Claude Opus 4.8 — generating 15 targeted search queries across biographical, professional, financial, legal, behavioral, and connections categories
-2. **Searches** the web iteratively — executing queries via Brave Search and Serper, refining based on findings each round
-3. **Extracts** structured facts from raw search results using Gemini 3.1 Flash-Lite for speed
-4. **Verifies** facts through cross-referencing and confidence scoring
-5. **Assesses risks** — securities fraud, compliance issues, reputational concerns — using Claude's reasoning
-6. **Maps connections** — co-founders, employers, family, partners, investors — with relationship strength scores
-7. **Generates** an interactive HTML report with consolidation, filtering, sorting, trend analysis, and a 100-point quality score
+## Results
 
-### Real Performance (Jensen Huang, re-baselined July 2026 on current models, 3 iterations)
+Measured on the current models (July 2026), 3 iterations, well-documented subject:
 
-| Metric | Result |
-|--------|--------|
+| Metric | Jensen Huang |
+|--------|--------------|
 | Facts discovered | 48 (40 after consolidation) |
 | Risk flags | 9 across multiple categories |
 | Connections mapped | 25 across 10 relationship types |
-| Quality score | 95.8/100 — Grade A |
-| Duration | 147 seconds (2.5 minutes) |
-| Model cost | **$0.19** (Claude $0.182 · Gemini $0.006 · GPT unused fallback) |
-| Fallback calls | 0 — every task served by its primary model |
+| Quality score | 95.8/100, Grade A |
+| Duration | 147 seconds |
+| Model spend | $0.19 (Claude $0.182, Gemini $0.006, fallback unused) |
 
-<details>
-<summary>Previous baseline (Jensen Huang, 10 iterations, retired 2025 models)</summary>
+The harder test is a common name. Asked for "John Smith" with the hints "NSSF, VP Finance", the pre-flight surfaced the right person out of a field that included a 17th-century explorer, and the run produced 12 main facts, all about the correct John Smith, with 35 facts about other John Smiths explicitly set aside and cited in their own report section. The lead risk flag was a genuine finding about the right person. The report honestly graded itself D+ (Shallow Coverage) because a low-footprint subject yields a thin report, and the scoring measures research depth, not the subject.
 
-| Metric | Result |
-|--------|--------|
-| Facts discovered | 110 (95 after deduplication) |
-| Risk flags | 5 (1 HIGH, 2 MEDIUM, 2 LOW) |
-| Connections mapped | 17 across 9 relationship types |
-| Research coverage | 93.6% across 6 categories |
-| Quality score | 96.9/100 — Grade A |
-| Duration | 327 seconds (5.4 minutes) |
-| Cost | ~$0.56 total API spend |
-| Search iterations | 4 (stopped at 93% coverage threshold) |
-</details>
+## Product tour
 
----
+**Pre-flight disambiguation.** Submitting an ambiguous name opens an evidence-ranked picker. Candidates are clustered from live search results and ranked by how many independent domains document them; your optional hints (company, role, location) are matched semantically and label the best fit.
 
-## Report Screenshots
+<p align="center">
+  <img src="docs/screenshots/picker.png" alt="Disambiguation picker: three John Smith profiles with source-count chips and a 'matches your details' label" width="720"/>
+</p>
 
-<details>
-<summary><b>📊 Score Breakdown & Research Intelligence</b> (click to expand)</summary>
-<br/>
-<img src="docs/screenshots/report_header.png" alt="Score breakdown with coverage bars and intelligence cards" width="700"/>
-<p><em>Executive summary with 4-dimension scoring (Fact Quality 33/35, Coverage 23.9/25, Risk Assessment 20/20, Connections 20/20), research coverage percentages per category, and 6 intelligence metric cards.</em></p>
-</details>
+**The run page.** Every run lives at its own URL: refresh-safe, bookmarkable, and shareable. It shows the assumption banner (who is being researched, with a cancel-and-refine escape hatch), live progress, a report preview with facts, risks, and category coverage, and a narrative research log. The device that started the run gets Cancel and "Generate report now" controls; anyone else opening the link gets a watch-only view.
 
-<details>
-<summary><b>⚠️ Risk Flags</b> (click to expand)</summary>
-<br/>
-<img src="docs/screenshots/risk_flags.png" alt="Color-coded risk flags with severity badges" width="700"/>
-<p><em>5 risk flags with styled category labels (LEGAL, COMPLIANCE, TAX, FINANCIAL, REPUTATIONAL), color-coded severity (HIGH/MEDIUM/LOW), confidence percentages, impact scores, and trend indicators.</em></p>
-</details>
+<p align="center">
+  <img src="docs/screenshots/run_page.png" alt="Live run page: assumption banner, progress bar, fact counters, category bars, research log" width="680"/>
+</p>
 
-<details>
-<summary><b>📋 Fact Cards with Intelligent Consolidation</b> (click to expand)</summary>
-<br/>
-<img src="docs/screenshots/fact_cards.png" alt="Fact cards showing merged badges" width="700"/>
-<p><em>110 raw facts intelligently consolidated into 95 unique findings. Near-duplicate facts merged (e.g., "CEO of Nvidia" + "President of NVIDIA" + "served as CEO since inception" → single entry with "🔗 4 merged" badge). Click anywhere to expand evidence details.</em></p>
-</details>
+**Run history.** The homepage keeps a private, device-local list of your recent runs with live status and grades. It is stored in localStorage, never on the server, so a shared run link never exposes what else you have researched.
 
-<details>
-<summary><b>🕸️ Connection Mapping</b> (click to expand)</summary>
-<br/>
-<img src="docs/screenshots/connections.png" alt="Relationship cards with strength bars" width="700"/>
-<p><em>17 relationships mapped across 9 types (leadership, co-founder, family, employer, education, philanthropy, investor/partner, recognition). Strength bars and time periods for each connection.</em></p>
-</details>
+<p align="center">
+  <img src="docs/screenshots/recent_runs.png" alt="Your recent runs: entries with grade, running, and cancelled chips" width="720"/>
+</p>
 
-<details>
-<summary><b>📈 Trend Analysis</b> (click to expand)</summary>
-<br/>
-<img src="docs/screenshots/trend_analysis.png" alt="Trend signals grouped by category" width="700"/>
-<p><em>16 trend signals grouped into Growth & Expansion (10), Risk Trajectory (2), Strategic Direction (3), and Geopolitical Dynamics (1). Recent signals flagged with badges.</em></p>
-</details>
+**The report.** Interactive HTML with consolidated fact cards, per-fact citations, color-coded risk flags, a relationship map, and trend analysis. Two full sample reports are served live: [person](https://tryvettr.com/sample-report/person) and [company](https://tryvettr.com/sample-report/company).
 
----
+<p align="center">
+  <img src="src/api/static/fact_cards.4ca2f559.webp" alt="Fact cards grouped by category with confidence scores" width="720"/>
+  <img src="src/api/static/co_risk_flags.b594eb98.webp" alt="Risk flags with severity ratings" width="720"/>
+</p>
 
-## Architecture
+## How a run works
+
+The pipeline is a LangGraph state machine (`src/core/workflow.py`):
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    CLI Entry Point                           │
-│              scripts/research.py --html --save               │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│              LangGraph Orchestration Engine                  │
-│                  src/core/workflow.py                        │
-│                                                             │
-│  Initialize → Plan Strategy → Execute Searches → Extract    │
-│  Facts → Refine Queries → (loop) → Verify → Assess Risks   │
-│  → Map Connections → Generate Report                        │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         ▼                 ▼                 ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Claude Opus  │  │ Gemini 3.1   │  │ GPT-5.4 mini │
-│ 4.8          │  │ Flash-Lite   │  │              │
-│ • Strategy   │  │ • Extraction │  │ • Fallback   │
-│ • Risk       │  │ • Speed      │  │ • Structure  │
-│ • Connections│  │ • Volume     │  │ • JSON       │
-└──────────────┘  └──────────────┘  └──────────────┘
-         │                 │                 │
-         └─────────────────┼─────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Search Engines                               │
-│            Brave Search  |  Serper (Google)                  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│              HTML Report Generation                          │
-│                                                             │
-│  Interactive report with:                                   │
-│  • Quality scoring (100-point scale)                        │
-│  • Fact consolidation (Jaccard + containment dedup)         │
-│  • Category filters (multi-select)                          │
-│  • Sort controls (confidence, trend, category)              │
-│  • Risk severity visualization                              │
-│  • Connection strength mapping                              │
-│  • Trend analysis                                           │
-└─────────────────────────────────────────────────────────────┘
+initialize -> plan_strategy -> execute_searches -> extract_facts -> refine_queries
+                   ^                                                      |
+                   |            (coverage < 93% and iterations left)      |
+                   +------------------------------------------------------+
+                                                                          |
+                              (coverage met, finish requested, or cap hit)
+                                                                          v
+                        verify_facts -> assess_risks -> map_connections -> generate_report
 ```
 
-### Multi-Model Task Routing
+Each search iteration is informed by everything found so far. Research stops when weighted category coverage crosses the 93% threshold, when the iteration cap is reached, or when the user clicks "Generate report now" (the finalization tail of verification, risks, and connections always runs).
 
-The system routes tasks to the optimal model based on task type:
+Progress streams to the browser over Server-Sent Events. The backend polls the job row and emits the full progress snapshot on change, which makes the stream reconnect-safe by construction: a dropped connection, a page refresh, or a redeploy replays into an identical render with zero duplicated DOM.
 
-| Task | Model | Reasoning |
-|------|-------|-----------|
-| Strategy planning | Claude Opus 4.8 | Superior reasoning, strategic thinking |
-| Query refinement | Claude Opus 4.8 | Analytical depth, gap identification |
-| Fact extraction | Gemini 3.1 Flash-Lite | Speed, large context window (~300K tokens verified) |
-| Risk assessment | Claude Opus 4.8 | Nuanced analysis, pattern recognition |
-| Connection mapping | Claude Opus 4.8 | Relationship inference, synthesis |
-| Fallback | GPT-5.4 mini | Reliable structured output |
+### Multi-model routing
 
-> **Model note (July 2026):** `claude-opus-4-20250514` and `gpt-4-turbo-preview`
-> are retired at the API (404), and `gemini-2.5-flash` shuts down **2026-10-16** —
-> if you pin old model IDs via env vars, they will stop working. Current defaults
-> live in `config/settings.py`. Run `python scripts/preflight_check.py` to verify
-> all configured models respond before a research run.
+Each task goes to the model best suited for it (`src/models/router.py`):
 
----
+| Task | Model | Why |
+|------|-------|-----|
+| Strategy planning, query refinement | Claude Opus 4.8 | Strategic reasoning and gap identification |
+| Fact extraction | Gemini 3.1 Flash-Lite | Speed and cost at bulk-document volume |
+| Risk assessment, connection mapping | Claude Opus 4.8 | Nuanced analysis and relationship inference |
+| Structured-output fallback | GPT-5.4 mini | Reliable JSON when a primary call fails |
 
-## Project Structure
+An A/B against Sonnet 5 found parity on well-documented people but a large Opus advantage on company subjects (83.6 vs 65.5, where Sonnet lost connection mapping entirely) for about $0.06 more per report, so Opus 4.8 is the default. `python scripts/preflight_check.py` probes every configured model with a one-token call before you spend real money on a run.
+
+## Researching the right person
+
+Name collision is the failure mode that ruins due-diligence reports, so it is handled at three layers:
+
+- **Before the run.** The pre-flight clusters search results into distinct identities and ranks them by independent-domain evidence. A dominant identity proceeds automatically with a visible, correctable assumption banner; anything ambiguous requires an explicit pick. Optional hints (company, role, location, known-for) are matched with word-boundary semantics, inflection and typo tolerance, and a strong match is labeled on the card.
+- **During the run.** The chosen entity scopes query generation and extraction. Facts the extractor attributes to a different person with the same name are set aside: they never enter the counters, verification, risk analysis, or the score, but they are preserved with citations in a collapsed report section so you can audit the exclusion.
+- **Across runs.** Cancelling a run because it locked onto the wrong person hands you back to the form with that identity stashed as negative scope. Resubmitting the same name tells the pipeline "not this one" end to end, from candidate clustering to extraction prompts.
+
+## Reports you can verify
+
+- Every fact, risk flag, and trend signal renders clickable citation chips. Source URLs are captured before the HTML-escaping chokepoint and allowlisted to http/https, so links are correct and injection-proof at the same time.
+- Facts are consolidated with Jaccard similarity plus containment matching, so "CEO of Nvidia" and "served as CEO since 1993" merge into one finding with its evidence preserved.
+- The 100-point score breaks down as fact quality (35), research coverage (25), risk assessment (20), and connection mapping (20), on a standard GPA scale:
+
+| Grade | Score | Reads as |
+|-------|-------|----------|
+| A+ / A / A- | 90-100 | Outstanding to very good depth |
+| B+ / B / B- | 80-89 | Good to satisfactory depth |
+| C+ / C / C- | 70-79 | Fair to below-average depth |
+| D+ / D | 65-69 | Shallow coverage, thin findings |
+| F | below 65 | Minimal public data |
+
+Low grades are worded deliberately: they describe how much the public web yielded, never the subject. Reports on low-footprint subjects say so explicitly, with the search and iteration counts that were exhausted.
+
+## The web service
+
+FastAPI app (`src/api/`) deployed on Railway behind Cloudflare, one Docker container, Postgres in production and sqlite for development.
+
+| Route | Purpose |
+|-------|---------|
+| `GET /` | Homepage: submit form, disambiguation picker, your recent runs |
+| `POST /api/disambiguate` | Pre-flight candidate discovery (Turnstile-gated) |
+| `POST /api/research` | Start a job, returns 202 with the job id |
+| `GET /research/{id}` | The run page (works in every job state, including expired and not-found) |
+| `GET /api/research/{id}` | Job snapshot: status plus full progress |
+| `GET /api/research/{id}/events` | SSE progress stream |
+| `GET /api/research/{id}/report` | The finished HTML report |
+| `POST /api/research/{id}/cancel`, `/finish` | Cancel, or stop searching and finalize now |
+| `GET /sample-report/{person\|company}` | Live sample reports |
+| `GET /healthz` | Liveness plus DB check |
+
+Operational guardrails, all enforced server-side:
+
+- **Abuse:** Cloudflare Turnstile on submission, IP-keyed rate limits (3 reports/hour), and a single-use HMAC ticket that carries the pre-flight verification into the research request.
+- **Spend:** a monthly budget cap ($40 default) checked before and during every job, a per-job abort threshold ($1), a spend ledger, and at most 3 concurrent research jobs.
+- **Data lifecycle:** reports and the submitted name are kept 7 days, then a reaper purges report HTML, JSON, query text, progress, and the salted IP hash, and the links return 410. Stale jobs are failed automatically after a heartbeat timeout.
+- **Access model:** a run URL is an unguessable capability. Holding it grants watching and reading; the mutating controls render only on the device that started the run. Run and report pages ship strict CSP, `noindex`, `nosniff`, and no-store headers, so shared links stay out of crawlers and caches.
+- **Rendering safety:** everything scraped from the web is treated as hostile. All dynamic text reaches the DOM through `textContent`, CSS classes come from fixed whitelists, and a repo-wide test bans the entire HTML-injection sink family across every template.
+
+## Running locally
+
+Prerequisites: Python 3.12+, API keys for Anthropic, Google (Gemini), OpenAI, and Brave Search (Serper optional but recommended).
+
+```bash
+git clone https://github.com/Akhera24/deep-research-ai-agent.git
+cd deep-research-ai-agent
+python3.12 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # fill in your keys
+```
+
+Run the web app (the primary interface):
+
+```bash
+uvicorn src.api.main:app --port 8000 --workers 1
+# open http://localhost:8000
+```
+
+The single worker is mandatory: jobs run in-process and the concurrency semaphore, cancel registry, and SSE affinity all assume one process. Scale by giving the container more resources, not more workers.
+
+Or run the CLI directly:
+
+```bash
+python scripts/research.py "Jensen Huang" --save --html --iterations 10
+```
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `query` | required | Person or company to research |
+| `-i, --iterations` | 10 | Maximum search iterations |
+| `-s, --save` | off | Save results to JSON |
+| `--html` | off | Generate the interactive HTML report |
+| `--output` | auto | Custom output path |
+
+A typical run costs $0.20 to $0.45 all-in depending on iterations; the per-job cap aborts anything that runs away.
+
+## Testing
+
+```bash
+pytest tests/          # 481 unit and integration tests (fast gate)
+pytest -m e2e          # 97 browser tests (Playwright, requires requirements-dev.txt)
+```
+
+The browser suite boots the real app on a random port with the orchestrator replaced by a scripted stand-in, so tests drive the real routes, jobs, SSE, database, and frontend deterministically with zero model spend. Coverage includes the full cold-load state machine of the run page (running, completed, cancelled, failed, expired, unknown, malformed), SSE reconnect idempotency, XSS inertness with hostile fixtures planted at every render surface, rate-limit behavior, storage-disabled degradation, and the cross-page cancel-and-refine flow.
+
+## Project structure
 
 ```
 deep-research-agent/
-├── scripts/
-│   └── research.py              # CLI entry point + HTML report generation (2,258 lines)
 ├── src/
+│   ├── api/                  # FastAPI service: routes, in-process job runner,
+│   │   ├── templates/        #   spend ledger, retention reaper, Turnstile/ticket
+│   │   └── static/           #   security; Jinja templates for homepage + run page
 │   ├── core/
-│   │   ├── workflow.py           # LangGraph orchestration engine (1,540 lines)
-│   │   └── state_manager.py      # Research state management (593 lines)
-│   ├── models/
-│   │   ├── base_client.py        # Abstract base for AI clients (523 lines)
-│   │   ├── claude_client.py      # Anthropic Claude client with prompt caching (380 lines)
-│   │   ├── gemini_client.py      # Google Gemini client (374 lines)
-│   │   ├── openai_client.py      # OpenAI GPT-5 client (314 lines)
-│   │   └── router.py             # Multi-model task router (698 lines)
-│   ├── search/
-│   │   ├── strategy.py           # Consecutive search strategy engine (1,406 lines)
-│   │   └── executor.py           # Brave/Serper search executor
-│   ├── extraction/
-│   │   └── extractor.py          # AI-powered fact extraction (924 lines)
-│   └── database/
-│       ├── models.py             # SQLAlchemy ORM models (311 lines)
-│       ├── connection.py         # Database connection pooling (195 lines)
-│       └── repository.py         # Data access layer (188 lines)
-├── config/
-│   ├── settings.py               # Pydantic settings with validation (536 lines)
-│   └── logging_config.py         # Structlog JSON logging (437 lines)
-├── tests/
-│   ├── run_evaluation.py         # Full evaluation suite (587 lines)
-│   ├── run_quality_evaluation.py # Quality scoring tests (311 lines)
-│   └── test_quality_score.py     # Unit tests for scoring (501 lines)
-├── docs/
-│   ├── IMPLEMENTATION_PLAN.md    # Architecture decisions
-│   ├── TECHNICAL_ARCHITECTURE.md # System design
-│   ├── PRD.md                    # Product requirements
-│   ├── EXECUTIVE_SUMMARY.md      # Project overview
-│   └── EVALUATION_DATASET.md     # Test personas & framework
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
+│   │   ├── workflow.py       # LangGraph orchestration engine
+│   │   ├── preflight.py      # Pre-flight entity disambiguation
+│   │   └── state_manager.py  # Shared research state
+│   ├── models/               # Claude / Gemini / OpenAI clients + task router
+│   ├── search/               # Strategy engine + Brave/Serper executor
+│   ├── extraction/           # Structured fact extraction and attribution
+│   ├── reporting/
+│   │   └── html_report.py    # Quality scoring + cited, interactive HTML report
+│   └── database/             # Persistence layer for CLI runs
+├── config/                   # Pydantic settings, structlog config
+├── scripts/                  # research.py CLI, demo.py, preflight_check.py
+├── tests/                    # 481 unit tests + tests/e2e/ (97 browser tests)
+├── docs/                     # Design docs and screenshots
+├── Dockerfile                # python:3.12-slim, single-worker uvicorn
+└── railway.json              # Railway deploy config (healthcheck, drain)
 ```
 
----
+## Design decisions
 
-## Quick Start
+**Multi-model over single-model.** Claude carries the reasoning-heavy steps, Gemini does bulk extraction at a fraction of the cost, and GPT-5.4 mini exists purely as a structured-output fallback. Each model does what it is best at, which is how a full investigation stays under a dollar.
 
-### Prerequisites
+**DB-polled SSE instead of a message broker.** Progress is written to the job row and the SSE endpoint polls for changes, emitting the full snapshot each time. This removed Redis entirely and made every consumer reconnect-safe for free: a refresh or redeploy replays the same state into the same render.
 
-- **Python 3.11+**
-- API keys for: **Anthropic** (Claude), **Google** (Gemini), **OpenAI** (GPT-5), **Brave Search**
-- Optional: **Serper** (Google search fallback)
+**Capability URLs instead of accounts.** A job id is an unguessable UUID that acts as the bearer token for watching and reading a run. Ownership (the ability to cancel or finish early) is tracked per-device in localStorage, so sharing a link shares the view, not the controls. No accounts, no cookies, no server-side session state.
 
-### Installation
+**Escaping at one chokepoint, raw values captured before it.** The report renderer escapes everything once, deeply. Features that need raw values (citation hrefs, dedup keys) read from seams captured before that chokepoint, never by un-escaping afterward, which is how the citation system stayed injection-proof.
 
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/deep-research-agent.git
-cd deep-research-agent
+**Coverage-driven termination.** A well-documented subject converges in 3 or 4 iterations; an obscure one uses the full budget. Stopping on measured category coverage rather than a fixed count spends money where the information actually is.
 
-# Create and activate virtual environment
-python3.11 -m venv venv
-source venv/bin/activate  # Windows: .\venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure API keys
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### Configuration
-
-Copy `.env.example` to `.env` and fill in your keys:
-
-```bash
-# Required
-ANTHROPIC_API_KEY=sk-ant-...        # Claude Opus 4.8
-GOOGLE_API_KEY=AI...                # Gemini 3.1 Flash-Lite
-OPENAI_API_KEY=sk-...               # GPT-5.4 mini (fallback)
-BRAVE_API_KEY=BSA...                # Brave Search
-DATABASE_URL=sqlite:///research.db  # Job/session storage
-
-# Optional
-SERPER_API_KEY=...                  # Google search via Serper (fallback)
-```
-
-### Run Research
-
-```bash
-# Basic research (console output only)
-python scripts/research.py "Tim Cook"
-
-# Full research with HTML report and JSON export
-python scripts/research.py "Jensen Huang" --save --html --iterations 10
-
-# Quick research (fewer iterations)
-python scripts/research.py "Satya Nadella" -i 5 -s --html
-
-# Custom output path
-python scripts/research.py "Elon Musk" -i 20 -s --output results/elon.json --html
-```
-
-### CLI Arguments
-
-| Argument | Short | Default | Description |
-|----------|-------|---------|-------------|
-| `query` | — | required | Person or entity to research |
-| `--iterations` | `-i` | 10 | Maximum search iterations |
-| `--save` | `-s` | false | Save results to JSON |
-| `--html` | — | false | Generate interactive HTML report |
-| `--output` | — | auto | Custom output file path |
-
----
-
-## How It Works
-
-### 1. Strategy Planning
-
-Claude Opus 4.8 generates an initial set of 15 targeted search queries spanning 6 categories (biographical, professional, financial, legal, behavioral, connections) at varying depth levels (1-5). Each query has a specific investigative purpose.
-
-### 2. Iterative Search & Extraction
-
-The system executes 5 queries per iteration, extracts facts using Gemini 3.1 Flash-Lite, then refines the next batch of queries based on what's been discovered and what gaps remain. This consecutive search strategy means each iteration is informed by all previous findings.
-
-### 3. Coverage-Driven Termination
-
-Research continues until either the coverage threshold is met (default: 93%) or the maximum iterations are reached. Coverage is computed as a weighted average across all 6 research categories using information entropy.
-
-### 4. Verification & Scoring
-
-Facts are deduplicated, cross-referenced for corroboration, and assigned confidence scores. The 100-point quality score breaks down as:
-
-- **Fact Quality** (35 pts): Quantity, average confidence, corroboration ratio
-- **Research Coverage** (25 pts): Category breadth, depth per category, distribution entropy
-- **Risk Assessment** (20 pts): Number and severity of identified risks
-- **Connection Mapping** (20 pts): Relationship count, type diversity
-
-### 5. HTML Report Generation
-
-The interactive report includes:
-- **Visual strength cards** — 6 intelligence metrics with progress bars
-- **Intelligent fact consolidation** — Jaccard similarity + containment dedup with min-2-shared-words guard
-- **Multi-select category filters** — Toggle categories independently
-- **Sort controls** — By confidence, trend, or category
-- **Click-anywhere expand** — Full evidence details on any fact card
-- **Styled risk labels** — Color-coded severity pills
-- **Trend analysis** — Growth, risk trajectory, strategic direction, geopolitical dynamics
-- **Connection mapping** — Relationship type pills with strength bars
-
----
-
-## Quality Scoring
-
-The system produces a research quality score from 0-100:
-
-| Grade | Score | Quality |
-|-------|-------|---------|
-| A+ | 95-100 | Exceptional |
-| A | 90-94 | Excellent |
-| B+ | 85-89 | Very Good |
-| B | 80-84 | Good |
-| C+ | 70-79 | Adequate |
-| C | 60-69 | Needs Improvement |
-| D | 50-59 | Poor |
-| F | 0-49 | Insufficient |
-
----
-
-## Cost Breakdown
-
-Measured costs per research run (Jensen Huang, 3 iterations, July 2026 models):
-
-| Component | Model | Cost |
-|-----------|-------|------|
-| Strategy/refinement, risk, connections (6 calls) | Claude Opus 4.8 | $0.182 |
-| Fact extraction (3 calls) | Gemini 3.1 Flash-Lite | $0.006 |
-| Structured-output fallback (0 calls — unused) | GPT-5.4 mini | $0.00 |
-| Search API calls (~15) | Brave Search | ~$0.08 |
-| **Total** | | **~$0.27** (model spend $0.19) |
-
-A longer 10-iteration run scales roughly linearly on extraction/search but not
-on the fixed reasoning calls; expect ~$0.30–0.45 all-in.
-
-**Reasoning model:** the default is `claude-opus-4-8`. A Sonnet 5 A/B
-(2 subjects × 2 models) found the two at parity on well-documented individuals
-(96.0 vs 95.6) but Opus meaningfully ahead on a company subject (83.6 vs 65.5 —
-Sonnet lost connection mapping entirely), for only ~$0.06/report more. Opus 4.8
-is therefore the chosen model. `CLAUDE_MODEL=claude-sonnet-5` remains available
-as a cheaper env override, best suited to person-only workloads.
-
----
-
-## Key Design Decisions
-
-**Why multi-model instead of single model?** Claude Opus 4.8 excels at strategic reasoning and nuanced analysis but is expensive and slower. Gemini 3.1 Flash-Lite handles bulk extraction from large documents at a fraction of the cost and 2× the speed. GPT-5.4 mini provides reliable structured JSON output as a fallback. Using each model for what it does best keeps costs under $1/report while maintaining quality.
-
-**Why Jaccard + containment for deduplication?** Pure Jaccard similarity misses subset relationships ("born in Taiwan" vs "born February 17, 1963, in Tainan, Taiwan" — Jaccard is low because the detailed fact has many unique words). Containment catches these asymmetric relationships. The min-2-shared-words guard prevents false merges on very short facts.
-
-**Why coverage-driven termination instead of fixed iterations?** Different subjects require different amounts of research. A well-documented public figure like Jensen Huang reaches 93% coverage in 4 iterations, while an obscure private individual might need all 10. Coverage-driven termination saves time and money on easy targets while ensuring thoroughness on hard ones.
-
-**Why LangGraph over raw async?** LangGraph provides state management, conditional edges (the coverage check loop), and potential checkpointing for long-running research. The graph structure makes the workflow explicit and debuggable.
-
----
+**Client-side run history.** The recent-runs list lives in localStorage because the alternative is a server-side record linking one browser to every subject it researched. Keeping it on-device makes the privacy boundary structural rather than policy.
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Architecture decisions and system design |
-| [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) | Detailed technical specifications |
-| [PRD.md](docs/PRD.md) | Product requirements |
-| [EXECUTIVE_SUMMARY.md](docs/EXECUTIVE_SUMMARY.md) | Project overview and roadmap |
-| [EVALUATION_DATASET.md](docs/EVALUATION_DATASET.md) | Test personas and evaluation framework |
-
----
+| [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) | System design and component specifications |
+| [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Architecture decisions |
+| [PHASE3_DESIGN.md](docs/PHASE3_DESIGN.md) | Web service design: jobs, SSE, security, retention |
+| [Deep_Research_Agent_PRD.md](docs/Deep_Research_Agent_PRD.md) | Product requirements |
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-<p align="center">
-  Built with Claude Opus 4.8 · Gemini 3.1 Flash-Lite · GPT-5.4 mini · LangGraph · Brave Search
-</p>
+MIT. See [LICENSE](LICENSE).
