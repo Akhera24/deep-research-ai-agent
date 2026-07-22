@@ -44,6 +44,40 @@ starting work; obey every rule (per the global harness contract).
   *Origin: 2026-07-13 C1.7a — high-sideline warning test red under caplog
   despite the warning visibly firing.*
 
+- **A Playwright assertion on a TRANSIENT UI state (hidden-before-SSE,
+  pre-hydration text) races the harness's 0.1s SSE poll / instant hydration
+  and flakes.** The state is real but lives ~100ms — the stream/hydration
+  rewrites the DOM before the assertion's first check. Either stub the input
+  that creates the state (page.route the snapshot GET and serve the fixture
+  that freezes it) or assert the causal END-STATE property instead (e.g.
+  "banner visible although the cold snapshot carried no entity ⇒ it came
+  from SSE"). Symptom: `to_be_hidden`/text asserts that pass alone but fail
+  under load, with the "wrong" value being the NEXT state.
+  *Origin: 2026-07-14 P0 Step 2 — the finalization-A banner test and the
+  elapsed-seed test both failed this way before rewrite.*
+
+- **Planted store fixtures (dra_history/dra_owned) get hydration-pruned by
+  the real 404 before the assertion runs.** The homepage's hydration
+  refreshes every planted entry against `GET /api/research/{id}`; a made-up
+  jobId 404s and the prune-on-404 feature (working as designed) deletes the
+  fixture mid-test. Stub the snapshot route with a 503 (the blip-keep branch)
+  whenever a test plants entries for jobs that don't exist. Symptom:
+  "element(s) not found" on a row the test just planted.
+  *Origin: 2026-07-14 P0 Step 4 — the hostile-label test lost its row to
+  hydration mid-assertion.*
+
+- **Test fixtures with absolute dates in TTL-pruned stores are time bombs.**
+  A fixture hardcoding `createdAt: "2026-07-13"` in `dra_history_v1` passes
+  until the calendar moves 7 days past it — then the store's OWN prune
+  (feature working correctly) deletes the fixture at read time and the
+  assertion fails with "element(s) not found" on a row the test just
+  planted. Always compute fixture dates relative to now
+  (`datetime.now(timezone.utc) - timedelta(days=1)`); reserve absolute
+  dates for the cases that TEST the boundary (a far-future date for the
+  clock-skew keep, a stale date for the prune itself).
+  *Origin: 2026-07-22 — three green history e2e tests failed on calendar
+  rollover alone; no code had changed.*
+
 - **Phase labels lag reality by one node.** `state["stage"]` is set inside each
   node but only streamed at node boundaries (`astream(stream_mode="values")`
   yields AFTER a node returns), so during a long node the UI's phase label still

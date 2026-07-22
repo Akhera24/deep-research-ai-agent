@@ -43,6 +43,17 @@ REPORT_CSP = (
     "img-src data:; base-uri 'none'; form-action 'none'"
 )
 
+# P0: the run page is a SHAREABLE capability URL — stricter than the
+# homepage (no Turnstile/external origin needed). connect-src 'self' covers
+# the snapshot fetch + the EventSource; frame-ancestors 'none' is the
+# clickjacking directive (R6 — it never inherits from default-src, and the
+# page carries cancel/finish buttons).
+RUN_PAGE_CSP = (
+    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+    "img-src 'self' data:; connect-src 'self'; base-uri 'none'; "
+    "form-action 'none'; frame-ancestors 'none'"
+)
+
 SSE_POLL_SECONDS = 1.5
 
 # Phase D4: regenerated reports served as public samples (person + company —
@@ -85,6 +96,26 @@ async def sample_report(kind: str):
 async def index(request: Request):
     return templates.TemplateResponse(
         request, "index.html", {"turnstile_site_key": settings.TURNSTILE_SITE_KEY}
+    )
+
+
+# P0 Step 2: the dedicated run page (refresh-safe, bookmarkable, shareable).
+# job_id is a plain str — ANY value serves the shell, and the client resolves
+# validity via the snapshot API's 404/422/410 (R8: one friendly error
+# surface, never FastAPI's raw 422 HTML for a typo'd link). READ-ONLY: this
+# page adds no writer to Job.progress (shared-writer rule). Header contract
+# per REVIEW-LEARNINGS: noindex (shareable capability URL stays out of
+# crawlers) + nosniff + no-store + the strict CSP above.
+@router.get("/research/{job_id}", response_class=HTMLResponse)
+async def run_page(request: Request, job_id: str):
+    return templates.TemplateResponse(
+        request, "run.html", {"job_id": job_id[:64], "nav_cta": True},
+        headers={
+            "Content-Security-Policy": RUN_PAGE_CSP,
+            "X-Content-Type-Options": "nosniff",
+            "X-Robots-Tag": "noindex",
+            "Cache-Control": "no-store",
+        },
     )
 
 

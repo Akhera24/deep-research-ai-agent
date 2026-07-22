@@ -180,3 +180,38 @@ ships; bundle the deeper-search mode with P6.
 3. Update `docs/example_report.html`; re-shoot homepage screenshots if the
    report visuals changed.
 4. Full gate re-run: suites, sink checks, header contracts, quality band.
+
+## P14 — Pre-flight same-person merge guard (human 2026-07-21)
+**What:** deterministic post-clustering merge pass in `preflight.py`: after
+the LLM returns candidates, merge two clusters when the NAME is a variant
+(token subset + small nickname map: Tim→Timothy, Bill→William) AND the
+descriptors name the same organization and/or the domain evidence overlaps —
+union domains, keep the richer descriptor. **Why:** observed live (Tim Cook
+run, 2026-07-21): "Timothy Donald Cook — CEO, Apple" and "Tim Cook —
+Executive Chairman, Apple" rendered as two picker cards — the clustering
+prompt treats ROLE as a disambiguating attribute, but role is time-varying
+(CEO→Executive Chairman is the classic same-person case); org + name-variant
+is the stable signal. Nondeterministic (a retry merged them). Severity low —
+either card scopes to the right person; cost is one confused click + diluted
+domain-mass share (can force an unnecessary picker instead of auto-proceed).
+**Why deferred:** preflight (Phase C) code, not P0; the conservative split
+is the designed safe direction (false merge contaminates a report — keep the
+merge pass conservative: no evidence overlap → no merge). **Trigger:** next
+preflight-quality pass; small standalone PR with table tests over name-variant
+× org × domain-overlap combinations.
+
+## P15 — Run-page completed-state fidelity (terminal summary counts)
+**What:** `jobs.py` terminal `final_progress` gains cheap aggregate keys —
+`risks` (count + severities), `connections` (count), `by_category`,
+`verification` counts — so a completed run page (cold-load OR the live
+completed handler's snapshot re-fetch) renders real counters/bars instead of
+"–" and zeroed bars. **Why:** observed live 2026-07-21: the terminal dict
+REPLACES the running progress (jobs.py:411-414, the documented D5 gotcha),
+and the SSE poll races completion (the loop checks status FIRST, so progress
+written in the last poll interval before terminal is never streamed) — a
+completed page keeps only {facts, quality_score, grade}. The full data is
+persisted (report_json/report_html) — this is a transport-summary gap, not
+data loss. Counts are low-sensitivity aggregates; the column is §12.S2-purged
+at expiry either way. **Why deferred from P0:** P0 was UI-only; this touches
+the jobs.py writer. **Trigger:** FIRST follow-up PR after P0 merges (pairs
+with the client already rendering these keys when present).

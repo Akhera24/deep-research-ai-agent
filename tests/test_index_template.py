@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.abspath('.'))
 
 from pathlib import Path
 
-TEMPLATE = Path(__file__).parent.parent / "src" / "api" / "templates" / "index.html"
+TEMPLATES_DIR = Path(__file__).parent.parent / "src" / "api" / "templates"
+TEMPLATE = TEMPLATES_DIR / "index.html"
 
 HTML_INJECTION_SINKS = [
     "innerHTML", "outerHTML", "insertAdjacentHTML", "document.write",
@@ -22,10 +23,14 @@ HTML_INJECTION_SINKS = [
 ]
 
 
-def test_template_bans_html_injection_sink_family():
-    src = TEMPLATE.read_text()
-    for sink in HTML_INJECTION_SINKS:
-        assert sink not in src, f"HTML-injection sink '{sink}' found in index.html"
+def test_templates_ban_html_injection_sink_family():
+    # P0 Step 1: the ban covers EVERY template — partials and run.html
+    # render the same untrusted content and must not escape the guard.
+    for template in sorted(TEMPLATES_DIR.glob("*.html")):
+        src = template.read_text()
+        for sink in HTML_INJECTION_SINKS:
+            assert sink not in src, (
+                f"HTML-injection sink '{sink}' found in {template.name}")
 
 
 def test_untrusted_text_rendered_via_textcontent():

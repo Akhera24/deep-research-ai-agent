@@ -12,336 +12,10 @@
     <meta property="og:image" content="https://tryvettr.com/static/report_header.8d899720.webp">
     <meta name="twitter:card" content="summary_large_image">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-               background: #f1f5f9; color: #1e293b; line-height: 1.6;
-               display: flex; flex-direction: column; min-height: 100vh; }
-        main { flex: 1; max-width: 1080px; width: 100%; margin: 0 auto; padding: 40px 20px; }
-        h1 { font-size: 1.6em; margin-bottom: 4px; }
-        .sub { color: #64748b; margin-bottom: 28px; }
-
-        /* ---- D3: two-column hero (stacks on mobile); LCP = headline text ---- */
-        #hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-                gap: 36px; align-items: start; }
-        @media (max-width: 900px) { #hero { grid-template-columns: 1fr; gap: 20px; } }
-        /* Two-line slot: the long quotes (Confucius, Sun Tzu) wrap in the hero
-           column; a 1-to-2-line swap mid-rotation would shift the headline
-           below it on every cycle (CLS) */
-        #quote { min-height: 3.2em; font-size: 0.85em; color: #64748b;
-                font-style: italic; margin-bottom: 10px; transition: opacity 0.4s; }
-        #quote.swap { opacity: 0; }
-        /* The A.2 live experience keeps its designed narrow measure */
-        #status { max-width: 680px; margin-left: auto; margin-right: auto; }
-        form { background: white; border-radius: 12px; padding: 24px;
-               box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        label { font-weight: 600; display: block; margin-bottom: 8px; }
-        input[type=text] { width: 100%; padding: 12px; font-size: 1em; border: 1px solid #cbd5e1;
-               border-radius: 8px; margin-bottom: 16px; }
-        button { background: #2d5a8e; color: white; border: 0; border-radius: 8px;
-               padding: 12px 24px; font-size: 1em; cursor: pointer; }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
-        button:focus-visible, [role=tab]:focus-visible { outline: 2px solid #2d5a8e; outline-offset: 2px; }
-        .turnstile-box { margin-bottom: 16px; }
-
-        /* ---- Phase C: hints form + disambiguation picker + banner ---- */
-        #hints { margin: -6px 0 16px; }
-        #hints summary { cursor: pointer; color: #2d5a8e; font-size: 0.88em;
-                font-weight: 600; }
-        #hints summary:focus-visible { outline: 2px solid #2d5a8e; outline-offset: 2px; }
-        #hints-grid { display: grid; grid-template-columns: 1fr 1fr;
-                gap: 0 12px; margin-top: 10px; }
-        #hints-grid label { font-size: 0.8em; margin-bottom: 4px; color: #475569; }
-        #hints-grid input { margin-bottom: 10px; padding: 8px 10px; font-size: 0.9em; }
-        @media (max-width: 640px) { #hints-grid { grid-template-columns: 1fr; } }
-        #hints-tip { font-size: 0.78em; color: #64748b; margin-top: 8px; }
-        .chip.match-strong { background: #dcfce7; color: #166534; }
-
-        #picker { margin-top: 16px; background: white; border-radius: 12px;
-                padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        #picker h2 { font-size: 1.05em; color: #1e293b; }
-        #picker-sub { color: #64748b; font-size: 0.85em; margin: 4px 0 12px; }
-        #picker-cards { display: flex; flex-direction: column; gap: 8px; }
-        .picker-card { flex: none; width: 100%; height: auto; min-height: 0; }
-        .picker-card .ent-name, .picker-card .ent-cat { white-space: normal;
-                overflow: visible; }
-        #picker-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-        #picker-actions button { background: #f1f5f9; color: #334155;
-                font-size: 0.85em; padding: 8px 14px; }
-        #picker-actions button:hover { background: #e2e8f0; }
-        #picker-warning { color: #92400e; background: #fef3c7; border-radius: 6px;
-                padding: 6px 10px; font-size: 0.85em; margin-top: 10px; }
-        #picker-note { color: #92400e; font-size: 0.85em; margin: -6px 0 10px;
-                font-weight: 600; }
-        #preflight-pending { color: #2d5a8e; font-size: 0.88em; margin-top: 10px;
-                animation: preflight-pulse 1.4s ease-in-out infinite; }
-        @keyframes preflight-pulse { 50% { opacity: 0.45; } }
-        @media (prefers-reduced-motion: reduce) {
-            #preflight-pending { animation: none; }
-        }
-
-        /* author display beats the UA [hidden] rule — restate it (D8 lesson) */
-        #assumption-banner[hidden] { display: none; }
-        #assumption-banner { display: flex; align-items: center; gap: 10px;
-                justify-content: space-between; flex-wrap: wrap;
-                background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
-                padding: 8px 12px; margin-bottom: 12px; font-size: 0.88em;
-                color: #1e3a5f; overflow-wrap: anywhere; }
-        #assumption-banner.warn { background: #fef3c7; border-color: #fde68a;
-                color: #92400e; }
-        #banner-cancel, #cancel-btn, #finish-btn, #finish-no { background: none;
-                border: 1px solid #cbd5e1; color: #475569; font-size: 0.82em;
-                padding: 5px 10px; border-radius: 6px; flex: none; }
-        #banner-cancel:hover, #cancel-btn:hover, #finish-btn:hover,
-        #finish-no:hover { background: #f1f5f9; color: #334155; }
-        #finish-yes { background: #2d5a8e; color: white; font-size: 0.82em;
-                padding: 5px 10px; border-radius: 6px; border: 0; }
-        #status-controls { display: inline-flex; align-items: center; gap: 8px;
-                flex-wrap: wrap; justify-content: flex-end; }
-        /* author display beats the UA [hidden] rule — restate it (D8 lesson) */
-        #status-controls [hidden], #finish-wrap[hidden] { display: none; }
-        #finish-wrap, #finish-confirm { display: inline-flex; align-items: center;
-                gap: 6px; }
-        #finish-question { color: #475569; font-size: 0.85em; }
-        #finish-pending { color: #2d5a8e; font-size: 0.82em; }
-
-        #status { margin-top: 24px; display: none; background: white; border-radius: 12px;
-               padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        #status-head { display: flex; justify-content: space-between;
-                align-items: baseline; gap: 16px; }
-        #elapsed { color: #94a3b8; font-size: 0.85em; font-variant-numeric: tabular-nums; }
-        #bar-outer { background: #e2e8f0; border-radius: 6px; height: 10px; margin: 12px 0; overflow: hidden; }
-        #bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 2%;
-               transition: width 0.6s cubic-bezier(.3,.7,.4,1); }
-        #phase { color: #1e293b; font-size: 0.95em; font-weight: 600;
-               transition: opacity 0.25s; }
-        #phase.swap { opacity: 0; }
-        #activity-line { color: #475569; font-size: 0.9em; margin-top: 4px; min-height: 1.4em; }
-        #eta { color: #94a3b8; font-size: 0.8em; margin-top: 2px; }
-        #no-facts { color: #92400e; background: #fef3c7; border-radius: 6px;
-               padding: 6px 10px; font-size: 0.85em; margin-top: 10px; }
-
-        /* ---- Live report (top panel) ---- */
-        #live-report { margin-top: 16px; }
-        #tabs { display: flex; gap: 4px; border-bottom: 1px solid #e2e8f0; }
-        #tabs [role=tab] { background: none; color: #64748b; padding: 8px 14px; font-size: 0.9em;
-               border: 0; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; cursor: pointer; }
-        #tabs [role=tab][aria-selected=true] { color: #1e293b; font-weight: 600;
-               border-bottom-color: #3b82f6; background: #f8fafc; }
-        .tabpanel { padding: 14px 2px 4px; }
-        #counters { display: flex; gap: 12px; }
-        .counter { flex: 1; background: #f8fafc; border-radius: 10px; padding: 12px; text-align: center; }
-        .counter .num { font-size: 1.5em; font-weight: 700; color: #1e293b;
-               font-variant-numeric: tabular-nums; display: block; }
-        .counter .cap { font-size: 0.75em; color: #64748b; }
-        #verify-note { font-size: 0.8em; color: #64748b; margin-top: 10px; min-height: 1.2em; }
-        #cat-bars { margin-top: 12px; }
-        .cat-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.8em; }
-        .cat-row .cat-name { width: 96px; color: #475569; text-transform: capitalize; }
-        .cat-row .cat-track { flex: 1; background: #f1f5f9; border-radius: 4px; height: 8px; overflow: hidden; }
-        .cat-row .cat-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
-        #facts-list { list-style: none; }
-        #facts-list li { background: #f8fafc; border-left: 3px solid #cbd5e1; border-radius: 6px;
-               padding: 8px 12px; margin-top: 8px; font-size: 0.88em; color: #334155;
-               overflow-wrap: anywhere; }
-        .fact-meta { display: block; font-size: 0.82em; color: #94a3b8; margin-top: 2px;
-               text-transform: capitalize; }
-        #facts-empty, .pending-note { color: #94a3b8; font-size: 0.85em; padding: 8px 0; }
-        /* no display property here — the hidden attribute must keep working
-           (UA display:none loses to author CSS; D8 lesson) */
-        #set-aside-note { color: #94a3b8; font-size: 0.8em; padding: 2px 0 6px; }
-        .sig-box { background: #f8fafc; border-radius: 10px; padding: 12px; margin-top: 8px; }
-        .sig-box h3 { font-size: 0.85em; color: #475569; margin-bottom: 4px; }
-        .sig-line { font-size: 0.88em; color: #334155; overflow-wrap: anywhere; }
-        .chip { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: 0.78em;
-               margin: 2px 4px 0 0; background: #e2e8f0; color: #475569; }
-        .chip.sev-critical { background: #fee2e2; color: #991b1b; }
-        .chip.sev-high { background: #ffedd5; color: #9a3412; }
-        .chip.sev-medium { background: #fef3c7; color: #92400e; }
-        .chip.sev-low { background: #e0f2fe; color: #075985; }
-
-        /* Category accents (fixed whitelist — classes never derive from data) */
-        .cat-biographical { border-left-color: #3b82f6; } .fill-biographical { background: #3b82f6; }
-        .cat-professional { border-left-color: #6366f1; } .fill-professional { background: #6366f1; }
-        .cat-financial    { border-left-color: #059669; } .fill-financial    { background: #059669; }
-        .cat-legal        { border-left-color: #dc2626; } .fill-legal        { background: #dc2626; }
-        .cat-connections  { border-left-color: #d97706; } .fill-connections  { background: #d97706; }
-        .cat-behavioral   { border-left-color: #7c3aed; } .fill-behavioral   { background: #7c3aed; }
-        .cat-other        { border-left-color: #94a3b8; } .fill-other        { background: #94a3b8; }
-
-        /* ---- Research brief (A3.2 opening: instant, client-only) ---- */
-        #brief { background: #f8fafc; border-radius: 10px; padding: 10px 14px;
-               margin-bottom: 10px; font-size: 0.88em; color: #334155; }
-        #brief-subject { font-weight: 600; }
-        .brief-line { color: #64748b; font-size: 0.92em; }
-        #plan-note { font-size: 0.8em; color: #2d5a8e; margin-top: 8px; min-height: 1.2em; }
-        @keyframes pulse-once { 50% { opacity: 0.35; } }
-        #cat-bars.pulse .cat-fill { animation: pulse-once 0.7s ease 1; }
-
-        /* ---- Research log (bottom panel, visible-compact) ---- */
-        #log-panel { margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-        #log-head { display: flex; justify-content: space-between; align-items: baseline; }
-        #log-panel h2 { font-size: 0.85em; color: #64748b; font-weight: 600; }
-        #log-toggle { background: none; border: 0; color: #64748b; font-size: 0.78em;
-               cursor: pointer; padding: 2px 6px; text-decoration: underline; }
-        #log-scroll { max-height: 168px; overflow-y: auto; margin-top: 6px; }
-        #activity-feed { list-style: none; }
-        #activity-feed li { font-size: 0.82em; color: #64748b; padding: 3px 0 3px 14px;
-               border-bottom: 1px solid #f1f5f9; overflow-wrap: anywhere; position: relative; }
-        #activity-feed li::before { content: ''; position: absolute; left: 0; top: 0.75em;
-               width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
-        #activity-feed li.k-search::before { background: #3b82f6; }
-        #activity-feed li.k-extract::before { background: #7c3aed; }
-        #activity-feed li.k-llm::before { background: #059669; }
-
-        /* ---- Motion (entrances; disabled under reduced motion) ---- */
-        .enter { animation: rise-in 0.35s cubic-bezier(.2,.7,.3,1) both;
-                 animation-delay: calc(var(--i, 0) * 70ms); }
-        @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
-        @media (prefers-reduced-motion: reduce) {
-            .enter { animation: none; }
-            #bar, .cat-fill, #phase, #rot-name, #quote { transition: none; }
-            .skel-card, .demo-caret { animation: none; }
-            .shots-scroll a img { transition: none; }
-        }
-
-        /* ---- D1: rotating name in the headline (fixed slot — no layout shift;
-                same swap-fade vocabulary as #phase) ---- */
-        #rot-name { display: block; min-height: 1.35em; color: #2d5a8e;
-                transition: opacity 0.25s; }
-        #rot-name.swap { opacity: 0; }
-
-        /* ---- D1: entity card carousel (drifts via JS scrollLeft so native
-                swipe keeps working; fixed heights — CLS 0) ---- */
-        #entity-strip { margin-top: 28px; }
-        #entity-strip h2 { font-size: 0.85em; color: #64748b; font-weight: 600;
-                margin-bottom: 8px; }
-        #entity-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch;
-                height: 152px; scrollbar-width: none; }
-        #entity-scroll::-webkit-scrollbar { display: none; }
-        #entity-track { display: flex; gap: 12px; width: max-content;
-                padding: 2px; }
-        .ent-card { flex: 0 0 200px; height: 140px; background: white;
-                text-align: left; border: 1px solid #e2e8f0; border-radius: 12px;
-                padding: 12px; cursor: pointer; display: flex;
-                flex-direction: column; gap: 6px; font: inherit; color: inherit;
-                box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-        .ent-card:hover { border-color: #94a3b8; }
-        .ent-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .ent-avatar { width: 38px; height: 38px; border-radius: 50%; color: white;
-                font-weight: 700; font-size: 0.82em; display: flex; flex: none;
-                align-items: center; justify-content: center; }
-        .ent-id { min-width: 0; }
-        .ent-name { display: block; font-weight: 600; font-size: 0.9em;
-                line-height: 1.25; white-space: nowrap; overflow: hidden;
-                text-overflow: ellipsis; }
-        .ent-cat { display: block; font-size: 0.72em; color: #64748b;
-                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ent-chips { margin-top: auto; }
-        .ent-fallback { font-size: 0.85em; color: #64748b; }
-        /* Monogram gradients — fixed whitelist; classes never derive from data */
-        .g0 { background: linear-gradient(135deg, #3b82f6, #6366f1); }
-        .g1 { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
-        .g2 { background: linear-gradient(135deg, #047857, #059669); }
-        .g3 { background: linear-gradient(135deg, #b45309, #d97706); }
-        .g4 { background: linear-gradient(135deg, #be123c, #e11d48); }
-        .g5 { background: linear-gradient(135deg, #0e7490, #0891b2); }
-        .g6 { background: linear-gradient(135deg, #4338ca, #6366f1); }
-        .g7 { background: linear-gradient(135deg, #475569, #64748b); }
-
-        /* ---- D4: hero demo panel — the page's ONE star motion zone.
-                Fixed height (CLS 0); same feed/enter/chip vocabulary as the
-                real A.2 experience; hardcoded script, zero network. ---- */
-        #demo { background: white; border-radius: 12px; padding: 16px;
-                box-shadow: 0 2px 12px rgba(0,0,0,0.06); height: 380px;
-                display: flex; flex-direction: column; gap: 10px; }
-        .demo-search { border: 1px solid #cbd5e1; border-radius: 8px;
-                padding: 8px 12px; font-size: 0.9em; min-height: 2.5em;
-                display: flex; align-items: center; color: #1e293b; }
-        .demo-caret { display: inline-block; width: 2px; height: 1.1em;
-                background: #2d5a8e; margin-left: 2px;
-                animation: caret-blink 1s steps(1) infinite; }
-        @keyframes caret-blink { 50% { opacity: 0; } }
-        #demo-feed { list-style: none; flex: 1; overflow: hidden; }
-        #demo-feed li { font-size: 0.82em; color: #64748b; padding: 3px 0 3px 14px;
-                border-bottom: 1px solid #f1f5f9; position: relative; }
-        #demo-feed li::before { content: ''; position: absolute; left: 0; top: 0.75em;
-                width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
-        #demo-feed li.k-search::before { background: #3b82f6; }
-        #demo-feed li.k-extract::before { background: #7c3aed; }
-        #demo-feed li.k-llm::before { background: #059669; }
-        #demo-facts { display: flex; flex-wrap: wrap; gap: 6px; min-height: 52px;
-                align-content: flex-start; }
-        #demo-report { background: linear-gradient(135deg, #1e3a5f, #2d5a8e);
-                color: white; border-radius: 10px; padding: 10px 14px;
-                display: flex; align-items: center; gap: 12px; min-height: 58px; }
-        #demo-report[hidden] { display: none; }
-        .demo-score { font-size: 1.5em; font-weight: 700;
-                font-variant-numeric: tabular-nums; }
-        .demo-report-text { font-size: 0.82em; line-height: 1.35; }
-        .demo-tag { font-size: 0.72em; color: #94a3b8; text-align: right; }
-
-        /* ---- D3: report screenshot carousel (manual swipe, snap; lazy) ---- */
-        #shots, #steps { margin-top: 44px; }
-        #shots h2, #steps h2 { font-size: 1.1em; margin-bottom: 12px; }
-        .shots-scroll { display: flex; gap: 16px; overflow-x: auto;
-                scroll-snap-type: x mandatory; padding-bottom: 8px; }
-        .shots-scroll[hidden] { display: none; }  /* display:flex beats the
-                hidden attr's UA display:none without this */
-        .shots-scroll figure { flex: 0 0 min(520px, 88%); scroll-snap-align: center;
-                margin: 0; }
-        .shots-scroll img { width: 100%; height: auto; border: 1px solid #e2e8f0;
-                border-radius: 12px; display: block; background: #f8fafc; }
-        .shots-scroll figcaption { font-size: 0.8em; color: #2d5a8e;
-                font-weight: 600; margin-top: 6px; text-align: center; }
-        #shots-hint { font-size: 0.85em; color: #64748b; margin: -6px 0 12px; }
-        /* Person/company segmented toggle (same tab semantics as #tabs) */
-        #shots-toggle { display: inline-flex; background: #e2e8f0;
-                border-radius: 999px; padding: 3px; gap: 2px; margin-bottom: 14px; }
-        #shots-toggle [role=tab] { border: 0; background: none; color: #475569;
-                padding: 6px 16px; border-radius: 999px; font-size: 0.85em;
-                cursor: pointer; }
-        #shots-toggle [role=tab][aria-selected=true] { background: white;
-                color: #1e293b; font-weight: 600;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        /* Click affordance: lift on hover + an "open live" pill; the caption
-           arrow carries the hint on touch devices where hover doesn't exist */
-        .shots-scroll a { display: block; position: relative; color: inherit;
-                text-decoration: none; border-radius: 12px; }
-        .shots-scroll a img { transition: transform 0.25s, box-shadow 0.25s; }
-        .shots-scroll a:hover img, .shots-scroll a:focus-visible img {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
-        .shots-scroll a::after { content: 'Open the live report →';
-                position: absolute; top: 12px; right: 12px;
-                background: rgba(30,58,95,0.92); color: white; font-size: 0.75em;
-                padding: 4px 10px; border-radius: 999px; opacity: 0;
-                transition: opacity 0.25s; pointer-events: none; }
-        .shots-scroll a:hover::after, .shots-scroll a:focus-visible::after {
-                opacity: 1; }
-        .shots-scroll a:focus-visible { outline: 2px solid #2d5a8e;
-                outline-offset: 2px; }
-
-        /* ---- D3: 3-step strip ---- */
-        #steps-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        @media (max-width: 700px) { #steps-row { grid-template-columns: 1fr; } }
-        .step { background: white; border-radius: 12px; padding: 16px;
-                box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-        .step-ico { font-size: 1.4em; display: block; margin-bottom: 6px; }
-        .step h3 { font-size: 0.95em; margin-bottom: 4px; }
-        .step p { font-size: 0.85em; color: #64748b; }
-        #sample-cta { text-align: center; margin-top: 32px; font-weight: 600; }
-        #sample-cta a { color: #2d5a8e; }
-        .will-enter { opacity: 0; }   /* JS-applied pre-state for animate-once */
-
-        #error { color: #b91c1c; margin-top: 12px; display: none; }
-        #report-link { display: none; margin-top: 12px; font-weight: 600; }
-        footer { text-align: center; font-size: 0.78em; color: #94a3b8; padding: 24px 16px;
-               max-width: 720px; margin: 0 auto; }
-        footer a { color: #64748b; }
-    </style>
+{% include "_styles.html" %}
 </head>
 <body>
+{% include "_nav.html" %}
 <main>
     <div id="hero">
         <div id="hero-left">
@@ -423,91 +97,18 @@
         </div>
     </div>
 
-    <div id="status">
-        <!-- C1.3/D2: the correctable assumption banner — auto-proceed skips
-             the CLICK, never the CHOICE. Entity text is scraped+LLM →
-             textContent-only. -->
-        <div id="assumption-banner" hidden>
-            <span id="banner-text"></span>
-            <button type="button" id="banner-cancel">Not who you meant? Cancel &amp; refine</button>
+    <!-- P0 Step 4: device-scoped run history (dra_history_v1). Labels are
+         the user's own typed queries — rendered textContent-only; links
+         carry only the job UUID. Hidden until JS finds entries, so a
+         localStorage-less browser never sees an empty shell. -->
+    <section id="history" aria-label="Your recent runs" hidden>
+        <div id="history-head">
+            <h2>Your recent runs</h2>
+            <button type="button" id="history-clear">Clear history</button>
         </div>
-        <div id="status-head">
-            <strong id="status-title">Researching…</strong>
-            <span id="status-controls">
-                <!-- C1.5: inline two-step confirm — never window.confirm
-                     (the e2e XSS suite asserts zero dialogs) -->
-                <span id="finish-wrap" hidden>
-                    <button type="button" id="finish-btn">Generate report now</button>
-                    <span id="finish-confirm" hidden>
-                        <span id="finish-question"></span>
-                        <button type="button" id="finish-yes">✓ Generate</button>
-                        <button type="button" id="finish-no">✗ Keep researching</button>
-                    </span>
-                    <span id="finish-pending" hidden>Finishing after the current pass…</span>
-                </span>
-                <button type="button" id="cancel-btn" hidden>Cancel</button>
-                <span id="elapsed"></span>
-            </span>
-        </div>
-        <div id="bar-outer"><div id="bar"></div></div>
-        <div id="phase">queued</div>
-        <div id="activity-line"></div>
-        <div id="eta">Deep research usually takes 2–4 minutes.</div>
-        <div id="no-facts" hidden>Still searching — limited public sources for this name.</div>
-
-        <div id="live-report">
-            <div id="brief"></div>
-            <div id="tabs" role="tablist" aria-label="Live report">
-                <button role="tab" id="tab-btn-overview" aria-selected="true" aria-controls="tab-overview" type="button">Overview</button>
-                <button role="tab" id="tab-btn-facts" aria-selected="false" aria-controls="tab-facts" type="button">Facts</button>
-                <button role="tab" id="tab-btn-signals" aria-selected="false" aria-controls="tab-signals" type="button">Risks &amp; connections</button>
-            </div>
-            <section class="tabpanel" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
-                <div id="counters">
-                    <div class="counter"><span class="num" id="count-facts">0</span><span class="cap">facts found so far</span></div>
-                    <div class="counter"><span class="num" id="count-risks">–</span><span class="cap">risk flags</span></div>
-                    <div class="counter"><span class="num" id="count-connections">–</span><span class="cap">connections</span></div>
-                </div>
-                <div id="plan-note"></div>
-                <div id="verify-note"></div>
-                <!-- C1.7a (R5): sidelined-facts count — facts about other
-                     same-name people, excluded from the counters above -->
-                <div id="set-aside-note" hidden></div>
-                <div id="cat-bars"></div>
-            </section>
-            <section class="tabpanel" id="tab-facts" role="tabpanel" aria-labelledby="tab-btn-facts" hidden>
-                <div id="facts-empty">Facts will appear here as they're found.</div>
-                <ul id="facts-list"></ul>
-            </section>
-            <section class="tabpanel" id="tab-signals" role="tabpanel" aria-labelledby="tab-btn-signals" hidden>
-                <div class="sig-box" id="risks-box">
-                    <h3>Risk flags</h3>
-                    <div class="pending-note">Analyzed near the end of the run — coming up.</div>
-                </div>
-                <div class="sig-box" id="connections-box">
-                    <h3>Connections</h3>
-                    <div class="pending-note">Mapped near the end of the run — coming up.</div>
-                </div>
-            </section>
-        </div>
-
-        <div id="log-panel">
-            <div id="log-head">
-                <h2>Research log</h2>
-                <!-- TECHNICAL-LOG toggle: disabled pending a polish pass
-                     (human decision 2026-07-10). Re-enable together with the
-                     TECHNICAL-LOG JS block below; when it returns, restore the
-                     technical-view XSS assertions (plan-review-A3 R2) in
-                     tests/e2e/test_loading_screen.py.
-                <button id="log-toggle" type="button" aria-pressed="false">Technical log</button>
-                -->
-            </div>
-            <div id="log-scroll"><ul id="activity-feed"></ul></div>
-        </div>
-        <!-- New tab: the homepage keeps its completed-run state, so starting
-             another report is just switching back (3-runs/hour flow). -->
-        <a id="report-link" href="#" target="_blank" rel="noopener">View the report →</a>
-    </div>
+        <ul id="history-list"></ul>
+        <button type="button" id="history-more" hidden></button>
+    </section>
 
     <section id="entity-strip" aria-label="Example research subjects">
         <h2>Names people actually run</h2>
@@ -621,223 +222,13 @@
         <a href="/sample-report/company" target="_blank" rel="noopener">company (Stripe) →</a></p>
 </main>
 
-<footer>
-    Research is compiled automatically from public web sources and may contain errors —
-    verify independently before acting on it. Reports and the submitted name are stored
-    for up to 7 days, then deleted; a salted hash of your IP address is kept for the same
-    period for abuse prevention. By submitting you accept these terms.
-    Removal/takedown requests: <a href="mailto:akhera677@gmail.com">akhera677@gmail.com</a>.
-</footer>
+{% include "_footer.html" %}
 
+{% include "_shared_js.html" %}
 <script>
 const form = document.getElementById('research-form');
 const btn = document.getElementById('submit-btn');
 const errBox = document.getElementById('error');
-const statusBox = document.getElementById('status');
-const bar = document.getElementById('bar');
-const phase = document.getElementById('phase');
-const title = document.getElementById('status-title');
-const reportLink = document.getElementById('report-link');
-let es = null;
-
-// A1: phase-weighted, always-moving bar. Keys are the ACTUAL emitted stage
-// strings — workflow.py state["stage"] plus queued/starting/complete from
-// jobs.py. query_refinement is emitted but absent from the ResearchStage
-// enum, so we map raw strings, never the enum. Unknown phases hold the
-// previous bucket; the monotonic clamp means the bar never moves backwards.
-const PHASE_LABEL = {
-    queued: 'Queued',
-    starting: 'Starting up',
-    initialization: 'Setting up',
-    strategy_planning: 'Planning research strategy',
-    data_collection: 'Searching the web',
-    fact_extraction: 'Reading & extracting facts',
-    query_refinement: 'Refining follow-up queries',
-    verification: 'Cross-checking facts',
-    risk_assessment: 'Assessing risk signals',
-    connection_mapping: 'Mapping connections',
-    report_generation: 'Writing your report',
-    complete: 'Complete'
-};
-const PHASE_PCT = {
-    queued: 0, starting: 2, initialization: 4, strategy_planning: 6,
-    verification: 78, risk_assessment: 85, connection_mapping: 92,
-    report_generation: 97, complete: 100
-};
-// The search loop (data_collection → fact_extraction → query_refinement)
-// spans 10–70%, advancing with iteration and position inside the loop.
-const LOOP_POS = {data_collection: 0, fact_extraction: 1 / 3, query_refinement: 2 / 3};
-let barPct = 0;
-
-function phasePct(p) {
-    if (p.phase in PHASE_PCT) return PHASE_PCT[p.phase];
-    if (p.phase in LOOP_POS) {
-        const max = Math.max(p.max_iterations || 10, 1);
-        const perIter = 60 / max;
-        return Math.min(70, 10 + ((p.iteration || 0) + LOOP_POS[p.phase]) * perIter);
-    }
-    return barPct;   // unknown phase: hold, never stall at 0
-}
-
-// A3/A.2: live report + research log + strip + timer. Everything below
-// renders UNTRUSTED scraped web content (queries, titles, fact snippets) —
-// text lands in the DOM via textContent/createElement ONLY, never as HTML,
-// and CSS classes only ever come from the fixed whitelists below (MI5).
-const activityLine = document.getElementById('activity-line');
-const feed = document.getElementById('activity-feed');
-const logScroll = document.getElementById('log-scroll');
-const logToggle = document.getElementById('log-toggle');
-const noFacts = document.getElementById('no-facts');
-const liveReport = document.getElementById('live-report');
-const brief = document.getElementById('brief');
-const planNote = document.getElementById('plan-note');
-const elapsed = document.getElementById('elapsed');
-const factsList = document.getElementById('facts-list');
-const factsEmpty = document.getElementById('facts-empty');
-const setAsideNote = document.getElementById('set-aside-note');
-const catBars = document.getElementById('cat-bars');
-const verifyNote = document.getElementById('verify-note');
-const countFacts = document.getElementById('count-facts');
-const countRisks = document.getElementById('count-risks');
-const countConnections = document.getElementById('count-connections');
-const risksBox = document.getElementById('risks-box');
-const connectionsBox = document.getElementById('connections-box');
-let timerId = null;
-let eventsBySeq = new Map();    // seq -> event: ONE stream, two renderers
-let renderedRows = new Map();   // row key -> li (active renderer's DOM state)
-let seenFactIds = new Set();
-let techMode = false;           // narrative by default (A.3 decision 1)
-let lastPhaseText = '';
-
-const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// Whitelists (MI5): CSS classes and human labels NEVER derive from event data.
-const ENGINE_NAMES = {brave: 'Brave', serper: 'Google (Serper)', scrape: 'web page'};
-const KIND_CLASS = {search: 'k-search', extract: 'k-extract', llm: 'k-llm'};
-const CAT_CLASS = {biographical: 'biographical', professional: 'professional',
-                   financial: 'financial', legal: 'legal', connections: 'connections',
-                   behavioral: 'behavioral'};
-const CAT_LABEL = {biographical: 'background', professional: 'career & roles',
-                   financial: 'financial records', legal: 'legal history',
-                   connections: 'connections', behavioral: 'public behavior'};
-const SEV_CLASS = {critical: 'sev-critical', high: 'sev-high',
-                   medium: 'sev-medium', low: 'sev-low'};
-
-// ---- Narrative texts (default): intent-level, NO engines/models/raw queries
-function llmNarrative(a) {
-    if (a.task === 'strategy_planning') {
-        return a.status === 'done'
-            ? 'Planned ' + (a.queries || 0) + ' research angles'
-            : 'Planning research strategy…';
-    }
-    if (a.task === 'query_refinement') {
-        return 'Refined strategy — ' + (a.queries || 0) + ' new angles';
-    }
-    if (a.task === 'verification') {
-        return 'Cross-checked facts — ' + (a.verified || 0) + ' corroborated · ' +
-               (a.deduped || 0) + ' duplicates merged';
-    }
-    if (a.task === 'risk_assessment') {
-        return a.status === 'done'
-            ? 'Found ' + (a.risks || 0) + ' risk flags'
-            : 'Analyzing risk signals…';
-    }
-    if (a.task === 'connection_mapping') {
-        return a.status === 'done'
-            ? 'Mapped ' + (a.connections || 0) + ' connections'
-            : 'Mapping relationships…';
-    }
-    return 'Thinking…';
-}
-
-function stripText(a) {   // always-visible strip: narrative-flavored (R3)
-    if (a.kind === 'search') {
-        return 'Investigating ' + (CAT_LABEL[a.category] || 'the subject') + '…';
-    }
-    if (a.kind === 'extract') {
-        return a.status === 'done'
-            ? 'Extracted ' + (a.facts || 0) + ' facts from sources'
-            : 'Reading sources…';
-    }
-    if (a.kind === 'llm') return llmNarrative(a);
-    return 'Working…';
-}
-
-// ---- Technical texts (toggle): full queries, engines, counts, models
-function techText(a) {
-    if (a.kind === 'search') {
-        return 'Searched "' + (a.query || '') + '" — ' +
-               (ENGINE_NAMES[a.engine] || a.engine || 'search') + ' · ' +
-               (a.results || 0) + ' results';
-    }
-    if (a.kind === 'llm') {
-        let text = llmNarrative(a);
-        if (a.model) text += ' — ' + a.model;
-        if (a.task === 'query_refinement' && a.sample_queries && a.sample_queries.length) {
-            text += ' — next: "' + a.sample_queries[0] + '"';
-        }
-        return text;
-    }
-    return stripText(a);
-}
-
-// Derive narrative rows from the full event stream. Group keys use the
-// SERVER-side iteration (R5), so reconnect re-derives identical rows.
-function narrativeRows(events) {
-    const rows = [], index = new Map(), groups = new Map();
-    function upsert(key, cls, text) {
-        const row = index.get(key);
-        if (row) { row.text = text; return; }
-        const fresh = {key: key, cls: cls, text: text};
-        index.set(key, fresh);
-        rows.push(fresh);
-    }
-    for (const a of events) {
-        const it = a.iteration || 0;
-        if (a.kind === 'search') {
-            let g = groups.get(it);
-            if (!g) { g = {labels: [], count: 0, results: 0}; groups.set(it, g); }
-            const label = CAT_LABEL[a.category] || 'more angles';
-            if (!g.labels.includes(label)) g.labels.push(label);
-            g.count += 1;
-            g.results += a.results || 0;
-            upsert('s' + it, 'k-search',
-                'Investigating ' + g.labels.join(' · ') + ' — ' + g.count +
-                (g.count === 1 ? ' search' : ' searches'));
-        } else if (a.kind === 'extract') {
-            const g = groups.get(it);
-            upsert('r' + it, 'k-extract', a.status === 'done'
-                ? 'Read ~' + (g ? g.results : 0) + ' sources — ' +
-                  (a.facts || 0) + ' new facts'
-                : 'Reading sources…');
-        } else if (a.kind === 'llm') {
-            const key = a.task === 'query_refinement' ? 'q' + a.seq : a.task;
-            upsert(key, 'k-llm', llmNarrative(a));
-        } else {
-            upsert('u' + a.seq, '', 'Working…');
-        }
-    }
-    return rows;
-}
-
-function setPhaseText(text) {
-    if (text === lastPhaseText) return;
-    lastPhaseText = text;
-    if (REDUCED_MOTION) { phase.textContent = text; return; }
-    phase.classList.add('swap');
-    setTimeout(() => { phase.textContent = text; phase.classList.remove('swap'); }, 250);
-}
-
-function tweenCount(el, target) {
-    const from = parseInt(el.textContent, 10) || 0;
-    if (REDUCED_MOTION || target <= from) { el.textContent = String(target); return; }
-    const t0 = performance.now(), dur = 500;
-    function step(t) {
-        const k = Math.min(1, (t - t0) / dur);
-        el.textContent = String(Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3))));
-        if (k < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-}
 
 function appendKeyed(container, items, keyOf, build, seen) {
     let batchIdx = 0;
@@ -851,243 +242,6 @@ function appendKeyed(container, items, keyOf, build, seen) {
         container.appendChild(el);
     }
     return batchIdx;   // how many NEW nodes were added
-}
-
-// Ingest a snapshot's activity list; returns the events not seen before.
-function ingestEvents(acts) {
-    const fresh = [];
-    for (const a of acts) {
-        if (a && a.seq != null && !eventsBySeq.has(a.seq)) {
-            eventsBySeq.set(a.seq, a);
-            fresh.push(a);
-        }
-    }
-    return fresh;
-}
-
-// Reconcile the active renderer's rows against the DOM: new keys append
-// (animated), existing keys update textContent in place — so group rows
-// grow without re-animating and reconnect replays add nothing.
-function syncLog(animate = true) {
-    const events = [...eventsBySeq.values()].sort((a, b) => a.seq - b.seq);
-    const rows = techMode
-        ? events.map(a => ({key: 't' + a.seq, cls: KIND_CLASS[a.kind] || '',
-                            text: techText(a)}))
-        : narrativeRows(events);
-    const follow = logScroll.scrollTop + logScroll.clientHeight >=
-                   logScroll.scrollHeight - 24;
-    let batch = 0;
-    for (const r of rows) {
-        let el = renderedRows.get(r.key);
-        if (!el) {
-            el = document.createElement('li');
-            el.className = r.cls;
-            if (animate) {
-                el.classList.add('enter');
-                el.style.setProperty('--i', String(batch++));
-            }
-            renderedRows.set(r.key, el);
-            feed.appendChild(el);
-        }
-        if (el.textContent !== r.text) el.textContent = r.text;
-    }
-    if (batch && follow) logScroll.scrollTop = logScroll.scrollHeight;
-}
-
-/* TECHNICAL-LOG (disabled pending polish pass — human decision 2026-07-10;
-   techText/techMode above stay in place so this re-enables cleanly):
-logToggle.addEventListener('click', () => {
-    techMode = !techMode;
-    logToggle.setAttribute('aria-pressed', String(techMode));
-    logToggle.textContent = techMode ? 'Simple log' : 'Technical log';
-    feed.replaceChildren();
-    renderedRows = new Map();
-    syncLog(false);                 // full re-render, no entrance animation
-    logScroll.scrollTop = logScroll.scrollHeight;
-});
-*/
-
-// All six category rows render from the start at 0 (A3.2: the zeroed
-// Overview IS the skeleton) and fill as facts arrive.
-function renderCatBars(byCat) {
-    const total = Object.values(byCat).reduce((a, b) => a + b, 0) || 1;
-    catBars.replaceChildren(...Object.keys(CAT_CLASS).map(c => {
-        const count = byCat[c] || 0;
-        const row = document.createElement('div');
-        row.className = 'cat-row';
-        const name = document.createElement('span');
-        name.className = 'cat-name';
-        name.textContent = c;
-        const track = document.createElement('div');
-        track.className = 'cat-track';
-        const fill = document.createElement('div');
-        fill.className = 'cat-fill fill-' + c;
-        fill.style.width = Math.round(100 * count / total) + '%';
-        track.appendChild(fill);
-        const n = document.createElement('span');
-        n.textContent = String(count);
-        row.append(name, track, n);
-        return row;
-    }));
-}
-
-function renderBrief(subject) {
-    // Subject is the USER'S OWN input (server-validated on 202) — still
-    // textContent-only, same discipline as every other sink.
-    brief.replaceChildren();
-    const s = document.createElement('div');
-    s.id = 'brief-subject';
-    s.textContent = 'Subject: ' + subject;
-    const line = document.createElement('div');
-    line.className = 'brief-line';
-    line.textContent = 'Sources: public web · Coverage: background, ' +
-        'career & roles, financial records, legal history, connections, ' +
-        'public behavior';
-    brief.append(s, line);
-}
-
-function renderPreview(pv) {
-    if (!pv) return;
-    tweenCount(countFacts, pv.facts_found || 0);
-    appendKeyed(factsList, pv.facts || [], f => f.id, f => {
-        const el = document.createElement('li');
-        el.className = 'cat-' + (CAT_CLASS[f.category] || 'other');
-        el.textContent = f.content;
-        const meta = document.createElement('span');
-        meta.className = 'fact-meta';
-        meta.textContent = (CAT_CLASS[f.category] || 'other') +
-            (typeof f.confidence === 'number'
-                ? ' · confidence ' + Math.round(f.confidence * 100) + '%' : '');
-        el.appendChild(meta);
-        return el;
-    }, seenFactIds);
-    factsEmpty.hidden = seenFactIds.size > 0;
-
-    renderCatBars(pv.by_category || {});
-
-    // C1.7a: honest set-aside line — these facts exist but are about other
-    // people sharing the name, so they never enter the counters.
-    if (typeof pv.set_aside === 'number' && pv.set_aside > 0) {
-        setAsideNote.textContent = pv.set_aside +
-            (pv.set_aside === 1 ? ' fact' : ' facts') +
-            ' about other people with this name set aside';
-        setAsideNote.hidden = false;
-    }
-
-    if (pv.verification) {
-        verifyNote.textContent = 'Cross-checked: ' + (pv.verification.verified || 0) +
-            ' corroborated · ' + (pv.verification.deduped || 0) + ' duplicates merged';
-    }
-    if (pv.risks) {
-        tweenCount(countRisks, pv.risks.count || 0);
-        const line = document.createElement('div');
-        line.className = 'sig-line';
-        const sevs = pv.risks.severities || {};
-        for (const sev of ['critical', 'high', 'medium', 'low']) {
-            if (!sevs[sev]) continue;
-            const chip = document.createElement('span');
-            chip.className = 'chip ' + SEV_CLASS[sev];
-            chip.textContent = sevs[sev] + ' ' + sev;
-            line.appendChild(chip);
-        }
-        if (!line.childNodes.length) line.textContent = 'No risk flags identified yet.';
-        risksBox.replaceChildren(risksBox.querySelector('h3'), line);
-    }
-    if (pv.connections) {
-        tweenCount(countConnections, pv.connections.count || 0);
-        const line = document.createElement('div');
-        line.className = 'sig-line';
-        line.textContent = (pv.connections.sample || []).join(' · ') || '—';
-        connectionsBox.replaceChildren(connectionsBox.querySelector('h3'), line);
-    }
-}
-
-function render(p) {
-    barPct = Math.max(barPct, phasePct(p));
-    bar.style.width = Math.max(2, barPct) + '%';
-    // C1.5 (R4): the button's predicate is the SAME node-boundary "facts"
-    // key the server's 409 guard reads — never the faster preview counter.
-    lastFactCount = p.facts || 0;
-    if (!finishRequested && lastFactCount > 0) finishWrap.hidden = false;
-    const iter = p.iteration || 0, max = p.max_iterations || 10;
-    setPhaseText((PHASE_LABEL[p.phase] || p.phase || 'Working') +
-        (iter ? ' (iteration ' + iter + '/' + max + ')' : ''));
-    const acts = p.activity || [];
-    activityLine.textContent = acts.length ? stripText(acts[acts.length - 1]) : '';
-    const fresh = ingestEvents(acts);
-    syncLog();
-    for (const a of fresh) {
-        // A3.2: planning becomes a visible deliverable in the Overview.
-        if (a.kind === 'llm' && a.task === 'strategy_planning' &&
-            a.status === 'done') {
-            planNote.textContent = (a.queries || 0) + ' research angles planned';
-            if (!REDUCED_MOTION) {
-                catBars.classList.add('pulse');
-                setTimeout(() => catBars.classList.remove('pulse'), 800);
-            }
-        }
-    }
-    renderPreview(p.report_preview);
-    noFacts.hidden = !(iter >= 2 && (p.facts || 0) === 0 && seenFactIds.size === 0);
-}
-
-function startTimer() {
-    stopTimer();
-    const startedAt = Date.now();
-    elapsed.textContent = '0:00';
-    timerId = setInterval(() => {
-        const s = Math.floor((Date.now() - startedAt) / 1000);
-        elapsed.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-    }, 1000);
-}
-
-function stopTimer() {
-    if (timerId) { clearInterval(timerId); timerId = null; }
-}
-
-// Tabs (keyboard-operable buttons; aria-selected drives styling)
-const TAB_IDS = ['overview', 'facts', 'signals'];
-for (const id of TAB_IDS) {
-    document.getElementById('tab-btn-' + id).addEventListener('click', () => {
-        for (const other of TAB_IDS) {
-            document.getElementById('tab-btn-' + other)
-                .setAttribute('aria-selected', String(other === id));
-            document.getElementById('tab-' + other).hidden = other !== id;
-        }
-    });
-}
-
-function resetPanel(subject) {
-    title.textContent = 'Researching…';
-    barPct = 0;
-    bar.style.width = '2%';
-    lastPhaseText = '';
-    banner.hidden = true;                 // caller re-shows via showBanner
-    banner.classList.remove('warn');
-    bannerCancel.hidden = false;
-    bannerCancel.disabled = false;
-    cancelBtn.hidden = true;
-    resetFinishControls();
-    activityLine.textContent = '';
-    feed.replaceChildren();
-    factsList.replaceChildren();
-    eventsBySeq = new Map();
-    renderedRows = new Map();
-    seenFactIds = new Set();
-    countFacts.textContent = '0';
-    countRisks.textContent = '–';
-    countConnections.textContent = '–';
-    verifyNote.textContent = '';
-    planNote.textContent = '';
-    setAsideNote.textContent = '';
-    setAsideNote.hidden = true;
-    factsEmpty.hidden = false;
-    noFacts.hidden = true;
-    // A3.2 opening: brief + zeroed Overview render IMMEDIATELY — the report
-    // structure itself is the skeleton.
-    renderBrief(subject);
-    renderCatBars({});
-    reportLink.style.display = 'none';
 }
 
 function fail(msg) {
@@ -1113,11 +267,6 @@ const pickerTitle = document.getElementById('picker-title');
 const pickerSub = document.getElementById('picker-sub');
 const pickerNote = document.getElementById('picker-note');
 const preflightPending = document.getElementById('preflight-pending');
-const banner = document.getElementById('assumption-banner');
-const bannerText = document.getElementById('banner-text');
-const bannerCancel = document.getElementById('banner-cancel');
-const cancelBtn = document.getElementById('cancel-btn');
-let currentJobId = null;
 let pending = null;   // {query, hints, ticket} for the in-flight submit
 
 // C1.7d (D13): descriptors the user EXPLICITLY rejected — picker "None of
@@ -1129,7 +278,6 @@ let pending = null;   // {query, hints, ticket} for the in-flight submit
 let rejectedEntities = [];
 let rejectedForQuery = '';
 let lastSurfaceCandidates = [];
-let runningEntityDescriptor = null;
 
 function stashRejected(descriptors, query) {
     if (query !== rejectedForQuery) {
@@ -1276,26 +424,9 @@ function entityFromCandidate(cand, decision) {
     };
 }
 
-function showBanner(entity) {
-    banner.hidden = false;
-    bannerCancel.disabled = false;
-    if (entity) {
-        banner.classList.remove('warn');
-        bannerText.textContent = 'Researching: ' +
-            (entity.descriptor || entity.canonical_name);
-    } else {
-        banner.classList.add('warn');
-        bannerText.textContent = 'Searching the name broadly — results may mix ' +
-            'people or organizations sharing it.';
-    }
-}
-
 async function startResearch(entity) {
     hidePicker();
     btn.disabled = true;
-    // C1.7d: remembered for the banner-cancel → refine stash
-    runningEntityDescriptor = entity
-        ? (entity.descriptor || entity.canonical_name) : null;
     const body = {query: pending.query, preflight_ticket: pending.ticket};
     if (pending.hints) body.context = pending.hints;
     if (entity) body.entity = entity;
@@ -1325,20 +456,33 @@ async function startResearch(entity) {
     if (!resp.ok) return fail('Unexpected error (' + resp.status + ').');
 
     const job = await resp.json();
-    currentJobId = job.job_id;
-    statusBox.style.display = 'block';
-    resetPanel(pending.query);
-    if (entity) {
-        // C1.6b: the brief's Subject line agrees with the banner —
-        // entity text is scraped+LLM → textContent only.
-        document.getElementById('brief-subject').textContent =
-            'Subject: ' + (entity.descriptor || entity.canonical_name);
+    // P0 Step 3 (D1): the run gets its own stage. Persist device-local
+    // state FIRST — ownership (owner-only controls + the refine hand-back
+    // query, R5/R2) and the history entry (the Step 4 list). Both helpers
+    // are try/catch-wrapped inside, so a private-mode storage failure can
+    // never swallow the navigation.
+    ownJob(job.job_id, pending.query);
+    recordHistoryEntry(job.job_id, pending.query);
+    location.assign('/research/' + encodeURIComponent(job.job_id));
+}
+
+// P0 Step 4 store-writer: newest-first, dedup by jobId, cap 20. The label
+// is the user's own typed query — it stays on this device, is rendered
+// textContent-only, and is never sent anywhere.
+function recordHistoryEntry(jobId, label) {
+    const raw = lsGetJSON(HISTORY_KEY);
+    const entries = Array.isArray(raw) ? raw : [];
+    const fresh = [{jobId: String(jobId),
+                    label: String(label || '').slice(0, 200),
+                    createdAt: new Date().toISOString(),
+                    status: 'queued'}];
+    for (const e of entries) {
+        if (fresh.length >= HISTORY_CAP) break;
+        if (e && typeof e === 'object' && e.jobId !== String(jobId)) {
+            fresh.push(e);
+        }
     }
-    showBanner(entity);
-    cancelBtn.hidden = false;
-    cancelBtn.disabled = false;
-    startTimer();
-    watch(job.events_url, job.report_url);
+    lsSetJSON(HISTORY_KEY, fresh);
 }
 
 form.addEventListener('submit', async (e) => {
@@ -1425,129 +569,140 @@ document.getElementById('picker-unscoped').addEventListener('click', () => {
     startResearch(null);   // warn banner carries the may-mix warning
 });
 
-// ---- C1.4: cancel — the D2 safety valve. Terminal state arrives over SSE
-// as a `failed` event whose error string maps to a neutral Cancelled UI.
-async function cancelJob() {
-    if (!currentJobId) return;
-    cancelBtn.disabled = true;
-    bannerCancel.disabled = true;
-    try {
-        await fetch('/api/research/' + currentJobId + '/cancel', {method: 'POST'});
-    } catch (err) { /* SSE delivers the terminal state either way */ }
-}
-bannerCancel.addEventListener('click', cancelJob);
-cancelBtn.addEventListener('click', cancelJob);
+// ---- P0 Step 4: "Your recent runs" — render + hydrate + prune ----
+// Everything here degrades to a hidden section when storage is absent or
+// the store is corrupt (lsGetJSON returns null → no entries → hidden).
+const historyBox = document.getElementById('history');
+const historyList = document.getElementById('history-list');
+const historyClear = document.getElementById('history-clear');
+const historyMore = document.getElementById('history-more');
+const HISTORY_SHOW = 5;   // show-5 + expand-all (gate 16, human 2026-07-14)
+let historyExpanded = false;
 
-// ---- C1.5: "Generate report now" — stop iterating, keep the FULL
-// finalization tail (verification, risks, connections, trends). Takes
-// effect at the next loop boundary: up to one more search pass may run.
-const finishWrap = document.getElementById('finish-wrap');
-const finishBtn = document.getElementById('finish-btn');
-const finishConfirm = document.getElementById('finish-confirm');
-const finishQuestion = document.getElementById('finish-question');
-const finishYes = document.getElementById('finish-yes');
-const finishNo = document.getElementById('finish-no');
-const finishPending = document.getElementById('finish-pending');
-let finishRequested = false;
-let lastFactCount = 0;
+// Fixed whitelists — chip classes/wording never derive from stored data.
+const HIST_STATUS_CLASS = {queued: 'st-running', running: 'st-running',
+                           completed: 'st-completed', failed: 'st-failed',
+                           cancelled: 'st-cancelled', expired: 'st-expired'};
+const HIST_STATUS_WORD = {queued: 'running', running: 'running',
+                          completed: 'completed', failed: 'failed',
+                          cancelled: 'cancelled', expired: 'expired'};
 
-function resetFinishControls() {
-    finishRequested = false;
-    lastFactCount = 0;
-    finishWrap.hidden = true;
-    finishBtn.hidden = false;
-    finishConfirm.hidden = true;
-    finishPending.hidden = true;
-}
-
-finishBtn.addEventListener('click', () => {
-    finishQuestion.textContent = 'Generate now with ' + lastFactCount +
-        ' facts? Final checks still run.';
-    finishBtn.hidden = true;
-    finishConfirm.hidden = false;
-});
-finishNo.addEventListener('click', () => {
-    finishConfirm.hidden = true;
-    finishBtn.hidden = false;
-});
-finishYes.addEventListener('click', async () => {
-    if (!currentJobId || finishRequested) return;
-    finishYes.disabled = true;
-    let resp = null;
-    try {
-        resp = await fetch('/api/research/' + currentJobId + '/finish',
-                           {method: 'POST'});
-    } catch (err) { /* fall through to revert */ }
-    finishYes.disabled = false;
-    finishConfirm.hidden = true;
-    if (resp && resp.ok) {
-        finishRequested = true;
-        finishPending.hidden = false;   // best-effort: restart clears the flag
-    } else {
-        finishBtn.hidden = false;       // 409/network: back to the button
+function readHistory() {
+    const raw = lsGetJSON(HISTORY_KEY);
+    if (!Array.isArray(raw)) return [];
+    const now = Date.now();
+    const clean = [];
+    for (const e of raw) {
+        if (!e || typeof e !== 'object' || !e.jobId || !e.label) continue;
+        if (isStale(e.createdAt, now)) continue;  // 7d TTL; future kept (#13)
+        clean.push(e);
+        if (clean.length >= HISTORY_CAP) break;
     }
-});
+    return clean;
+}
 
-function watch(eventsUrl, reportUrl) {
-    if (es) es.close();
-    es = new EventSource(eventsUrl);   // auto-reconnects across the 15-min proxy cap / redeploys
+function historyWhen(iso) {
+    const t = Date.parse(iso || '');
+    if (isNaN(t)) return '';
+    const days = Math.floor((Date.now() - t) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    return days + ' days ago';
+}
 
-    es.addEventListener('progress', (e) => {
-        render(JSON.parse(e.data));
+function renderHistory(entries) {
+    historyList.replaceChildren();
+    if (!entries.length) { historyBox.hidden = true; return; }
+    historyBox.hidden = false;
+    entries.forEach((e, i) => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '/research/' + encodeURIComponent(e.jobId);
+        const label = document.createElement('span');
+        label.className = 'hist-label';
+        label.textContent = e.label;         // user input — textContent only
+        const chip = document.createElement('span');
+        const cls = HIST_STATUS_CLASS[e.status];
+        chip.className = 'chip' + (cls ? ' ' + cls : '');
+        chip.textContent = (e.status === 'completed' && e.grade)
+            ? 'Grade ' + e.grade
+            : (HIST_STATUS_WORD[e.status] || 'running');
+        const when = document.createElement('span');
+        when.className = 'hist-when';
+        when.textContent = historyWhen(e.createdAt);
+        a.append(label, chip, when);
+        li.appendChild(a);
+        li.hidden = !historyExpanded && i >= HISTORY_SHOW;
+        historyList.appendChild(li);
     });
+    const overflow = entries.length - HISTORY_SHOW;
+    historyMore.hidden = historyExpanded || overflow <= 0;
+    historyMore.textContent = 'Show all ' + entries.length;
+}
 
-    es.addEventListener('completed', (e) => {
-        const p = JSON.parse(e.data);
-        es.close();
-        stopTimer();
-        cancelBtn.hidden = true;         // nothing left to cancel
-        finishWrap.hidden = true;
-        bannerCancel.hidden = true;      // banner stays: what was researched
-        barPct = 100;
-        bar.style.width = '100%';
-        title.textContent = 'Research complete' +
-            (p.quality_score ? ' — quality ' + p.quality_score + '/100' : '');
-        setPhaseText('Complete');
-        activityLine.textContent = '';
-        noFacts.hidden = true;
-        reportLink.href = p.report_url || reportUrl;
-        reportLink.style.display = 'inline-block';
-        btn.disabled = false;
-        clearRejected();   // C1.7d: a completed run's entity was researched,
-                           // not rejected — never carry it as "NOT this"
-        if (window.turnstile) turnstile.reset();
-    });
-
-    es.addEventListener('failed', (e) => {
-        const p = JSON.parse(e.data);
-        es.close();
-        stopTimer();
-        cancelBtn.hidden = true;
-        finishWrap.hidden = true;
-        if (p.error === 'cancelled by user') {
-            // R7: a cancel rides the `failed` terminal event but is NOT an
-            // error — render a neutral state and hand back the refine flow.
-            // C1.7d: cancelling a run rejects the entity it was researching
-            // (cancel is NOT completion — the stash carries into the
-            // resubmit of the same name).
-            if (runningEntityDescriptor && pending) {
-                stashRejected([runningEntityDescriptor], pending.query);
-            }
-            title.textContent = 'Research cancelled';
-            setPhaseText('Cancelled — adjust the details and start again');
-            banner.hidden = true;
-            hintsBox.open = true;
-            form.scrollIntoView({behavior: REDUCED_MOTION ? 'auto' : 'smooth',
-                                 block: 'center'});
-        } else {
-            title.textContent = 'Research failed';
-            setPhaseText(p.error || '');
+// Hydrate: refresh each entry's status/grade from the snapshot API.
+// 404/410/422 → the job is purged/expired/bogus → prune. Network blips and
+// 5xx keep the entry — a flip of bad wifi must not eat the list.
+async function hydrateHistory() {
+    const entries = readHistory();
+    renderHistory(entries);              // instant paint from the store
+    if (!entries.length) return;
+    const results = await Promise.allSettled(entries.map(e =>
+        fetch('/api/research/' + encodeURIComponent(e.jobId))));
+    const keep = [];
+    for (let i = 0; i < entries.length; i++) {
+        const r = results[i];
+        if (r.status !== 'fulfilled') { keep.push(entries[i]); continue; }
+        const resp = r.value;
+        if (resp.status === 404 || resp.status === 410 ||
+                resp.status === 422) continue;
+        if (!resp.ok) { keep.push(entries[i]); continue; }
+        let snap = null;
+        try { snap = await resp.json(); } catch (err) { /* keep as-is */ }
+        if (!snap) { keep.push(entries[i]); continue; }
+        const e = Object.assign({}, entries[i]);
+        e.status = (snap.status === 'failed' &&
+                    snap.error === 'cancelled by user')
+            ? 'cancelled' : String(snap.status || e.status);
+        const grade = (snap.progress || {}).grade;
+        if (snap.status === 'completed' && grade) {
+            e.grade = String(grade).slice(0, 3);
         }
-        activityLine.textContent = '';
-        noFacts.hidden = true;
-        btn.disabled = false;
-        if (window.turnstile) turnstile.reset();
-    });
+        keep.push(e);
+    }
+    lsSetJSON(HISTORY_KEY, keep);
+    renderHistory(keep);
+}
+
+historyClear.addEventListener('click', () => {
+    lsRemove(HISTORY_KEY);   // DISPLAY list only — dra_owned is untouched,
+                             // so a live run keeps its owner controls (R5)
+    historyExpanded = false;
+    renderHistory([]);
+});
+historyMore.addEventListener('click', () => {
+    historyExpanded = true;
+    renderHistory(readHistory());
+});
+hydrateHistory();
+
+// P0 R2: cross-page cancel→refine hand-back. The run page writes
+// dra_refine on a LIVE cancel, then navigates here; consume it
+// (ssTakeJSON clears BEFORE we act — a crash mid-re-arm can never loop)
+// and re-arm the refine flow exactly the way the old in-page cancel
+// handler did: stash the rejected entity, prefill the query, open hints,
+// scroll to the form. A missing query (degraded storage on the run page)
+// skips silently — a stash keyed to '' would misfire on the next submit.
+const refineHandback = ssTakeJSON(REFINE_KEY);
+if (refineHandback && refineHandback.query) {
+    document.getElementById('query').value =
+        String(refineHandback.query).slice(0, 200);
+    if (refineHandback.descriptor) {
+        stashRejected([String(refineHandback.descriptor)], refineHandback.query);
+    }
+    hintsBox.open = true;
+    form.scrollIntoView({behavior: REDUCED_MOTION ? 'auto' : 'smooth',
+                         block: 'center'});
 }
 
 // ---- D1: entity cards + rotating headline name (PLAN.md Phase D) ----
