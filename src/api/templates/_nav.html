@@ -1,0 +1,14 @@
+{# P0 D4: persistent nav shared by index.html and run.html — STATIC markup
+   only (no interpolated data → no injection surface; the nav_cta flag is a
+   server-set boolean, run page only). Brand navigates to /; it never
+   cancels a running job (the run continues server-side). The task-named
+   "New research" CTA renders on the run page only (D4's visible Home
+   affordance, human 2026-07-21) — the homepage IS the new-research surface,
+   so it carries no CTA. #}
+<header id="site-nav">
+    <div class="nav-inner">
+        <a class="nav-brand" href="/">Deep Research Agent</a>
+        {% if nav_cta %}<a class="nav-cta" href="/"
+           title="Your research keeps running — return to it anytime from Your recent runs">New research</a>{% endif %}
+    </div>
+</header>

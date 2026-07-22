@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+{# P0 Step 2: the dedicated run page — one job's refresh-safe, bookmarkable,
+   shareable stage. Own <head> (R7): generic title/OG, NO Turnstile, NO
+   marketing meta — the subject name never rides in URL or page meta. The
+   run-render JS below is single-homed here (D2); terminal handlers are
+   page-AWARE rewrites that touch no homepage symbol (R1). READ-ONLY page:
+   snapshot + SSE, no writer to Job.progress. #}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research run — Deep Research Agent</title>
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Live progress and results for one research run.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Deep Research Agent — research run">
+    <meta property="og:description" content="A live due-diligence research run — progress, verified facts, and the scored report.">
+{% include "_styles.html" %}
+    <style>
+        /* Page-local. The shared #status rule ships display:none (the
+           homepage's initial state); the bootstrap reveals it via .active.
+           D8: restate [hidden] so the attribute keeps working everywhere. */
+        #status.active { display: block; }
+        #status[hidden] { display: none; }
+        #page-note[hidden] { display: none; }
+        #page-note { max-width: 680px; margin: 24px auto 0; background: white;
+                border-radius: 12px; padding: 24px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        #page-note strong { display: block; margin-bottom: 6px; }
+        #page-note a { color: #2d5a8e; font-weight: 600; }
+        /* R5 / 5B-lite: the SINGLE owner gate (checkpoint ruling 3). The
+           mutating controls exist in the DOM for everyone but only ever
+           display on the device that started the run (body.is-owner, set
+           at bootstrap from dra_owned). #elapsed deliberately stays visible
+           to visitors. UX deterrence — the endpoints stay UUID-gated. */
+        body:not(.is-owner) #finish-wrap,
+        body:not(.is-owner) #cancel-btn,
+        body:not(.is-owner) #banner-cancel,
+        body:not(.is-owner) #refine-again { display: none; }
+        #terminal-actions { margin-top: 12px; display: flex; gap: 14px;
+                align-items: center; flex-wrap: wrap; }
+        #new-research { color: #2d5a8e; font-weight: 600; }
+        #refine-again { background: none; border: 1px solid #cbd5e1;
+                color: #475569; font-size: 0.85em; padding: 6px 12px;
+                border-radius: 6px; cursor: pointer; }
+        #refine-again:hover { background: #f1f5f9; color: #334155; }
+        /* D8 restate for the new toggled elements */
+        #new-research[hidden], #refine-again[hidden] { display: none; }
+    </style>
+</head>
+<body data-job-id="{{ job_id }}">
+{% include "_nav.html" %}
+<main>
+    <!-- Cold-load error surface (D5/R8): not-found (404 AND 422), expired
+         (410), network failure. Static strings only. -->
+    <div id="page-note" hidden>
+        <strong id="note-title"></strong>
+        <p id="note-text"></p>
+        <p><a href="/">← Home — start a new research</a></p>
+    </div>
+
+    <div id="status">
+        <!-- C1.3/D2: the correctable assumption banner — auto-proceed skips
+             the CLICK, never the CHOICE. Entity text is scraped+LLM →
+             textContent-only. -->
+        <div id="assumption-banner" hidden>
+            <span id="banner-text"></span>
+            <button type="button" id="banner-cancel">Not who you meant? Cancel &amp; refine</button>
+        </div>
+        <div id="status-head">
+            <strong id="status-title">Researching…</strong>
+            <span id="status-controls">
+                <!-- C1.5: inline two-step confirm — never window.confirm
+                     (the e2e XSS suite asserts zero dialogs) -->
+                <span id="finish-wrap" hidden>
+                    <button type="button" id="finish-btn">Generate report now</button>
+                    <span id="finish-confirm" hidden>
+                        <span id="finish-question"></span>
+                        <button type="button" id="finish-yes">✓ Generate</button>
+                        <button type="button" id="finish-no">✗ Keep researching</button>
+                    </span>
+                    <span id="finish-pending" hidden>Finishing after the current pass…</span>
+                </span>
+                <button type="button" id="cancel-btn" hidden>Cancel</button>
+                <span id="elapsed"></span>
+            </span>
+        </div>
+        <div id="bar-outer"><div id="bar"></div></div>
+        <div id="phase">queued</div>
+        <div id="activity-line"></div>
+        <div id="eta">Deep research usually takes 2–4 minutes.</div>
+        <div id="no-facts" hidden>Still searching — limited public sources for this name.</div>
+
+        <div id="live-report">
+            <div id="brief"></div>
+            <div id="tabs" role="tablist" aria-label="Live report">
+                <button role="tab" id="tab-btn-overview" aria-selected="true" aria-controls="tab-overview" type="button">Overview</button>
+                <button role="tab" id="tab-btn-facts" aria-selected="false" aria-controls="tab-facts" type="button">Facts</button>
+                <button role="tab" id="tab-btn-signals" aria-selected="false" aria-controls="tab-signals" type="button">Risks &amp; connections</button>
+            </div>
+            <section class="tabpanel" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
+                <div id="counters">
+                    <div class="counter"><span class="num" id="count-facts">0</span><span class="cap">facts found so far</span></div>
+                    <div class="counter"><span class="num" id="count-risks">–</span><span class="cap">risk flags</span></div>
+                    <div class="counter"><span class="num" id="count-connections">–</span><span class="cap">connections</span></div>
+                </div>
+                <div id="plan-note"></div>
+                <div id="verify-note"></div>
+                <!-- C1.7a (R5): sidelined-facts count — facts about other
+                     same-name people, excluded from the counters above -->
+                <div id="set-aside-note" hidden></div>
+                <div id="cat-bars"></div>
+            </section>
+            <section class="tabpanel" id="tab-facts" role="tabpanel" aria-labelledby="tab-btn-facts" hidden>
+                <div id="facts-empty">Facts will appear here as they're found.</div>
+                <ul id="facts-list"></ul>
+            </section>
+            <section class="tabpanel" id="tab-signals" role="tabpanel" aria-labelledby="tab-btn-signals" hidden>
+                <div class="sig-box" id="risks-box">
+                    <h3>Risk flags</h3>
+                    <div class="pending-note">Analyzed near the end of the run — coming up.</div>
+                </div>
+                <div class="sig-box" id="connections-box">
+                    <h3>Connections</h3>
+                    <div class="pending-note">Mapped near the end of the run — coming up.</div>
+                </div>
+            </section>
+        </div>
+
+        <div id="log-panel">
+            <div id="log-head">
+                <h2>Research log</h2>
+                <!-- TECHNICAL-LOG toggle: disabled pending a polish pass
+                     (human decision 2026-07-10; P8 re-enables + enriches IN
+                     PLACE — the run page owns this seam now). Re-enable
+                     together with the TECHNICAL-LOG JS block below; when it
+                     returns, restore the technical-view XSS assertions
+                     (plan-review-A3 R2) in the e2e suite.
+                <button id="log-toggle" type="button" aria-pressed="false">Technical log</button>
+                -->
+            </div>
+            <div id="log-scroll"><ul id="activity-feed"></ul></div>
+        </div>
+        <!-- D7: link-out in a new tab (the report has its own CSP contract);
+             never embedded/iframed on this page. -->
+        <a id="report-link" href="#" target="_blank" rel="noopener noreferrer">View the report →</a>
+        <div id="terminal-actions">
+            <a id="new-research" href="/" hidden>← Start a new research</a>
+            <button type="button" id="refine-again" hidden>Adjust details &amp; research again</button>
+        </div>
+    </div>
+</main>
+
+{% include "_footer.html" %}
+
+{% include "_shared_js.html" %}
+<script>
+// ---- Identity & ownership (R5/R9, checkpoint rulings 1+3) ----
+const jobId = (document.body.getAttribute('data-job-id') || '').trim();
+const API_BASE = '/api/research/' + encodeURIComponent(jobId);
+let currentJobId = jobId;            // cancel/finish POSTs read this (R9)
+const OWNED_ENTRY = readOwned()[jobId] || null;
+const IS_OWNED = OWNED_ENTRY !== null;
+const OWNED_QUERY = IS_OWNED ? String(OWNED_ENTRY.query || '') : '';
+if (IS_OWNED) document.body.classList.add('is-owner');
+let cancelRequestedHere = false;     // live-cancel-only auto-navigation (R2)
+let refineDescriptor = null;         // the entity a cancel would reject
+let es = null;
+
+const statusBox = document.getElementById('status');
+const bar = document.getElementById('bar');
+const phase = document.getElementById('phase');
+const title = document.getElementById('status-title');
+const reportLink = document.getElementById('report-link');
+const pageNote = document.getElementById('page-note');
+const noteTitle = document.getElementById('note-title');
+const noteText = document.getElementById('note-text');
+const newResearch = document.getElementById('new-research');
+const refineAgain = document.getElementById('refine-again');
+
+// A1: phase-weighted, always-moving bar. Keys are the ACTUAL emitted stage
+// strings — workflow.py state["stage"] plus queued/starting/complete from
+// jobs.py. query_refinement is emitted but absent from the ResearchStage
+// enum, so we map raw strings, never the enum. Unknown phases hold the
+// previous bucket; the monotonic clamp means the bar never moves backwards.
+const PHASE_LABEL = {
+    queued: 'Queued',
+    starting: 'Starting up',
+    initialization: 'Setting up',
+    strategy_planning: 'Planning research strategy',
+    data_collection: 'Searching the web',
+    fact_extraction: 'Reading & extracting facts',
+    query_refinement: 'Refining follow-up queries',
+    verification: 'Cross-checking facts',
+    risk_assessment: 'Assessing risk signals',
+    connection_mapping: 'Mapping connections',
+    report_generation: 'Writing your report',
+    complete: 'Complete'
+};
+const PHASE_PCT = {
+    queued: 0, starting: 2, initialization: 4, strategy_planning: 6,
+    verification: 78, risk_assessment: 85, connection_mapping: 92,
+    report_generation: 97, complete: 100
+};
+// The search loop (data_collection → fact_extraction → query_refinement)
+// spans 10–70%, advancing with iteration and position inside the loop.
+const LOOP_POS = {data_collection: 0, fact_extraction: 1 / 3, query_refinement: 2 / 3};
+let barPct = 0;
+
+function phasePct(p) {
+    if (p.phase in PHASE_PCT) return PHASE_PCT[p.phase];
+    if (p.phase in LOOP_POS) {
+        const max = Math.max(p.max_iterations || 10, 1);
+        const perIter = 60 / max;
+        return Math.min(70, 10 + ((p.iteration || 0) + LOOP_POS[p.phase]) * perIter);
+    }
+    return barPct;   // unknown phase: hold, never stall at 0
+}
+
+// A3/A.2: live report + research log + strip + timer. Everything below
+// renders UNTRUSTED scraped web content (queries, titles, fact snippets) —
+// text lands in the DOM via textContent/createElement ONLY, never as HTML,
+// and CSS classes only ever come from the fixed whitelists below (MI5).
+const activityLine = document.getElementById('activity-line');
+const feed = document.getElementById('activity-feed');
+const logScroll = document.getElementById('log-scroll');
+const logToggle = document.getElementById('log-toggle');
+const noFacts = document.getElementById('no-facts');
+const liveReport = document.getElementById('live-report');
+const brief = document.getElementById('brief');
+const planNote = document.getElementById('plan-note');
+const elapsed = document.getElementById('elapsed');
+const factsList = document.getElementById('facts-list');
+const factsEmpty = document.getElementById('facts-empty');
+const setAsideNote = document.getElementById('set-aside-note');
+const catBars = document.getElementById('cat-bars');
+const verifyNote = document.getElementById('verify-note');
+const countFacts = document.getElementById('count-facts');
+const countRisks = document.getElementById('count-risks');
+const countConnections = document.getElementById('count-connections');
+const risksBox = document.getElementById('risks-box');
+const connectionsBox = document.getElementById('connections-box');
+let timerId = null;
+let eventsBySeq = new Map();    // seq -> event: ONE stream, two renderers
+let renderedRows = new Map();   // row key -> li (active renderer's DOM state)
+let seenFactIds = new Set();
+let techMode = false;           // narrative by default (A.3 decision 1)
+let lastPhaseText = '';
+
+// REDUCED_MOTION comes from _shared_js.html (shared partial).
+// Whitelists (MI5): CSS classes and human labels NEVER derive from event data.
+const ENGINE_NAMES = {brave: 'Brave', serper: 'Google (Serper)', scrape: 'web page'};
+const KIND_CLASS = {search: 'k-search', extract: 'k-extract', llm: 'k-llm'};
+const CAT_CLASS = {biographical: 'biographical', professional: 'professional',
+                   financial: 'financial', legal: 'legal', connections: 'connections',
+                   behavioral: 'behavioral'};
+const CAT_LABEL = {biographical: 'background', professional: 'career & roles',
+                   financial: 'financial records', legal: 'legal history',
+                   connections: 'connections', behavioral: 'public behavior'};
+const SEV_CLASS = {critical: 'sev-critical', high: 'sev-high',
+                   medium: 'sev-medium', low: 'sev-low'};
+
+// ---- Narrative texts (default): intent-level, NO engines/models/raw queries
+function llmNarrative(a) {
+    if (a.task === 'strategy_planning') {
+        return a.status === 'done'
+            ? 'Planned ' + (a.queries || 0) + ' research angles'
+            : 'Planning research strategy…';
+    }
+    if (a.task === 'query_refinement') {
+        return 'Refined strategy — ' + (a.queries || 0) + ' new angles';
+    }
+    if (a.task === 'verification') {
+        return 'Cross-checked facts — ' + (a.verified || 0) + ' corroborated · ' +
+               (a.deduped || 0) + ' duplicates merged';
+    }
+    if (a.task === 'risk_assessment') {
+        return a.status === 'done'
+            ? 'Found ' + (a.risks || 0) + ' risk flags'
+            : 'Analyzing risk signals…';
+    }
+    if (a.task === 'connection_mapping') {
+        return a.status === 'done'
+            ? 'Mapped ' + (a.connections || 0) + ' connections'
+            : 'Mapping relationships…';
+    }
+    return 'Thinking…';
+}
+
+function stripText(a) {   // always-visible strip: narrative-flavored (R3)
+    if (a.kind === 'search') {
+        return 'Investigating ' + (CAT_LABEL[a.category] || 'the subject') + '…';
+    }
+    if (a.kind === 'extract') {
+        return a.status === 'done'
+            ? 'Extracted ' + (a.facts || 0) + ' facts from sources'
+            : 'Reading sources…';
+    }
+    if (a.kind === 'llm') return llmNarrative(a);
+    return 'Working…';
+}
+
+// ---- Technical texts (toggle): full queries, engines, counts, models
+function techText(a) {
+    if (a.kind === 'search') {
+        return 'Searched "' + (a.query || '') + '" — ' +
+               (ENGINE_NAMES[a.engine] || a.engine || 'search') + ' · ' +
+               (a.results || 0) + ' results';
+    }
+    if (a.kind === 'llm') {
+        let text = llmNarrative(a);
+        if (a.model) text += ' — ' + a.model;
+        if (a.task === 'query_refinement' && a.sample_queries && a.sample_queries.length) {
+            text += ' — next: "' + a.sample_queries[0] + '"';
+        }
+        return text;
+    }
+    return stripText(a);
+}
+
+// Derive narrative rows from the full event stream. Group keys use the
+// SERVER-side iteration (R5), so reconnect re-derives identical rows.
+function narrativeRows(events) {
+    const rows = [], index = new Map(), groups = new Map();
+    function upsert(key, cls, text) {
+        const row = index.get(key);
+        if (row) { row.text = text; return; }
+        const fresh = {key: key, cls: cls, text: text};
+        index.set(key, fresh);
+        rows.push(fresh);
+    }
+    for (const a of events) {
+        const it = a.iteration || 0;
+        if (a.kind === 'search') {
+            let g = groups.get(it);
+            if (!g) { g = {labels: [], count: 0, results: 0}; groups.set(it, g); }
+            const label = CAT_LABEL[a.category] || 'more angles';
+            if (!g.labels.includes(label)) g.labels.push(label);
+            g.count += 1;
+            g.results += a.results || 0;
+            upsert('s' + it, 'k-search',
+                'Investigating ' + g.labels.join(' · ') + ' — ' + g.count +
+                (g.count === 1 ? ' search' : ' searches'));
+        } else if (a.kind === 'extract') {
+            const g = groups.get(it);
+            upsert('r' + it, 'k-extract', a.status === 'done'
+                ? 'Read ~' + (g ? g.results : 0) + ' sources — ' +
+                  (a.facts || 0) + ' new facts'
+                : 'Reading sources…');
+        } else if (a.kind === 'llm') {
+            const key = a.task === 'query_refinement' ? 'q' + a.seq : a.task;
+            upsert(key, 'k-llm', llmNarrative(a));
+        } else {
+            upsert('u' + a.seq, '', 'Working…');
+        }
+    }
+    return rows;
+}
+
+function setPhaseText(text) {
+    if (text === lastPhaseText) return;
+    lastPhaseText = text;
+    if (REDUCED_MOTION) { phase.textContent = text; return; }
+    phase.classList.add('swap');
+    setTimeout(() => { phase.textContent = text; phase.classList.remove('swap'); }, 250);
+}
+
+function tweenCount(el, target) {
+    const from = parseInt(el.textContent, 10) || 0;
+    if (REDUCED_MOTION || target <= from) { el.textContent = String(target); return; }
+    const t0 = performance.now(), dur = 500;
+    function step(t) {
+        const k = Math.min(1, (t - t0) / dur);
+        el.textContent = String(Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3))));
+        if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function appendKeyed(container, items, keyOf, build, seen) {
+    let batchIdx = 0;
+    for (const item of items) {
+        const key = keyOf(item);
+        if (key == null || seen.has(key)) continue;
+        seen.add(key);
+        const el = build(item);
+        el.classList.add('enter');
+        el.style.setProperty('--i', String(batchIdx++));
+        container.appendChild(el);
+    }
+    return batchIdx;   // how many NEW nodes were added
+}
+
+// Ingest a snapshot's activity list; returns the events not seen before.
+function ingestEvents(acts) {
+    const fresh = [];
+    for (const a of acts) {
+        if (a && a.seq != null && !eventsBySeq.has(a.seq)) {
+            eventsBySeq.set(a.seq, a);
+            fresh.push(a);
+        }
+    }
+    return fresh;
+}
+
+// Reconcile the active renderer's rows against the DOM: new keys append
+// (animated), existing keys update textContent in place — so group rows
+// grow without re-animating and reconnect replays add nothing.
+function syncLog(animate = true) {
+    const events = [...eventsBySeq.values()].sort((a, b) => a.seq - b.seq);
+    const rows = techMode
+        ? events.map(a => ({key: 't' + a.seq, cls: KIND_CLASS[a.kind] || '',
+                            text: techText(a)}))
+        : narrativeRows(events);
+    const follow = logScroll.scrollTop + logScroll.clientHeight >=
+                   logScroll.scrollHeight - 24;
+    let batch = 0;
+    for (const r of rows) {
+        let el = renderedRows.get(r.key);
+        if (!el) {
+            el = document.createElement('li');
+            el.className = r.cls;
+            if (animate) {
+                el.classList.add('enter');
+                el.style.setProperty('--i', String(batch++));
+            }
+            renderedRows.set(r.key, el);
+            feed.appendChild(el);
+        }
+        if (el.textContent !== r.text) el.textContent = r.text;
+    }
+    if (batch && follow) logScroll.scrollTop = logScroll.scrollHeight;
+}
+
+/* TECHNICAL-LOG (disabled pending polish pass — human decision 2026-07-10;
+   techText/techMode above stay in place so this re-enables cleanly):
+logToggle.addEventListener('click', () => {
+    techMode = !techMode;
+    logToggle.setAttribute('aria-pressed', String(techMode));
+    logToggle.textContent = techMode ? 'Simple log' : 'Technical log';
+    feed.replaceChildren();
+    renderedRows = new Map();
+    syncLog(false);                 // full re-render, no entrance animation
+    logScroll.scrollTop = logScroll.scrollHeight;
+});
+*/
+
+// All six category rows render from the start at 0 (A3.2: the zeroed
+// Overview IS the skeleton) and fill as facts arrive.
+function renderCatBars(byCat) {
+    const total = Object.values(byCat).reduce((a, b) => a + b, 0) || 1;
+    catBars.replaceChildren(...Object.keys(CAT_CLASS).map(c => {
+        const count = byCat[c] || 0;
+        const row = document.createElement('div');
+        row.className = 'cat-row';
+        const name = document.createElement('span');
+        name.className = 'cat-name';
+        name.textContent = c;
+        const track = document.createElement('div');
+        track.className = 'cat-track';
+        const fill = document.createElement('div');
+        fill.className = 'cat-fill fill-' + c;
+        fill.style.width = Math.round(100 * count / total) + '%';
+        track.appendChild(fill);
+        const n = document.createElement('span');
+        n.textContent = String(count);
+        row.append(name, track, n);
+        return row;
+    }));
+}
+
+function renderBrief(subject) {
+    // Subject is user/server-derived text — textContent-only, same
+    // discipline as every other sink.
+    brief.replaceChildren();
+    const s = document.createElement('div');
+    s.id = 'brief-subject';
+    s.textContent = 'Subject: ' + subject;
+    const line = document.createElement('div');
+    line.className = 'brief-line';
+    line.textContent = 'Sources: public web · Coverage: background, ' +
+        'career & roles, financial records, legal history, connections, ' +
+        'public behavior';
+    brief.append(s, line);
+}
+
+function renderPreview(pv) {
+    if (!pv) return;
+    tweenCount(countFacts, pv.facts_found || 0);
+    appendKeyed(factsList, pv.facts || [], f => f.id, f => {
+        const el = document.createElement('li');
+        el.className = 'cat-' + (CAT_CLASS[f.category] || 'other');
+        el.textContent = f.content;
+        const meta = document.createElement('span');
+        meta.className = 'fact-meta';
+        meta.textContent = (CAT_CLASS[f.category] || 'other') +
+            (typeof f.confidence === 'number'
+                ? ' · confidence ' + Math.round(f.confidence * 100) + '%' : '');
+        el.appendChild(meta);
+        return el;
+    }, seenFactIds);
+    factsEmpty.hidden = seenFactIds.size > 0;
+
+    renderCatBars(pv.by_category || {});
+
+    // C1.7a: honest set-aside line — these facts exist but are about other
+    // people sharing the name, so they never enter the counters.
+    if (typeof pv.set_aside === 'number' && pv.set_aside > 0) {
+        setAsideNote.textContent = pv.set_aside +
+            (pv.set_aside === 1 ? ' fact' : ' facts') +
+            ' about other people with this name set aside';
+        setAsideNote.hidden = false;
+    }
+
+    if (pv.verification) {
+        verifyNote.textContent = 'Cross-checked: ' + (pv.verification.verified || 0) +
+            ' corroborated · ' + (pv.verification.deduped || 0) + ' duplicates merged';
+    }
+    if (pv.risks) {
+        tweenCount(countRisks, pv.risks.count || 0);
+        const line = document.createElement('div');
+        line.className = 'sig-line';
+        const sevs = pv.risks.severities || {};
+        for (const sev of ['critical', 'high', 'medium', 'low']) {
+            if (!sevs[sev]) continue;
+            const chip = document.createElement('span');
+            chip.className = 'chip ' + SEV_CLASS[sev];
+            chip.textContent = sevs[sev] + ' ' + sev;
+            line.appendChild(chip);
+        }
+        if (!line.childNodes.length) line.textContent = 'No risk flags identified yet.';
+        risksBox.replaceChildren(risksBox.querySelector('h3'), line);
+    }
+    if (pv.connections) {
+        tweenCount(countConnections, pv.connections.count || 0);
+        const line = document.createElement('div');
+        line.className = 'sig-line';
+        line.textContent = (pv.connections.sample || []).join(' · ') || '—';
+        connectionsBox.replaceChildren(connectionsBox.querySelector('h3'), line);
+    }
+}
+
+function render(p) {
+    barPct = Math.max(barPct, phasePct(p));
+    bar.style.width = Math.max(2, barPct) + '%';
+    // Finalization A (checkpoint ruling, 2026-07-13): a queued cold-load
+    // that transitions to running over SSE must grow the banner here — the
+    // stream's resolved_entity is the one source (owner, visitor, refresh
+    // and queued→running all pass through). Guarded on banner.hidden:
+    // re-running would re-enable a cancel button the user just disabled
+    // (showBanner resets bannerCancel.disabled).
+    if (banner.hidden && p.resolved_entity) applyEntity(p.resolved_entity);
+    // C1.5 (R4): the button's predicate is the SAME node-boundary "facts"
+    // key the server's 409 guard reads — never the faster preview counter.
+    lastFactCount = p.facts || 0;
+    if (!finishRequested && lastFactCount > 0) finishWrap.hidden = false;
+    const iter = p.iteration || 0, max = p.max_iterations || 10;
+    setPhaseText((PHASE_LABEL[p.phase] || p.phase || 'Working') +
+        (iter ? ' (iteration ' + iter + '/' + max + ')' : ''));
+    const acts = p.activity || [];
+    activityLine.textContent = acts.length ? stripText(acts[acts.length - 1]) : '';
+    const fresh = ingestEvents(acts);
+    syncLog();
+    for (const a of fresh) {
+        // A3.2: planning becomes a visible deliverable in the Overview.
+        if (a.kind === 'llm' && a.task === 'strategy_planning' &&
+            a.status === 'done') {
+            planNote.textContent = (a.queries || 0) + ' research angles planned';
+            if (!REDUCED_MOTION) {
+                catBars.classList.add('pulse');
+                setTimeout(() => catBars.classList.remove('pulse'), 800);
+            }
+        }
+    }
+    renderPreview(p.report_preview);
+    noFacts.hidden = !(iter >= 2 && (p.facts || 0) === 0 && seenFactIds.size === 0);
+}
+
+// Server timestamps are UTC; sqlite (dev/e2e) reads them back NAIVE — no
+// offset suffix — which Date.parse would treat as LOCAL time. Force UTC
+// when no zone is present; Postgres (prod) sends +00:00 and passes through.
+function parseServerDate(iso) {
+    if (!iso) return null;
+    const s = String(iso);
+    const hasZone = /(?:Z|[+-]\d\d:?\d\d)$/.test(s);
+    const t = Date.parse(hasZone ? s : s + 'Z');
+    return isNaN(t) ? null : t;
+}
+
+function startTimer(startedAtMs) {
+    stopTimer();
+    // R9: a cold-loaded mid-run page shows the TRUE elapsed time — seeded
+    // from the snapshot's started_at, not from attach time.
+    const startedAt = startedAtMs || Date.now();
+    const tick = () => {
+        const s = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+        elapsed.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    };
+    tick();
+    timerId = setInterval(tick, 1000);
+}
+
+function stopTimer() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+}
+
+// Tabs (keyboard-operable buttons; aria-selected drives styling)
+const TAB_IDS = ['overview', 'facts', 'signals'];
+for (const id of TAB_IDS) {
+    document.getElementById('tab-btn-' + id).addEventListener('click', () => {
+        for (const other of TAB_IDS) {
+            document.getElementById('tab-btn-' + other)
+                .setAttribute('aria-selected', String(other === id));
+            document.getElementById('tab-' + other).hidden = other !== id;
+        }
+    });
+}
+
+const banner = document.getElementById('assumption-banner');
+const bannerText = document.getElementById('banner-text');
+const bannerCancel = document.getElementById('banner-cancel');
+const cancelBtn = document.getElementById('cancel-btn');
+
+function resetPanel(subject) {
+    title.textContent = 'Researching…';
+    barPct = 0;
+    bar.style.width = '2%';
+    lastPhaseText = '';
+    banner.hidden = true;                 // caller re-shows via showBanner
+    banner.classList.remove('warn');
+    bannerCancel.hidden = false;
+    bannerCancel.disabled = false;
+    cancelBtn.hidden = true;
+    resetFinishControls();
+    activityLine.textContent = '';
+    feed.replaceChildren();
+    factsList.replaceChildren();
+    eventsBySeq = new Map();
+    renderedRows = new Map();
+    seenFactIds = new Set();
+    countFacts.textContent = '0';
+    countRisks.textContent = '–';
+    countConnections.textContent = '–';
+    verifyNote.textContent = '';
+    planNote.textContent = '';
+    setAsideNote.textContent = '';
+    setAsideNote.hidden = true;
+    factsEmpty.hidden = false;
+    noFacts.hidden = true;
+    // A3.2 opening: brief + zeroed Overview render IMMEDIATELY — the report
+    // structure itself is the skeleton.
+    renderBrief(subject);
+    renderCatBars({});
+    reportLink.style.display = 'none';
+}
+
+function showBanner(entity) {
+    banner.hidden = false;
+    bannerCancel.disabled = false;
+    if (entity) {
+        banner.classList.remove('warn');
+        bannerText.textContent = 'Researching: ' +
+            (entity.descriptor || entity.canonical_name);
+    } else {
+        banner.classList.add('warn');
+        bannerText.textContent = 'Searching the name broadly — results may mix ' +
+            'people or organizations sharing it.';
+    }
+}
+
+// One source for banner + the cancel→refine stash: the snapshot/stream's
+// resolved_entity. {decision:'unscoped'} is truthy but nameless (routes.py
+// builds it for broad runs) → map it to the warn variant, never
+// "Researching: undefined".
+function applyEntity(ent) {
+    if (!ent) return;
+    const scoped = ent.decision !== 'unscoped';
+    refineDescriptor = scoped
+        ? (ent.descriptor || ent.canonical_name || null) : null;
+    showBanner(scoped ? ent : null);
+}
+
+// R3 (review) + C1.6b: the brief agrees with the banner — descriptor first
+// for scoped runs; the on-device query for unscoped owner loads; a generic
+// dash for visitors (their device holds no query, and the snapshot exposes
+// none — JobStatus has no query field).
+function briefSubject(progress) {
+    const ent = progress.resolved_entity;
+    if (ent && ent.decision !== 'unscoped' &&
+            (ent.descriptor || ent.canonical_name)) {
+        return ent.descriptor || ent.canonical_name;
+    }
+    return OWNED_QUERY || '—';
+}
+
+// ---- C1.4: cancel — the D2 safety valve. Terminal state arrives over SSE
+// as a `failed` event whose error string maps to a neutral Cancelled UI.
+// Both cancel buttons route through here; the flag makes the terminal
+// handler navigate ONLY the page that asked (checkpoint ruling 2 — a
+// visitor watching a shared URL is never yanked to the homepage).
+async function cancelJob() {
+    if (!currentJobId) return;
+    cancelRequestedHere = true;
+    cancelBtn.disabled = true;
+    bannerCancel.disabled = true;
+    try {
+        await fetch('/api/research/' + currentJobId + '/cancel', {method: 'POST'});
+    } catch (err) { /* SSE delivers the terminal state either way */ }
+}
+bannerCancel.addEventListener('click', cancelJob);
+cancelBtn.addEventListener('click', cancelJob);
+
+// ---- C1.5: "Generate report now" — stop iterating, keep the FULL
+// finalization tail (verification, risks, connections, trends). Takes
+// effect at the next loop boundary: up to one more search pass may run.
+const finishWrap = document.getElementById('finish-wrap');
+const finishBtn = document.getElementById('finish-btn');
+const finishConfirm = document.getElementById('finish-confirm');
+const finishQuestion = document.getElementById('finish-question');
+const finishYes = document.getElementById('finish-yes');
+const finishNo = document.getElementById('finish-no');
+const finishPending = document.getElementById('finish-pending');
+let finishRequested = false;
+let lastFactCount = 0;
+
+function resetFinishControls() {
+    finishRequested = false;
+    lastFactCount = 0;
+    finishWrap.hidden = true;
+    finishBtn.hidden = false;
+    finishConfirm.hidden = true;
+    finishPending.hidden = true;
+}
+
+finishBtn.addEventListener('click', () => {
+    finishQuestion.textContent = 'Generate now with ' + lastFactCount +
+        ' facts? Final checks still run.';
+    finishBtn.hidden = true;
+    finishConfirm.hidden = false;
+});
+finishNo.addEventListener('click', () => {
+    finishConfirm.hidden = true;
+    finishBtn.hidden = false;
+});
+finishYes.addEventListener('click', async () => {
+    if (!currentJobId || finishRequested) return;
+    finishYes.disabled = true;
+    let resp = null;
+    try {
+        resp = await fetch('/api/research/' + currentJobId + '/finish',
+                           {method: 'POST'});
+    } catch (err) { /* fall through to revert */ }
+    finishYes.disabled = false;
+    finishConfirm.hidden = true;
+    if (resp && resp.ok) {
+        finishRequested = true;
+        finishPending.hidden = false;   // best-effort: restart clears the flag
+    } else {
+        finishBtn.hidden = false;       // 409/network: back to the button
+    }
+});
+
+// ---- Page-aware terminal renderers (R1): NO homepage symbols. ----
+function hideRunControls() {
+    cancelBtn.hidden = true;
+    finishWrap.hidden = true;
+    bannerCancel.hidden = true;   // the banner itself stays: what was researched
+}
+
+function renderCompletedFrom(p) {
+    hideRunControls();
+    barPct = 100;
+    bar.style.width = '100%';
+    title.textContent = 'Research complete' +
+        (p.quality_score ? ' — quality ' + p.quality_score + '/100' : '');
+    setPhaseText(p.grade ? 'Complete — Grade ' + p.grade : 'Complete');
+    if (typeof p.facts === 'number') {
+        countFacts.textContent = String(p.facts);
+        if (p.facts > 0) {
+            factsEmpty.textContent = 'All ' + p.facts +
+                ' facts are in the full report.';
+        }
+    }
+    // The terminal progress dict REPLACES the running snapshot (the D5
+    // gotcha) and carries no preview — so on a completed page, "coming up"
+    // copy would be a lie and zeroed category bars would read as data.
+    // Point at the report instead; boxes that DID receive live data keep
+    // it (their pending-note was already replaced by a sig-line). P15
+    // enriches the terminal dict with real counts server-side.
+    for (const box of [risksBox, connectionsBox]) {
+        const note = box.querySelector('.pending-note');
+        if (note) note.textContent = 'Finalized — see the full report below.';
+    }
+    catBars.hidden = seenFactIds.size === 0;
+    activityLine.textContent = '';
+    noFacts.hidden = true;
+    reportLink.href = API_BASE + '/report';
+    reportLink.style.display = 'inline-block';
+    newResearch.hidden = false;
+}
+
+function renderCancelled() {
+    hideRunControls();
+    banner.hidden = true;
+    title.textContent = 'Research cancelled';
+    setPhaseText('Cancelled');
+    activityLine.textContent = '';
+    noFacts.hidden = true;
+    newResearch.hidden = false;
+    // Owner nicety (checkpoint ruling 2): a cold-loaded cancelled run still
+    // offers the refine hand-back — as a CLICK, never an auto-yank.
+    if (IS_OWNED) refineAgain.hidden = false;
+}
+
+function renderFailed(errText) {
+    hideRunControls();
+    title.textContent = 'Research failed';
+    setPhaseText(errText || '');
+    activityLine.textContent = '';
+    noFacts.hidden = true;
+    newResearch.hidden = false;
+}
+
+function showNote(titleText, bodyText) {
+    noteTitle.textContent = titleText;
+    noteText.textContent = bodyText;
+    pageNote.hidden = false;
+    statusBox.classList.remove('active');
+}
+
+// R2: the cross-page cancel→refine hand-back. One-shot sessionStorage key;
+// the homepage reads-then-clears it on load and re-arms the refine flow.
+function handOffRefine() {
+    ssSetJSON(REFINE_KEY, {v: 1, descriptor: refineDescriptor,
+                           query: OWNED_QUERY});
+    location.assign('/');
+}
+refineAgain.addEventListener('click', handOffRefine);
+
+function watch(eventsUrl) {
+    if (es) es.close();
+    es = new EventSource(eventsUrl);   // auto-reconnects across the 15-min proxy cap / redeploys
+
+    es.addEventListener('progress', (e) => {
+        render(JSON.parse(e.data));
+    });
+
+    es.addEventListener('completed', async () => {
+        es.close();
+        stopTimer();
+        // Single terminal render path: the SSE payload has no grade, so
+        // re-read the snapshot (cheap PK lookup) and render the same
+        // completed state a cold load would; fall back to a minimal render
+        // if that read fails.
+        let p = null;
+        try {
+            const r = await fetch(API_BASE);
+            if (r.ok) p = (await r.json()).progress || null;
+        } catch (err) { /* fall through */ }
+        renderCompletedFrom(p || {});
+    });
+
+    es.addEventListener('failed', (e) => {
+        const p = JSON.parse(e.data);
+        es.close();
+        stopTimer();
+        if (p.error === 'expired') {
+            // The run expired while being watched (reaper mid-stream).
+            showNote('This research has expired',
+                     'Reports are kept for 7 days, then permanently deleted.');
+            return;
+        }
+        if (p.error === 'cancelled by user') {
+            if (cancelRequestedHere) { handOffRefine(); return; }
+            renderCancelled();
+        } else {
+            renderFailed(p.error || 'failed');
+        }
+    });
+}
+
+// ---- Cold-load bootstrap: the D5 state machine. Branch on the snapshot's
+// status — a COMPLETED job's progress is a REPLACED terminal dict
+// {phase,facts,quality_score,grade} with NO activity/report_preview
+// (jobs.py), so it must never go through render(). ----
+function renderFromSnapshot(snap) {
+    const p = snap.progress || {};
+    pageNote.hidden = true;
+    statusBox.classList.add('active');
+    resetPanel(briefSubject(p));
+    if (snap.status === 'completed') {
+        applyEntity(p.resolved_entity);
+        renderCompletedFrom(p);
+        return;
+    }
+    if (snap.status === 'failed') {
+        // The failed dict keeps the last running snapshot — render the
+        // last-known panel, then the terminal treatment on top (same thing
+        // a live watcher would have on screen).
+        render(p);
+        if (snap.error === 'cancelled by user') renderCancelled();
+        else renderFailed(snap.error || 'failed');
+        return;
+    }
+    // queued / running: live panel from the snapshot, then attach SSE.
+    // (A queued job's progress is just {phase:"queued"} — resolved_entity
+    // arrives with the first RUNNING write and render()'s banner hook
+    // catches it then.)
+    cancelBtn.hidden = false;
+    cancelBtn.disabled = false;
+    render(p);
+    startTimer(parseServerDate(snap.started_at));
+    watch(API_BASE + '/events');
+}
+
+async function bootstrap() {
+    if (!jobId) {
+        showNote('Research not found',
+                 'No research run matches this link — it may be mistyped.');
+        return;
+    }
+    let resp;
+    try {
+        resp = await fetch(API_BASE);
+    } catch (err) {
+        showNote('Connection problem',
+                 'Could not load this research run. Check your connection, ' +
+                 'then refresh this page to retry.');
+        return;
+    }
+    if (resp.status === 404 || resp.status === 422) {
+        // 422 = the API's uuid.UUID param rejecting a malformed id (R8) —
+        // the same friendly render as unknown.
+        showNote('Research not found',
+                 'No research run matches this link — it may be mistyped ' +
+                 'or very old.');
+        return;
+    }
+    if (resp.status === 410) {
+        showNote('This research has expired',
+                 'Reports are kept for 7 days, then permanently deleted.');
+        return;
+    }
+    if (!resp.ok) {
+        showNote('Something went wrong',
+                 'Unexpected error (' + resp.status + '). Refresh this page ' +
+                 'to retry.');
+        return;
+    }
+    let snap;
+    try {
+        snap = await resp.json();
+    } catch (err) {
+        showNote('Something went wrong',
+                 'Unexpected response. Refresh this page to retry.');
+        return;
+    }
+    renderFromSnapshot(snap);
+}
+
+bootstrap();
+</script>
+</body>
+</html>

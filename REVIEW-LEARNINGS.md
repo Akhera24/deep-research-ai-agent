@@ -93,6 +93,14 @@ plan or a diff, and address every applicable item so it never reaches review.
   bug (e.g. gap queries like `"John Smith" N wealth assets…`), never an error.
   *Origin: 2026-07-12 C1.7 builder checkpoint, human catch F1 — the gap-query
   scope term assumed the model's list shape.*
+- **Security corollary — a "no PII / no secret in the response" claim MUST be checked
+  against the TRANSPORT dict, not the response MODEL.** Proving the *raw* field is
+  absent (`JobStatus` has no `query`) does NOT prove a DERIVED copy is absent:
+  `progress.resolved_entity.canonical_name` (`jobs.py:312,413`) carries the subject's
+  display name inside the very dict the model returns. Grep the producer for every
+  nested/derived copy of the sensitive value before asserting non-exposure.
+  *Origin: 2026-07-13 run-page plan review R4 — "subject name not in any server
+  response" was false; the name rides in `progress.resolved_entity`.*
 
 ## Hostnames / origins
 - **When a plan changes an origin/hostname, grep for ALL server-side exact-match
@@ -103,4 +111,26 @@ plan or a diff, and address every applicable item so it never reaches review.
   the server-side pin and every submission 4xx's server-side even with the client
   fixed.
   *Origin: 2026-07-09 custom-domain research review.*
+
+## Moving a UI panel to a new page / component
+- **When a plan moves a UI panel (or its JS) to a new page/component, grep the
+  panel's event handlers for every symbol defined OUTSIDE it** — a sibling submit
+  button, the form, Turnstile, or shared flow-state (`btn`, `turnstile`, `form`,
+  `stashRejected`, `hintsBox`). "Move it wholesale" almost always hides a coupling
+  that throws `ReferenceError` on the new page, where those symbols don't exist. The
+  fix is usually to split the moved code into a page-agnostic part (safe to move) and
+  a page-aware part (rewritten for the new page).
+  *Origin: 2026-07-13 run-page plan review R1 — the SSE `completed`/`cancelled`
+  handlers referenced homepage-only form/refine symbols; moving `watch()` verbatim
+  would ReferenceError on every run completion.*
+
+## Cold-load / replay state machines
+- **A cold-load or reconnect/replay state-machine table IS the builder's spec — give
+  it a row for EVERY status the route(s) can produce, including ones prose mentions
+  only in passing.** A typed path param (`job_id: uuid.UUID`) emits a **422** on a
+  malformed value that an untyped page route (`str`) does not — so a `/page/{id}`
+  shell that fetches `/api/{id}` must handle the API's 422 (and 404/410) explicitly,
+  or a bad id renders a blank/broken page.
+  *Origin: 2026-07-13 run-page plan review R8 — the run page's cold-load table missed
+  the 422 (malformed-UUID) branch.*
 </content>

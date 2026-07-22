@@ -7,8 +7,11 @@ textContent-only, XSS-inert), auto-proceed banner + neutral cancel (R7),
 hints → both endpoints, refine + unscoped escape hatches, fail-open.
 """
 
+import re
 import threading
+import time
 
+import httpx
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -141,30 +144,30 @@ class TestAutoProceedAndCancel:
         ])
         _submit(page, server)
 
-        # auto-proceed: NO picker, straight to the banner
-        expect(page.locator("#picker")).to_be_hidden()
-        expect(page.locator("#status")).to_be_visible()
+        # auto-proceed: NO picker — navigated straight to the run page,
+        # banner reconstructed there (P0 deliberate revision: the run left
+        # the homepage; cancel→refine now crosses pages via dra_refine, R2)
+        page.wait_for_url(re.compile(r"/research/"))
         banner = page.locator("#assumption-banner")
         expect(banner).to_contain_text("Researching: Jane Doe — VP Engineering")
         cancel = page.locator("#banner-cancel")
-        expect(cancel).to_be_visible()
+        expect(cancel).to_be_visible()       # owner device → control renders
         expect(cancel).to_contain_text("Not who you meant?")
 
         cancel.click()
         expect(cancel).to_be_disabled()
         gate.set()      # next node boundary → CancelledByUser
 
-        # R7: neutral Cancelled UI, NOT the error state
-        expect(page.locator("#status-title")).to_have_text(
-            "Research cancelled", timeout=15000)
-        expect(page.locator("#phase")).to_contain_text("adjust the details")
-        # cancel hands the user back to refining: hints open, banner gone
+        # live cancel on the OWNER page → homepage with refine re-armed:
+        # hints open, query prefilled, submit enabled, one-shot key consumed
+        page.wait_for_url(f"{server}/", timeout=15000)
         assert page.locator("#hints").get_attribute("open") is not None
-        expect(banner).to_be_hidden()
+        expect(page.locator("#query")).to_have_value("Jane Doe")
         expect(page.locator("#submit-btn")).to_be_enabled()
+        assert page.evaluate("sessionStorage.getItem('dra_refine')") is None
 
-    def test_plain_cancel_button_in_status_works_too(self, server, page,
-                                                     set_script):
+    def test_plain_cancel_button_hands_back_too(self, server, page,
+                                                set_script):
         ScriptedPreflight.result = None      # default: auto scripted entity
         gate = threading.Event()
         set_script([
@@ -173,13 +176,17 @@ class TestAutoProceedAndCancel:
             ("progress", _p("fact_extraction")),
         ])
         _submit(page, server)
+        page.wait_for_url(re.compile(r"/research/"))
         expect(page.locator("#status")).to_be_visible()
         cancel = page.locator("#cancel-btn")
         expect(cancel).to_be_visible()
         cancel.click()
         gate.set()
-        expect(page.locator("#status-title")).to_have_text(
-            "Research cancelled", timeout=15000)
+        # same cross-page hand-back as the banner cancel (both buttons
+        # route through cancelJob → cancelRequestedHere)
+        page.wait_for_url(f"{server}/", timeout=15000)
+        assert page.locator("#hints").get_attribute("open") is not None
+        expect(page.locator("#query")).to_have_value("Jane Doe")
 
     def test_genuine_failure_still_renders_error_state(self, server, page,
                                                        set_script):
@@ -532,26 +539,31 @@ class TestRejectedEntities:
             if r.method == "POST" and "/api/" in r.url else None)
 
         _submit(page, server)
+        page.wait_for_url(re.compile(r"/research/"))
         expect(page.locator("#assumption-banner")).to_be_visible()
         page.click("#banner-cancel")
         gate.set()
-        expect(page.locator("#status-title")).to_have_text(
-            "Research cancelled", timeout=15000)
+        # P0 R2 (deliberate revision): the stash now crosses pages — the
+        # run page writes dra_refine, the homepage re-arms it on load.
+        page.wait_for_url(f"{server}/", timeout=15000)
+        assert page.locator("#hints").get_attribute("open") is not None
 
         # resubmit the SAME query → the cancelled entity rides as rejected
         set_script([("progress", _p("data_collection"))])
         page.click("#submit-btn")
-        expect(page.locator("#status-title")).to_contain_text(
-            "Research complete", timeout=15000)
+        page.wait_for_url(re.compile(r"/research/"), timeout=15000)
         dis = [_json.loads(b) for b in bodies["/api/disambiguate"]]
         assert dis[1]["rejected_entities"] == [
             "Jane Doe — VP Engineering, Stripe (San Francisco)"]
+        res = [_json.loads(b) for b in bodies["/api/research"]]
+        assert res[1]["rejected_entities"] == dis[1]["rejected_entities"]
 
-        # a DIFFERENT name clears the stash — no misfired negative scope
+        # a DIFFERENT name from a fresh homepage carries no stale scope
+        page.goto(server)
+        set_script([("progress", _p("data_collection"))])
         page.fill("#query", "Someone Else")
         page.click("#submit-btn")
-        expect(page.locator("#status-title")).to_contain_text(
-            "Research complete", timeout=15000)
+        page.wait_for_url(re.compile(r"/research/"), timeout=15000)
         assert "rejected_entities" not in _json.loads(
             bodies["/api/disambiguate"][2])
 
@@ -581,15 +593,34 @@ class TestNewInputRearmsSubmit:
             "Research complete", timeout=15000)
         assert ScriptedPreflight.last["query"] == "Someone Else"
 
-    def test_typing_during_run_does_not_reenable(self, server, page,
-                                                 set_script):
-        # picker hidden during a run — editing the field must NOT re-arm
+    def test_home_nav_from_run_page_never_cancels_the_job(self, server, page,
+                                                          set_script):
+        # P0 D4 (deliberate revision): the old invariant — typing during an
+        # in-page run must not re-arm submit — is obsolete: the run left the
+        # homepage entirely. Its successor: leaving the run page via the
+        # nav's Home does NOT cancel the job, and the homepage returns
+        # fresh (submit enabled, hints closed — no refine re-arm without a
+        # cancel).
         gate = threading.Event()
-        set_script([("progress", _p("data_collection")), ("gate", gate)])
+        set_script([("progress", _p("data_collection")), ("gate", gate),
+                    ("progress", _p("fact_extraction", facts=1))])
         _submit(page, server)
-        expect(page.locator("#status")).to_be_visible()
-        page.fill("#query", "Another Name")
-        expect(page.locator("#submit-btn")).to_be_disabled()
+        page.wait_for_url(re.compile(r"/research/"))
+        job_id = page.url.rsplit("/", 1)[-1]
+
+        page.click("#site-nav .nav-brand")
+        page.wait_for_url(f"{server}/")
+        expect(page.locator("#submit-btn")).to_be_enabled()
+        assert page.locator("#hints").get_attribute("open") is None
+
+        r = httpx.get(f"{server}/api/research/{job_id}")
+        assert r.json()["status"] == "running"      # navigation ≠ cancel
         gate.set()
-        expect(page.locator("#status-title")).to_contain_text(
-            "Research complete", timeout=15000)
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            if httpx.get(f"{server}/api/research/{job_id}"
+                         ).json()["status"] == "completed":
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("job did not complete after Home nav")

@@ -1,0 +1,89 @@
+{# P0 Step 1 (D2/R1/R7): page-AGNOSTIC helpers shared by index.html and
+   run.html. Storage primitives + the dra_* key contract + REDUCED_MOTION —
+   NOTHING page-specific lands here (no render code, no terminal handlers,
+   no Turnstile). Loaded before each page's own script; declarations are
+   global lexical bindings, so pages must not redeclare them. #}
+<script>
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- P0 device-local storage contract (plan D3/R5, human 2026-07-13) ----
+// dra_history_v1 (localStorage): DISPLAY list for "Your recent runs" —
+//   array, most-recent-first, cap 20, of {jobId, label, createdAt, status,
+//   grade?}. label = the query the user typed (stays on-device).
+// dra_owned_v1 (localStorage): OWNERSHIP map {jobId: {query, createdAt}} —
+//   jobs started on THIS device. Separate from the display list so "Clear
+//   history" never strips control of a live run; carries the query because
+//   JobStatus deliberately has no query field. 5B-lite: UX deterrence, not
+//   auth — the endpoints stay UUID-gated.
+// dra_refine (sessionStorage): one-shot cancel→refine hand-back
+//   {v, descriptor, query} written by the run page's live-cancel path and
+//   read-then-cleared by the homepage on load (R2). Tab-scoped by design.
+const HISTORY_KEY = 'dra_history_v1';
+const OWNED_KEY = 'dra_owned_v1';
+const REFINE_KEY = 'dra_refine';
+const HISTORY_CAP = 20;
+const CLIENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // matches server retention
+
+// Every storage touch is try/catch-wrapped: Safari private mode throws on
+// setItem, hardened contexts throw on ANY storage access — the app must
+// keep working with storage absent (history/ownership silently missing).
+function lsGetJSON(key) {
+    try {
+        const v = window.localStorage.getItem(key);
+        return v ? JSON.parse(v) : null;
+    } catch (err) { return null; }
+}
+function lsSetJSON(key, value) {
+    try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (err) { return false; }
+}
+function lsRemove(key) {
+    try { window.localStorage.removeItem(key); } catch (err) { /* absent */ }
+}
+function ssSetJSON(key, value) {
+    try {
+        window.sessionStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (err) { return false; }
+}
+// Read-and-clear: the refine hand-back is one-shot — clearing BEFORE the
+// caller acts means a crash mid-re-arm can never loop.
+function ssTakeJSON(key) {
+    try {
+        const v = window.sessionStorage.getItem(key);
+        window.sessionStorage.removeItem(key);
+        return v ? JSON.parse(v) : null;
+    } catch (err) { return null; }
+}
+
+// Entries past the 7-day retention are dropped on read; a FUTURE createdAt
+// (clock skew, edge #13) is kept, never pruned.
+function isStale(createdAt, now) {
+    const t = Date.parse(createdAt || '');
+    return !isNaN(t) && t <= now && (now - t) > CLIENT_TTL_MS;
+}
+
+function readOwned() {
+    const m = lsGetJSON(OWNED_KEY);
+    if (!m || typeof m !== 'object' || Array.isArray(m)) return {};
+    const now = Date.now();
+    let changed = false;
+    for (const id of Object.keys(m)) {
+        if (!m[id] || typeof m[id] !== 'object' ||
+                isStale(m[id].createdAt, now)) {
+            delete m[id];
+            changed = true;
+        }
+    }
+    if (changed) lsSetJSON(OWNED_KEY, m);
+    return m;
+}
+function ownJob(jobId, query) {
+    const m = readOwned();
+    m[jobId] = {query: String(query || '').slice(0, 200),
+                createdAt: new Date().toISOString()};
+    lsSetJSON(OWNED_KEY, m);
+}
+</script>
